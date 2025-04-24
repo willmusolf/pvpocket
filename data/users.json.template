@@ -1,0 +1,10 @@
+{
+  "example_user_id": {
+    "username": "example_user",
+    "password": "hashed_password_will_be_here",
+    "created_at": "YYYY-MM-DD HH:MM:SS",
+    "decks": [
+      "example_deck_id"
+    ]
+  }
+}

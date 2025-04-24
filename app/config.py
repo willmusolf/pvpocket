@@ -1,9 +1,11 @@
 import os
 from datetime import timedelta
 
+import secrets
+
 class Config:
-    # Secret key for sessions and security
-    SECRET_KEY = 'pokemon_tcg_pocket_secret'
+    # Secret key for sessions and security - auto-generated for security
+    SECRET_KEY = os.environ.get('SECRET_KEY', secrets.token_hex(24))
     
     # Session configuration
     PERMANENT_SESSION_LIFETIME = timedelta(days=30)

@@ -22,6 +22,18 @@ A web application for managing Pokemon Trading Card Game collections, building d
    python run.py
    ```
 
+That's it! The app will automatically:
+- Generate a secure secret key
+- Create necessary directories and files
+- Set up the database if it doesn't exist
+
+## Security Notes
+
+This repository is configured to exclude sensitive information:
+- User data and passwords are not stored in the repository
+- Database files are excluded from Git
+- Secret keys are auto-generated and not committed
+
 ## Project Structure
 
 - `/app` - Flask application and routes

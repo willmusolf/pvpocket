@@ -45,8 +45,12 @@ Thumbs.db
 .env.production
 .flaskenv
 
-# User data
+# User data and decks
 data/users.json
+data/*.json
+!data/*.template
+decks/*.json
+!decks/*template.json
 
 # IDE specific files
 .idea/
