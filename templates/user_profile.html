@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile - Pokémon TCG Pocket{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-card {
+        transition: transform 0.3s;
+        height: 100%;
+    }
+    
+    .stats-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .profile-header {
+        background-color: #f8f9fa;
+        border-radius: 10px;
+        padding: 30px;
+        margin-bottom: 30px;
+    }
+    
+    .avatar-container {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background-color: #e9ecef;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 15px;
+    }
+    
+    .avatar-placeholder {
+        font-size: 48px;
+        color: #6c757d;
+    }
+    
+    .settings-section {
+        background-color: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        margin-top: 30px;
+    }
+    
+    .badge-pill {
+        border-radius: 50rem;
+        padding: 0.35em 0.65em;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Profile Header -->
+    <div class="profile-header d-flex flex-wrap">
+        <div class="text-center me-md-4">
+            <div class="avatar-container mx-auto">
+                <div class="avatar-placeholder">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+            </div>
+            <button class="btn btn-sm btn-outline-secondary" disabled>Change Avatar</button>
+        </div>
+        <div class="flex-grow-1 mt-4 mt-md-0">
+            <h1 class="mb-1">{{ user.username }}</h1>
+            <p class="text-muted mb-3">{{ user.email }}</p>
+            <p><i class="fas fa-calendar-alt"></i> Member since: {{ user.created_at.split('T')[0] if 'T' in user.created_at else user.created_at }}</p>
+            {% if user.last_login %}
+            <p><i class="fas fa-clock"></i> Last login: {{ user.last_login.split('T')[0] if 'T' in user.last_login else user.last_login }}</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- User Stats -->
+    <h2 class="mb-4">My Stats</h2>
+    <div class="row mb-5">
+        <div class="col-md-3 mb-4">
+            <div class="card stats-card text-center">
+                <div class="card-body">
+                    <h1 class="display-4 mb-0">{{ decks|length }}</h1>
+                    <p class="text-muted">Decks Created</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card stats-card text-center">
+                <div class="card-body">
+                    <h1 class="display-4 mb-0">{{ battles|length }}</h1>
+                    <p class="text-muted">Battles Played</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card stats-card text-center">
+                <div class="card-body">
+                    {% set total_wins = 0 %}
+                    {% for battle in battles %}
+                        {% if battle.winner == user.username %}
+                            {% set total_wins = total_wins + 1 %}
+                        {% endif %}
+                    {% endfor %}
+                    <h1 class="display-4 mb-0">{{ total_wins }}</h1>
+                    <p class="text-muted">Wins</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card stats-card text-center">
+                <div class="card-body">
+                    {% set total_wins = 0 %}
+                    {% for battle in battles %}
+                        {% if battle.winner == user.username %}
+                            {% set total_wins = total_wins + 1 %}
+                        {% endif %}
+                    {% endfor %}
+                    {% if battles|length > 0 %}
+                        {% set win_rate = (total_wins / battles|length * 100)|round|int %}
+                    {% else %}
+                        {% set win_rate = 0 %}
+                    {% endif %}
+                    <h1 class="display-4 mb-0">{{ win_rate }}%</h1>
+                    <p class="text-muted">Win Rate</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Collections Link -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-4">
+                    <h3 class="mb-3">View Your Collection</h3>
+                    <p>Manage your decks and cards in your collection</p>
+                    <a href="{{ url_for('collection_bp.view_collection') }}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-folder-open me-2"></i> Go to My Collection
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Link to Settings Page -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-4">
+                    <h3 class="mb-3">Account Settings</h3>
+                    <p>Change your password, update your email, or manage your account</p>
+                    <a href="{{ url_for('auth.user_settings') }}" class="btn btn-secondary btn-lg">
+                        <i class="fas fa-cog me-2"></i> Go to Settings
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

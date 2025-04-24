@@ -1,0 +1,51 @@
+<div class="container">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('main.index') }}">Pokémon TCG Pocket</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <!-- Main navigation items - Battle Simulator first as requested -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('decks.list_decks') }}">Deck Builder</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('collection_bp.view_collection') }}">My Collection</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('battle.battle') }}">Battle Simulator</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('meta.meta_rankings') }}">Meta Rankings</a>
+                    </li>
+                </ul>
+                
+                <!-- User account dropdown on the right -->
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user-circle"></i>
+                            {% if user_logged_in %}
+                            {{ username }}
+                            {% else %}
+                            Account
+                            {% endif %}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                            {% if user_logged_in %}
+                            <li><a class="dropdown-item" href="{{ url_for('auth.user_profile') }}">Profile</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('auth.user_settings') }}">Settings</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Logout</a></li>
+                            {% else %}
+                            <li><a class="dropdown-item" href="{{ url_for('auth.login') }}">Login</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('auth.signup') }}">Sign Up</a></li>
+                            {% endif %}
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>

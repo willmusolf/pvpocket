@@ -1,0 +1,482 @@
+{
+  "name": "tesionoiSDNGoinsdoignsdonlgoInsdoingnglsindgkjsdklgn",
+  "deck_types": [
+    "Grass"
+  ],
+  "cards": [
+    {
+      "id": 11,
+      "name": "Magmar",
+      "energy_type": "Fire",
+      "set_name": "Shining Revelry",
+      "set_code": "A2b",
+      "card_number": "11",
+      "card_type": "Pok\u00e9mon - Basic",
+      "hp": 70,
+      "attacks": [
+        {
+          "name": "Flare",
+          "cost": [
+            "R"
+          ],
+          "damage": "20",
+          "effect": ""
+        }
+      ],
+      "weakness": "Water",
+      "retreat_cost": 1,
+      "illustrator": "Miki Tanaka",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A2b/A2b_011_EN.webp",
+      "rarity": "\u25ca",
+      "pack": ""
+    },
+    {
+      "id": 16,
+      "name": "Buizel",
+      "energy_type": "Water",
+      "set_name": "Shining Revelry",
+      "set_code": "A2b",
+      "card_number": "16",
+      "card_type": "Pok\u00e9mon - Basic",
+      "hp": 70,
+      "attacks": [
+        {
+          "name": "Water Gun",
+          "cost": [
+            "W"
+          ],
+          "damage": "10",
+          "effect": ""
+        }
+      ],
+      "weakness": "Lightning",
+      "retreat_cost": 1,
+      "illustrator": "sui",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A2b/A2b_016_EN.webp",
+      "rarity": "\u25ca",
+      "pack": ""
+    },
+    {
+      "id": 16,
+      "name": "Buizel",
+      "energy_type": "Water",
+      "set_name": "Shining Revelry",
+      "set_code": "A2b",
+      "card_number": "16",
+      "card_type": "Pok\u00e9mon - Basic",
+      "hp": 70,
+      "attacks": [
+        {
+          "name": "Water Gun",
+          "cost": [
+            "W"
+          ],
+          "damage": "10",
+          "effect": ""
+        }
+      ],
+      "weakness": "Lightning",
+      "retreat_cost": 1,
+      "illustrator": "sui",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A2b/A2b_016_EN.webp",
+      "rarity": "\u25ca",
+      "pack": ""
+    },
+    {
+      "id": 4,
+      "name": "Pinsir",
+      "energy_type": "Grass",
+      "set_name": "Shining Revelry",
+      "set_code": "A2b",
+      "card_number": "4",
+      "card_type": "Pok\u00e9mon - Basic",
+      "hp": 90,
+      "attacks": [
+        {
+          "name": "Guillotine Rush",
+          "cost": [
+            "GCC"
+          ],
+          "damage": "50+",
+          "effect": "Flip a coin until you get tails. This attack does 40 more damage for each heads."
+        }
+      ],
+      "weakness": "Fire",
+      "retreat_cost": 2,
+      "illustrator": "Satoshi Shirai",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A2b/A2b_004_EN.webp",
+      "rarity": "\u25ca",
+      "pack": ""
+    },
+    {
+      "id": 4,
+      "name": "Pinsir",
+      "energy_type": "Grass",
+      "set_name": "Shining Revelry",
+      "set_code": "A2b",
+      "card_number": "4",
+      "card_type": "Pok\u00e9mon - Basic",
+      "hp": 90,
+      "attacks": [
+        {
+          "name": "Guillotine Rush",
+          "cost": [
+            "GCC"
+          ],
+          "damage": "50+",
+          "effect": "Flip a coin until you get tails. This attack does 40 more damage for each heads."
+        }
+      ],
+      "weakness": "Fire",
+      "retreat_cost": 2,
+      "illustrator": "Satoshi Shirai",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A2b/A2b_004_EN.webp",
+      "rarity": "\u25ca",
+      "pack": ""
+    },
+    {
+      "id": 3,
+      "name": "Beedrill ex",
+      "energy_type": "Grass",
+      "set_name": "Shining Revelry",
+      "set_code": "A2b",
+      "card_number": "3",
+      "card_type": "Pok\u00e9mon - Stage 2 - Evolves from Kakuna",
+      "hp": 170,
+      "attacks": [],
+      "weakness": "Fire",
+      "retreat_cost": 1,
+      "illustrator": "PLANETA Igarashi",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A2b/A2b_003_EN.webp",
+      "rarity": "\u25ca\u25ca\u25ca\u25ca",
+      "pack": ""
+    },
+    {
+      "id": 3,
+      "name": "Beedrill ex",
+      "energy_type": "Grass",
+      "set_name": "Shining Revelry",
+      "set_code": "A2b",
+      "card_number": "3",
+      "card_type": "Pok\u00e9mon - Stage 2 - Evolves from Kakuna",
+      "hp": 170,
+      "attacks": [],
+      "weakness": "Fire",
+      "retreat_cost": 1,
+      "illustrator": "PLANETA Igarashi",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A2b/A2b_003_EN.webp",
+      "rarity": "\u25ca\u25ca\u25ca\u25ca",
+      "pack": ""
+    },
+    {
+      "id": 2,
+      "name": "Kakuna",
+      "energy_type": "Grass",
+      "set_name": "Shining Revelry",
+      "set_code": "A2b",
+      "card_number": "2",
+      "card_type": "Pok\u00e9mon - Stage 1 - Evolves from Weedle",
+      "hp": 80,
+      "attacks": [],
+      "weakness": "Fire",
+      "retreat_cost": 2,
+      "illustrator": "Yuka Morii",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A2b/A2b_002_EN.webp",
+      "rarity": "\u25ca\u25ca",
+      "pack": ""
+    },
+    {
+      "id": 2,
+      "name": "Kakuna",
+      "energy_type": "Grass",
+      "set_name": "Shining Revelry",
+      "set_code": "A2b",
+      "card_number": "2",
+      "card_type": "Pok\u00e9mon - Stage 1 - Evolves from Weedle",
+      "hp": 80,
+      "attacks": [],
+      "weakness": "Fire",
+      "retreat_cost": 2,
+      "illustrator": "Yuka Morii",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A2b/A2b_002_EN.webp",
+      "rarity": "\u25ca\u25ca",
+      "pack": ""
+    },
+    {
+      "id": 1,
+      "name": "Weedle",
+      "energy_type": "Grass",
+      "set_name": "Shining Revelry",
+      "set_code": "A2b",
+      "card_number": "1",
+      "card_type": "Pok\u00e9mon - Basic",
+      "hp": 50,
+      "attacks": [
+        {
+          "name": "Multiply",
+          "cost": [
+            "G"
+          ],
+          "damage": "0",
+          "effect": "Put 1 random Weedle from your deck onto your Bench."
+        }
+      ],
+      "weakness": "Fire",
+      "retreat_cost": 1,
+      "illustrator": "Akira Komayama",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A2b/A2b_001_EN.webp",
+      "rarity": "\u25ca",
+      "pack": ""
+    },
+    {
+      "id": 1,
+      "name": "Weedle",
+      "energy_type": "Grass",
+      "set_name": "Shining Revelry",
+      "set_code": "A2b",
+      "card_number": "1",
+      "card_type": "Pok\u00e9mon - Basic",
+      "hp": 50,
+      "attacks": [
+        {
+          "name": "Multiply",
+          "cost": [
+            "G"
+          ],
+          "damage": "0",
+          "effect": "Put 1 random Weedle from your deck onto your Bench."
+        }
+      ],
+      "weakness": "Fire",
+      "retreat_cost": 1,
+      "illustrator": "Akira Komayama",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A2b/A2b_001_EN.webp",
+      "rarity": "\u25ca",
+      "pack": ""
+    },
+    {
+      "id": 7,
+      "name": "Meowscarada",
+      "energy_type": "Grass",
+      "set_name": "Shining Revelry",
+      "set_code": "A2b",
+      "card_number": "7",
+      "card_type": "Pok\u00e9mon - Stage 2 - Evolves from Floragato",
+      "hp": 140,
+      "attacks": [],
+      "weakness": "Fire",
+      "retreat_cost": 1,
+      "illustrator": "mashu",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A2b/A2b_007_EN.webp",
+      "rarity": "\u25ca\u25ca\u25ca",
+      "pack": ""
+    },
+    {
+      "id": 7,
+      "name": "Meowscarada",
+      "energy_type": "Grass",
+      "set_name": "Shining Revelry",
+      "set_code": "A2b",
+      "card_number": "7",
+      "card_type": "Pok\u00e9mon - Stage 2 - Evolves from Floragato",
+      "hp": 140,
+      "attacks": [],
+      "weakness": "Fire",
+      "retreat_cost": 1,
+      "illustrator": "mashu",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A2b/A2b_007_EN.webp",
+      "rarity": "\u25ca\u25ca\u25ca",
+      "pack": ""
+    },
+    {
+      "id": 8,
+      "name": "Charmander",
+      "energy_type": "Fire",
+      "set_name": "Shining Revelry",
+      "set_code": "A2b",
+      "card_number": "8",
+      "card_type": "Pok\u00e9mon - Basic",
+      "hp": 60,
+      "attacks": [
+        {
+          "name": "Combustion",
+          "cost": [
+            "R"
+          ],
+          "damage": "20",
+          "effect": ""
+        }
+      ],
+      "weakness": "Water",
+      "retreat_cost": 1,
+      "illustrator": "Megumi Mizutani",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A2b/A2b_008_EN.webp",
+      "rarity": "\u25ca",
+      "pack": ""
+    },
+    {
+      "id": 8,
+      "name": "Charmander",
+      "energy_type": "Fire",
+      "set_name": "Shining Revelry",
+      "set_code": "A2b",
+      "card_number": "8",
+      "card_type": "Pok\u00e9mon - Basic",
+      "hp": 60,
+      "attacks": [
+        {
+          "name": "Combustion",
+          "cost": [
+            "R"
+          ],
+          "damage": "20",
+          "effect": ""
+        }
+      ],
+      "weakness": "Water",
+      "retreat_cost": 1,
+      "illustrator": "Megumi Mizutani",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A2b/A2b_008_EN.webp",
+      "rarity": "\u25ca",
+      "pack": ""
+    },
+    {
+      "id": 9,
+      "name": "Charmeleon",
+      "energy_type": "Fire",
+      "set_name": "Shining Revelry",
+      "set_code": "A2b",
+      "card_number": "9",
+      "card_type": "Pok\u00e9mon - Stage 1 - Evolves from Charmander",
+      "hp": 90,
+      "attacks": [
+        {
+          "name": "Combustion",
+          "cost": [
+            "RR"
+          ],
+          "damage": "40",
+          "effect": ""
+        }
+      ],
+      "weakness": "Water",
+      "retreat_cost": 2,
+      "illustrator": "kodama",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A2b/A2b_009_EN.webp",
+      "rarity": "\u25ca\u25ca",
+      "pack": ""
+    },
+    {
+      "id": 9,
+      "name": "Charmeleon",
+      "energy_type": "Fire",
+      "set_name": "Shining Revelry",
+      "set_code": "A2b",
+      "card_number": "9",
+      "card_type": "Pok\u00e9mon - Stage 1 - Evolves from Charmander",
+      "hp": 90,
+      "attacks": [
+        {
+          "name": "Combustion",
+          "cost": [
+            "RR"
+          ],
+          "damage": "40",
+          "effect": ""
+        }
+      ],
+      "weakness": "Water",
+      "retreat_cost": 2,
+      "illustrator": "kodama",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A2b/A2b_009_EN.webp",
+      "rarity": "\u25ca\u25ca",
+      "pack": ""
+    },
+    {
+      "id": 10,
+      "name": "Charizard ex",
+      "energy_type": "Fire",
+      "set_name": "Shining Revelry",
+      "set_code": "A2b",
+      "card_number": "10",
+      "card_type": "Pok\u00e9mon - Stage 2 - Evolves from Charmeleon",
+      "hp": 180,
+      "attacks": [
+        {
+          "name": "Stoke",
+          "cost": [
+            "R"
+          ],
+          "damage": "0",
+          "effect": "Take 3 [R] Energy from your Energy Zone and attach it to this Pok\u00e9mon."
+        },
+        {
+          "name": "Steam Artillery",
+          "cost": [
+            "RRRCC"
+          ],
+          "damage": "150",
+          "effect": ""
+        }
+      ],
+      "weakness": "Water",
+      "retreat_cost": 3,
+      "illustrator": "PLANETA Igarashi",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A2b/A2b_010_EN.webp",
+      "rarity": "\u25ca\u25ca\u25ca\u25ca",
+      "pack": ""
+    },
+    {
+      "id": 10,
+      "name": "Charizard ex",
+      "energy_type": "Fire",
+      "set_name": "Shining Revelry",
+      "set_code": "A2b",
+      "card_number": "10",
+      "card_type": "Pok\u00e9mon - Stage 2 - Evolves from Charmeleon",
+      "hp": 180,
+      "attacks": [
+        {
+          "name": "Stoke",
+          "cost": [
+            "R"
+          ],
+          "damage": "0",
+          "effect": "Take 3 [R] Energy from your Energy Zone and attach it to this Pok\u00e9mon."
+        },
+        {
+          "name": "Steam Artillery",
+          "cost": [
+            "RRRCC"
+          ],
+          "damage": "150",
+          "effect": ""
+        }
+      ],
+      "weakness": "Water",
+      "retreat_cost": 3,
+      "illustrator": "PLANETA Igarashi",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A2b/A2b_010_EN.webp",
+      "rarity": "\u25ca\u25ca\u25ca\u25ca",
+      "pack": ""
+    },
+    {
+      "id": 12,
+      "name": "Magmortar",
+      "energy_type": "Fire",
+      "set_name": "Shining Revelry",
+      "set_code": "A2b",
+      "card_number": "12",
+      "card_type": "Pok\u00e9mon - Stage 1 - Evolves from Magmar",
+      "hp": 120,
+      "attacks": [],
+      "weakness": "Water",
+      "retreat_cost": 3,
+      "illustrator": "Miki Tanaka",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A2b/A2b_012_EN.webp",
+      "rarity": "\u25ca\u25ca\u25ca",
+      "pack": ""
+    }
+  ],
+  "cover_card_id": 11
+}

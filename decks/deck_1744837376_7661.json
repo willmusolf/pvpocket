@@ -1,0 +1,473 @@
+{
+  "name": "palkia/manaphy",
+  "deck_types": [
+    "Water"
+  ],
+  "cards": [
+    {
+      "id": 413,
+      "name": "Palkia ex",
+      "energy_type": "Water",
+      "set_name": "Space-Time Smackdown",
+      "set_code": "A2",
+      "card_number": "206",
+      "card_type": "Pok\u00e9mon - Basic",
+      "hp": 150,
+      "attacks": [],
+      "weakness": "Lightning",
+      "retreat_cost": 2,
+      "illustrator": "PLANETA CG Works",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A2/A2_206_EN.webp",
+      "rarity": "Crown Rare",
+      "pack": ""
+    },
+    {
+      "id": 411,
+      "name": "Palkia ex",
+      "energy_type": "Water",
+      "set_name": "Space-Time Smackdown",
+      "set_code": "A2",
+      "card_number": "204",
+      "card_type": "Pok\u00e9mon - Basic",
+      "hp": 150,
+      "attacks": [],
+      "weakness": "Lightning",
+      "retreat_cost": 2,
+      "illustrator": "N-DESIGN Inc.",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A2/A2_204_EN.webp",
+      "rarity": "\u2606\u2606\u2606",
+      "pack": "Palkia"
+    },
+    {
+      "id": 369,
+      "name": "Manaphy",
+      "energy_type": "Water",
+      "set_name": "Space-Time Smackdown",
+      "set_code": "A2",
+      "card_number": "162",
+      "card_type": "Pok\u00e9mon - Basic",
+      "hp": 50,
+      "attacks": [
+        {
+          "name": "Oceanic Gift",
+          "cost": [
+            "W"
+          ],
+          "damage": "0",
+          "effect": "Choose 2 of your Benched Pok\u00e9mon. For each of those Pok\u00e9mon, take a [W] Energy from your Energy Zone and attach it to that Pok\u00e9mon."
+        }
+      ],
+      "weakness": "Lightning",
+      "retreat_cost": 1,
+      "illustrator": "miki kudo",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A2/A2_162_EN.webp",
+      "rarity": "\u2606",
+      "pack": "Palkia"
+    },
+    {
+      "id": 369,
+      "name": "Manaphy",
+      "energy_type": "Water",
+      "set_name": "Space-Time Smackdown",
+      "set_code": "A2",
+      "card_number": "162",
+      "card_type": "Pok\u00e9mon - Basic",
+      "hp": 50,
+      "attacks": [
+        {
+          "name": "Oceanic Gift",
+          "cost": [
+            "W"
+          ],
+          "damage": "0",
+          "effect": "Choose 2 of your Benched Pok\u00e9mon. For each of those Pok\u00e9mon, take a [W] Energy from your Energy Zone and attach it to that Pok\u00e9mon."
+        }
+      ],
+      "weakness": "Lightning",
+      "retreat_cost": 1,
+      "illustrator": "miki kudo",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A2/A2_162_EN.webp",
+      "rarity": "\u2606",
+      "pack": "Palkia"
+    },
+    {
+      "id": 486,
+      "name": "Vaporeon",
+      "energy_type": "Water",
+      "set_name": "Mythical Island",
+      "set_code": "A1a",
+      "card_number": "72",
+      "card_type": "Pok\u00e9mon - Stage 1 - Evolves from Eevee",
+      "hp": 120,
+      "attacks": [
+        {
+          "name": "Wave Splash",
+          "cost": [
+            "WCC"
+          ],
+          "damage": "60",
+          "effect": ""
+        }
+      ],
+      "weakness": "Lightning",
+      "retreat_cost": 2,
+      "illustrator": "aspara",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A1a/A1a_072_EN.webp",
+      "rarity": "\u2606",
+      "pack": "Mew"
+    },
+    {
+      "id": 486,
+      "name": "Vaporeon",
+      "energy_type": "Water",
+      "set_name": "Mythical Island",
+      "set_code": "A1a",
+      "card_number": "72",
+      "card_type": "Pok\u00e9mon - Stage 1 - Evolves from Eevee",
+      "hp": 120,
+      "attacks": [
+        {
+          "name": "Wave Splash",
+          "cost": [
+            "WCC"
+          ],
+          "damage": "60",
+          "effect": ""
+        }
+      ],
+      "weakness": "Lightning",
+      "retreat_cost": 2,
+      "illustrator": "aspara",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A1a/A1a_072_EN.webp",
+      "rarity": "\u2606",
+      "pack": "Mew"
+    },
+    {
+      "id": 475,
+      "name": "Eevee",
+      "energy_type": "Colorless",
+      "set_name": "Mythical Island",
+      "set_code": "A1a",
+      "card_number": "61",
+      "card_type": "Pok\u00e9mon - Basic",
+      "hp": 60,
+      "attacks": [
+        {
+          "name": "Continuous Steps",
+          "cost": [
+            "C"
+          ],
+          "damage": "20x",
+          "effect": "Flip a coin until you get tails. This attack does 20 damage for each heads."
+        }
+      ],
+      "weakness": "Fighting",
+      "retreat_cost": 1,
+      "illustrator": "Hitoshi Ariga",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A1a/A1a_061_EN.webp",
+      "rarity": "\u25ca",
+      "pack": "Mew"
+    },
+    {
+      "id": 475,
+      "name": "Eevee",
+      "energy_type": "Colorless",
+      "set_name": "Mythical Island",
+      "set_code": "A1a",
+      "card_number": "61",
+      "card_type": "Pok\u00e9mon - Basic",
+      "hp": 60,
+      "attacks": [
+        {
+          "name": "Continuous Steps",
+          "cost": [
+            "C"
+          ],
+          "damage": "20x",
+          "effect": "Flip a coin until you get tails. This attack does 20 damage for each heads."
+        }
+      ],
+      "weakness": "Fighting",
+      "retreat_cost": 1,
+      "illustrator": "Hitoshi Ariga",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A1a/A1a_061_EN.webp",
+      "rarity": "\u25ca",
+      "pack": "Mew"
+    },
+    {
+      "id": 355,
+      "name": "Rocky Helmet",
+      "energy_type": "",
+      "set_name": "Space-Time Smackdown",
+      "set_code": "A2",
+      "card_number": "148",
+      "card_type": "Trainer - Tool",
+      "hp": null,
+      "attacks": [],
+      "weakness": "",
+      "retreat_cost": null,
+      "illustrator": "Ayaka Yoshida",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A2/A2_148_EN.webp",
+      "rarity": "\u25ca\u25ca",
+      "pack": "Palkia"
+    },
+    {
+      "id": 354,
+      "name": "Giant Cape",
+      "energy_type": "",
+      "set_name": "Space-Time Smackdown",
+      "set_code": "A2",
+      "card_number": "147",
+      "card_type": "Trainer - Tool",
+      "hp": null,
+      "attacks": [
+        {
+          "name": "Effect",
+          "cost": [],
+          "damage": "",
+          "effect": "The Pok\u00e9mon this card is attached to gets +20 HP. Illustrated byRyo Ueda"
+        }
+      ],
+      "weakness": "",
+      "retreat_cost": null,
+      "illustrator": "Ryo Ueda",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A2/A2_147_EN.webp",
+      "rarity": "\u25ca\u25ca",
+      "pack": "Dialga"
+    },
+    {
+      "id": 111,
+      "name": "Pok\u00e9 Ball",
+      "energy_type": "",
+      "set_name": "Shining Revelry",
+      "set_code": "A2b",
+      "card_number": "111",
+      "card_type": "Trainer - Item",
+      "hp": null,
+      "attacks": [
+        {
+          "name": "Effect",
+          "cost": [],
+          "damage": "",
+          "effect": "Put 1 random Basic Pokemon from your deck into your hand. Illustrated byToyste Beach"
+        }
+      ],
+      "weakness": "",
+      "retreat_cost": null,
+      "illustrator": "Toyste Beach",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A2b/A2b_111_EN.webp",
+      "rarity": "Crown Rare",
+      "pack": ""
+    },
+    {
+      "id": 111,
+      "name": "Pok\u00e9 Ball",
+      "energy_type": "",
+      "set_name": "Shining Revelry",
+      "set_code": "A2b",
+      "card_number": "111",
+      "card_type": "Trainer - Item",
+      "hp": null,
+      "attacks": [
+        {
+          "name": "Effect",
+          "cost": [],
+          "damage": "",
+          "effect": "Put 1 random Basic Pokemon from your deck into your hand. Illustrated byToyste Beach"
+        }
+      ],
+      "weakness": "",
+      "retreat_cost": null,
+      "illustrator": "Toyste Beach",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A2b/A2b_111_EN.webp",
+      "rarity": "Crown Rare",
+      "pack": ""
+    },
+    {
+      "id": 767,
+      "name": "Misty",
+      "energy_type": "",
+      "set_name": "Genetic Apex",
+      "set_code": "A1",
+      "card_number": "267",
+      "card_type": "Trainer - Supporter",
+      "hp": null,
+      "attacks": [
+        {
+          "name": "Effect",
+          "cost": [],
+          "damage": "",
+          "effect": "Choose 1 of your[W]Pok\u00e9mon, and flip a coin until you get tails. For each heads, take a[W]Energy from your Energy Zone and attach it to that Pok\u00e9mon. Illustrated bySanosuke Sakuma"
+        }
+      ],
+      "weakness": "",
+      "retreat_cost": null,
+      "illustrator": "Sanosuke Sakuma",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A1/A1_267_EN.webp",
+      "rarity": "\u2606\u2606",
+      "pack": "Pikachu"
+    },
+    {
+      "id": 767,
+      "name": "Misty",
+      "energy_type": "",
+      "set_name": "Genetic Apex",
+      "set_code": "A1",
+      "card_number": "267",
+      "card_type": "Trainer - Supporter",
+      "hp": null,
+      "attacks": [
+        {
+          "name": "Effect",
+          "cost": [],
+          "damage": "",
+          "effect": "Choose 1 of your[W]Pok\u00e9mon, and flip a coin until you get tails. For each heads, take a[W]Energy from your Energy Zone and attach it to that Pok\u00e9mon. Illustrated bySanosuke Sakuma"
+        }
+      ],
+      "weakness": "",
+      "retreat_cost": null,
+      "illustrator": "Sanosuke Sakuma",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A1/A1_267_EN.webp",
+      "rarity": "\u2606\u2606",
+      "pack": "Pikachu"
+    },
+    {
+      "id": 793,
+      "name": "Professor's Research",
+      "energy_type": "",
+      "set_name": "Promo-A",
+      "set_code": "P-A",
+      "card_number": "7",
+      "card_type": "Trainer - Supporter",
+      "hp": null,
+      "attacks": [
+        {
+          "name": "Effect",
+          "cost": [],
+          "damage": "",
+          "effect": "Draw 2 cards. Illustrated byNaoki Saito"
+        }
+      ],
+      "weakness": "",
+      "retreat_cost": null,
+      "illustrator": "Naoki Saito",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/P-A/P-A_007_EN.webp",
+      "rarity": "Shop",
+      "pack": ""
+    },
+    {
+      "id": 793,
+      "name": "Professor's Research",
+      "energy_type": "",
+      "set_name": "Promo-A",
+      "set_code": "P-A",
+      "card_number": "7",
+      "card_type": "Trainer - Supporter",
+      "hp": null,
+      "attacks": [
+        {
+          "name": "Effect",
+          "cost": [],
+          "damage": "",
+          "effect": "Draw 2 cards. Illustrated byNaoki Saito"
+        }
+      ],
+      "weakness": "",
+      "retreat_cost": null,
+      "illustrator": "Naoki Saito",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/P-A/P-A_007_EN.webp",
+      "rarity": "Shop",
+      "pack": ""
+    },
+    {
+      "id": 496,
+      "name": "Leaf",
+      "energy_type": "",
+      "set_name": "Mythical Island",
+      "set_code": "A1a",
+      "card_number": "82",
+      "card_type": "Trainer - Supporter",
+      "hp": null,
+      "attacks": [
+        {
+          "name": "Effect",
+          "cost": [],
+          "damage": "",
+          "effect": "During this turn, the Retreat Cost of your Active Pok\u00e9mon is 2 less. Illustrated byEn Morikura"
+        }
+      ],
+      "weakness": "",
+      "retreat_cost": null,
+      "illustrator": "En Morikura",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A1a/A1a_082_EN.webp",
+      "rarity": "\u2606\u2606",
+      "pack": "Mew"
+    },
+    {
+      "id": 496,
+      "name": "Leaf",
+      "energy_type": "",
+      "set_name": "Mythical Island",
+      "set_code": "A1a",
+      "card_number": "82",
+      "card_type": "Trainer - Supporter",
+      "hp": null,
+      "attacks": [
+        {
+          "name": "Effect",
+          "cost": [],
+          "damage": "",
+          "effect": "During this turn, the Retreat Cost of your Active Pok\u00e9mon is 2 less. Illustrated byEn Morikura"
+        }
+      ],
+      "weakness": "",
+      "retreat_cost": null,
+      "illustrator": "En Morikura",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A1a/A1a_082_EN.webp",
+      "rarity": "\u2606\u2606",
+      "pack": "Mew"
+    },
+    {
+      "id": 397,
+      "name": "Cyrus",
+      "energy_type": "",
+      "set_name": "Space-Time Smackdown",
+      "set_code": "A2",
+      "card_number": "190",
+      "card_type": "Trainer - Supporter",
+      "hp": null,
+      "attacks": [],
+      "weakness": "",
+      "retreat_cost": null,
+      "illustrator": "akagi",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A2/A2_190_EN.webp",
+      "rarity": "\u2606\u2606",
+      "pack": "Palkia"
+    },
+    {
+      "id": 198,
+      "name": "Irida",
+      "energy_type": "",
+      "set_name": "Triumphant Light",
+      "set_code": "A2a",
+      "card_number": "87",
+      "card_type": "Trainer - Supporter",
+      "hp": null,
+      "attacks": [
+        {
+          "name": "Effect",
+          "cost": [],
+          "damage": "",
+          "effect": "Heal 40 damage from each of your Pok\u00e9mon that has any[W]Energy attached. Illustrated byAtsushi Furusawa"
+        }
+      ],
+      "weakness": "",
+      "retreat_cost": null,
+      "illustrator": "Atsushi Furusawa",
+      "image_url": "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/pocket/A2a/A2a_087_EN.webp",
+      "rarity": "\u2606\u2606",
+      "pack": "Arceus"
+    }
+  ],
+  "cover_card_id": 413
+}

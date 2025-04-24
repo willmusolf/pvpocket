@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block title %}Pokémon TCG Pocket App Hub{% endblock %}
+
+{% block extra_css %}
+<style>
+    .feature-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        height: 100%;
+    }
+    
+    .feature-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    }
+    
+    .feature-icon {
+        font-size: 3rem;
+        margin-bottom: 20px;
+        color: #ff5757;
+    }
+    
+    .hero-section {
+        background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('https://assets.pokemon.com/assets/cms2/img/cards/web/SV1/SV1_EN_1.png');
+        background-size: cover;
+        background-position: center;
+        color: white;
+        padding: 80px 0;
+        margin-bottom: 40px;
+        border-radius: 10px;
+    }
+    
+    .card-count {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 0;
+    }
+    
+    .stat-card {
+        border-radius: 10px;
+        padding: 20px;
+        text-align: center;
+        height: 100%;
+    }
+    
+    .stat-card.primary {
+        background-color: #ff5757;
+        color: white;
+    }
+    
+    .stat-card.secondary {
+        background-color: #4f8bf9;
+        color: white;
+    }
+    
+    .stat-card.tertiary {
+        background-color: #ffcb05;
+        color: black;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="hero-section text-center">
+    <div class="container">
+        <h1 class="display-3 mb-4">Pokémon TCG Pocket</h1>
+        <p class="lead mb-4">The complete companion app for serious trainers</p>
+        <div class="d-flex justify-content-center">
+            <a href="#features" class="btn btn-lg btn-outline-light px-4 py-2">Explore Features</a>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Section -->
+<div class="container mb-5">
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="stat-card primary">
+                <p class="card-count">{{ total_cards }}</p>
+                <p class="mb-0">Cards in Database</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card secondary">
+                <p class="card-count">{{ total_decks }}</p>
+                <p class="mb-0">User-Created Decks</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card tertiary">
+                <p class="card-count">{{ total_battles }}</p>
+                <p class="mb-0">Battles Simulated</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Features -->
+<div class="container mb-5" id="features">
+    <h2 class="text-center mb-5">Choose Your Path</h2>
+    
+    <div class="row g-4">
+        <!-- Battle Simulator -->
+        <div class="col-md-4">
+            <div class="card feature-card">
+                <div class="card-body text-center p-5">
+                    <div class="feature-icon">
+                        <i class="fas fa-gamepad"></i>
+                    </div>
+                    <h3 class="card-title mb-3">Battle Simulator</h3>
+                    <p class="card-text mb-4">Challenge our AI with your custom decks or play with pre-built meta decks to test strategies.</p>
+                    <a href="{{ url_for('battle.battle') }}" class="btn btn-primary btn-lg">Battle Now</a>
+                </div>
+                <div class="card-footer bg-transparent border-0 text-center pb-4">
+                    <span class="text-muted">Test your skills against AI opponents</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Meta Rankings -->
+        <div class="col-md-4">
+            <div class="card feature-card">
+                <div class="card-body text-center p-5">
+                    <div class="feature-icon">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <h3 class="card-title mb-3">Deck Management</h3>
+                    <p class="card-text mb-4">Build your own custom decks, browse other decks, and analyze deck performance.</p>
+                    <a href="{{ url_for('decks.list_decks') }}" class="btn btn-success btn-lg">Manage Decks</a>
+                </div>
+                <div class="card-footer bg-transparent border-0 text-center pb-4">
+                    <span class="text-muted">Create and optimize your decks</span>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="container mb-5">
+    <h2 class="text-center mb-4">Recent Activity</h2>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h4>Latest Battles</h4>
+                </div>
+                <div class="card-body">
+                    {% if recent_battles %}
+                        <ul class="list-group list-group-flush">
+                            {% for battle in recent_battles %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <span class="fw-bold">{{ battle.deck1 }}</span> vs <span class="fw-bold">{{ battle.deck2 }}</span>
+                                        <small class="d-block text-muted">{{ battle.turns }} turns</small>
+                                    </div>
+                                    <span class="badge bg-primary rounded-pill">Winner: {{ battle.winner }}</span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-center py-4">No recent battles yet. Start battling now!</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h4>Top Meta Decks</h4>
+                </div>
+                <div class="card-body">
+                    {% if top_decks %}
+                        <ul class="list-group list-group-flush">
+                            {% for deck in top_decks %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <span class="fw-bold">{{ deck.name }}</span>
+                                        <div>
+                                            {% for type in deck.types %}
+                                                <span class="type-badge type-{{ type }}">{{ type }}</span>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    <span class="badge bg-success rounded-pill">Win Rate: {{ deck.win_rate }}%</span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-center py-4">No meta data available yet. Check back soon!</p>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('meta.meta_rankings') }}" class="btn btn-sm btn-outline-success">View All Meta Decks</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block title %}My Collection - Pokémon TCG Pocket{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+    <h1 class="mb-4">My Collection</h1>
+    
+    <style>
+        .energy-icon-wrapper {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            margin-right: 5px;
+            margin-bottom: 5px;
+            overflow: hidden;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .energy-icon {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+    </style>
+    
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3>My Decks</h3>
+                    <a href="{{ url_for('decks.list_decks') }}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Create New Deck
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if decks %}
+                    <div class="row">
+                        {% for deck in decks %}
+                        <div class="col-md-3 mb-4">
+                            <div class="card h-100">
+                                <div class="card-body position-relative">
+                                    <!-- Energy Type Icons -->
+                                    <div class="d-flex mb-2">
+                                        {% for type in deck.types %}
+                                        <div class="energy-icon-wrapper" data-type="{{ type }}">
+                                            {% if type == "Grass" %}
+                                            <img src="https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/77bf3ba9-0aac-4452-be82-de536b5aab32/dezrx3b-faf247b4-bbcf-4a1d-bba4-47236408df42.png/v1/fill/w_895,h_893/grass_energy_card_vector_symbol_by_biochao_dezrx3b-pre.png?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7ImhlaWdodCI6Ijw9MTI3OCIsInBhdGgiOiJcL2ZcLzc3YmYzYmE5LTBhYWMtNDQ1Mi1iZTgyLWRlNTM2YjVhYWIzMlwvZGV6cngzYi1mYWYyNDdiNC1iYmNmLTRhMWQtYmJhNC00NzIzNjQwOGRmNDIucG5nIiwid2lkdGgiOiI8PTEyODAifV1dLCJhdWQiOlsidXJuOnNlcnZpY2U6aW1hZ2Uub3BlcmF0aW9ucyJdfQ.oOHbZYJsNszy_P66CbLaiuRVY8kFzjJvvxQ0tZkF3BM" alt="Grass" class="energy-icon" onerror="this.style.display='none'; this.parentElement.innerHTML += 'G';">
+                                            {% elif type == "Fire" %}
+                                            <img src="https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/77bf3ba9-0aac-4452-be82-de536b5aab32/dezrx2m-6a187f20-c54f-443c-abb5-6304a14d1d39.png/v1/fill/w_895,h_893/fire_energy_card_vector_symbol_by_biochao_dezrx2m-pre.png?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7ImhlaWdodCI6Ijw9MTI3OCIsInBhdGgiOiJcL2ZcLzc3YmYzYmE5LTBhYWMtNDQ1Mi1iZTgyLWRlNTM2YjVhYWIzMlwvZGV6cngybS02YTE4N2YyMC1jNTRmLTQ0M2MtYWJiNS02MzA0YTE0ZDFkMzkucG5nIiwid2lkdGgiOiI8PTEyODAifV1dLCJhdWQiOlsidXJuOnNlcnZpY2U6aW1hZ2Uub3BlcmF0aW9ucyJdfQ.MrtaX3vm446Kd5jU02FfLdjMSyXljqW0ahnU8jEo0aE" alt="Fire" class="energy-icon" onerror="this.style.display='none'; this.parentElement.innerHTML += 'F';">
+                                            {% elif type == "Water" %}
+                                            <img src="https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/77bf3ba9-0aac-4452-be82-de536b5aab32/dezrx5f-e4595600-3e33-4241-9b2b-74aaa2eef412.png/v1/fill/w_895,h_893/water_energy_card_vector_symbol_by_biochao_dezrx5f-pre.png?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7ImhlaWdodCI6Ijw9MTI3OCIsInBhdGgiOiJcL2ZcLzc3YmYzYmE5LTBhYWMtNDQ1Mi1iZTgyLWRlNTM2YjVhYWIzMlwvZGV6cng1Zi1lNDU5NTYwMC0zZTMzLTQyNDEtOWIyYi03NGFhYTJlZWY0MTIucG5nIiwid2lkdGgiOiI8PTEyODAifV1dLCJhdWQiOlsidXJuOnNlcnZpY2U6aW1hZ2Uub3BlcmF0aW9ucyJdfQ.7SbyLKwiuihvL8f8Xs5D301oKDuaS2kGu_fqIZAtWf4" alt="Water" class="energy-icon" onerror="this.style.display='none'; this.parentElement.innerHTML += 'W';">
+                                            {% elif type == "Lightning" %}
+                                            <img src="https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/77bf3ba9-0aac-4452-be82-de536b5aab32/dezrx16-513fe1dd-38ed-427b-bd33-f06c814bf32f.png/v1/fill/w_895,h_893/electric_energy_card_vector_symbol_by_biochao_dezrx16-pre.png?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7ImhlaWdodCI6Ijw9MTI3OCIsInBhdGgiOiJcL2ZcLzc3YmYzYmE5LTBhYWMtNDQ1Mi1iZTgyLWRlNTM2YjVhYWIzMlwvZGV6cngxNi01MTNmZTFkZC0zOGVkLTQyN2ItYmQzMy1mMDZjODE0YmYzMmYucG5nIiwid2lkdGgiOiI8PTEyODAifV1dLCJhdWQiOlsidXJuOnNlcnZpY2U6aW1hZ2Uub3BlcmF0aW9ucyJdfQ.U_F136VX-qaPr4LEg6He5GnACg1E5NsYhX9uRrmS_Ro" alt="Lightning" class="energy-icon" onerror="this.style.display='none'; this.parentElement.innerHTML += 'L';">
+                                            {% elif type == "Psychic" %}
+                                            <img src="https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/77bf3ba9-0aac-4452-be82-de536b5aab32/dezrx4c-6cff5589-ce3b-4135-8ace-ee3bec01aa7e.png/v1/fill/w_895,h_893/psychic_energy_card_vector_symbol_by_biochao_dezrx4c-pre.png?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7ImhlaWdodCI6Ijw9MTI3OCIsInBhdGgiOiJcL2ZcLzc3YmYzYmE5LTBhYWMtNDQ1Mi1iZTgyLWRlNTM2YjVhYWIzMlwvZGV6cng0Yy02Y2ZmNTU4OS1jZTNiLTQxMzUtOGFjZS1lZTNiZWMwMWFhN2UucG5nIiwid2lkdGgiOiI8PTEyODAifV1dLCJhdWQiOlsidXJuOnNlcnZpY2U6aW1hZ2Uub3BlcmF0aW9ucyJdfQ.ZHn6anZ59G_2EsYUB07VZjquVekNJ0v7vm2tZG3XTWg" alt="Psychic" class="energy-icon" onerror="this.style.display='none'; this.parentElement.innerHTML += 'P';">
+                                            {% elif type == "Fighting" %}
+                                            <img src="https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/77bf3ba9-0aac-4452-be82-de536b5aab32/dezrx1z-f8ecfab3-6ba7-47a2-90b3-2e95bdcf0bfe.png/v1/fill/w_895,h_893/fighting_energy_card_vector_symbol_by_biochao_dezrx1z-pre.png?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7ImhlaWdodCI6Ijw9MTI3OCIsInBhdGgiOiJcL2ZcLzc3YmYzYmE5LTBhYWMtNDQ1Mi1iZTgyLWRlNTM2YjVhYWIzMlwvZGV6cngxei1mOGVjZmFiMy02YmE3LTQ3YTItOTBiMy0yZTk1YmRjZjBiZmUucG5nIiwid2lkdGgiOiI8PTEyODAifV1dLCJhdWQiOlsidXJuOnNlcnZpY2U6aW1hZ2Uub3BlcmF0aW9ucyJdfQ.EKHo_BKE0vX8i2JaYR2V1lStO5PRfMRR4y3WRrFsxVk" alt="Fighting" class="energy-icon" onerror="this.style.display='none'; this.parentElement.innerHTML += 'F';">
+                                            {% elif type == "Darkness" %}
+                                            <img src="https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/77bf3ba9-0aac-4452-be82-de536b5aab32/dezrx06-5b31bdc5-e822-4f80-8d88-af30c132d4fb.png/v1/fill/w_1280,h_1279/dark_energy_card_vector_symbol_by_biochao_dezrx06-fullview.png?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7ImhlaWdodCI6Ijw9MTI3OSIsInBhdGgiOiJcL2ZcLzc3YmYzYmE5LTBhYWMtNDQ1Mi1iZTgyLWRlNTM2YjVhYWIzMlwvZGV6cngwNi01YjMxYmRjNS1lODIyLTRmODAtOGQ4OC1hZjMwYzEzMmQ0ZmIucG5nIiwid2lkdGgiOiI8PTEyODAifV1dLCJhdWQiOlsidXJuOnNlcnZpY2U6aW1hZ2Uub3BlcmF0aW9ucyJdfQ.FG7xj8hrU1BZ0GrNftMJa0TJy0Qs9xteH1GT-lQ36Sc" alt="Darkness" class="energy-icon" onerror="this.style.display='none'; this.parentElement.innerHTML += 'D';">
+                                            {% elif type == "Metal" %}
+                                            <img src="https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/77bf3ba9-0aac-4452-be82-de536b5aab32/dezrx4z-608133ef-0158-48f9-8786-b8a39fd7e97f.png/v1/fill/w_895,h_893/steel_energy_card_vector_symbol_by_biochao_dezrx4z-pre.png?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7ImhlaWdodCI6Ijw9MTI3NyIsInBhdGgiOiJcL2ZcLzc3YmYzYmE5LTBhYWMtNDQ1Mi1iZTgyLWRlNTM2YjVhYWIzMlwvZGV6cng0ei02MDgxMzNlZi0wMTU4LTQ4ZjktODc4Ni1iOGEzOWZkN2U5N2YucG5nIiwid2lkdGgiOiI8PTEyODAifV1dLCJhdWQiOlsidXJuOnNlcnZpY2U6aW1hZ2Uub3BlcmF0aW9ucyJdfQ.HnQnbDYdY8dawx4dRmwVyYcjTXes-fA7zKEwHyo0wyo" alt="Metal" class="energy-icon" onerror="this.style.display='none'; this.parentElement.innerHTML += 'M';">
+                                            {% elif type == "Dragon" %}
+                                            <img src="https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/77bf3ba9-0aac-4452-be82-de536b5aab32/dezrx0m-156163e8-ce81-471d-b174-a1bf9c1b9923.png/v1/fill/w_1280,h_1278/dragon_energy_card_vector_symbol_by_biochao_dezrx0m-fullview.png?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7ImhlaWdodCI6Ijw9MTI3OCIsInBhdGgiOiJcL2ZcLzc3YmYzYmE5LTBhYWMtNDQ1Mi1iZTgyLWRlNTM2YjVhYWIzMlwvZGV6cngwbS0xNTYxNjNlOC1jZTgxLTQ3MWQtYjE3NC1hMWJmOWMxYjk5MjMucG5nIiwid2lkdGgiOiI8PTEyODAifV1dLCJhdWQiOlsidXJuOnNlcnZpY2U6aW1hZ2Uub3BlcmF0aW9ucyJdfQ.jPsLEUZe3sHZn4Z8UCRfVvt_YGc1CCHM3CaLdeIzPn0" alt="Dragon" class="energy-icon" onerror="this.style.display='none'; this.parentElement.innerHTML += 'R';">
+                                            {% elif type == "Colorless" %}
+                                            <img src="https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/77bf3ba9-0aac-4452-be82-de536b5aab32/dezrwzj-a0900a9f-ecf0-4ff5-8626-83335695a144.png/v1/fill/w_893,h_895/colorless_energy_card_vector_symbol_by_biochao_dezrwzj-pre.png?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7ImhlaWdodCI6Ijw9MTI4MiIsInBhdGgiOiJcL2ZcLzc3YmYzYmE5LTBhYWMtNDQ1Mi1iZTgyLWRlNTM2YjVhYWIzMlwvZGV6cnd6ai1hMDkwMGE5Zi1lY2YwLTRmZjUtODYyNi04MzMzNTY5NWExNDQucG5nIiwid2lkdGgiOiI8PTEyODAifV1dLCJhdWQiOlsidXJuOnNlcnZpY2U6aW1hZ2Uub3BlcmF0aW9ucyJdfQ.9S9g3jnHB8TZRxq2wEGWby-taGyQgANagbZQz7URvh0" alt="Colorless" class="energy-icon" onerror="this.style.display='none'; this.parentElement.innerHTML += 'C';">
+                                            {% endif %}
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    
+                                    <!-- Cover Card Display -->
+                                    {% if deck.cover_card %}
+                                    <div class="deck-cover-card mb-2 text-center">
+                                        <img src="{{ deck.cover_card.display_image_path }}" alt="{{ deck.cover_card.name }}" 
+                                             style="max-height: 140px; max-width: 100%;" class="img-fluid">
+                                    </div>
+                                    {% else %}
+                                    <div class="deck-cover-placeholder mb-2 text-center bg-light" 
+                                         style="height: 140px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="bi bi-card-image" style="font-size: 2rem;"></i>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    <h5 class="card-title">{{ deck.name }}</h5>
+                                    <p class="card-text">
+                                        <span class="badge bg-primary">{{ deck.card_count }}/20 cards</span>
+                                        {% if deck.win_rate is not none %}
+                                        <span class="badge bg-success">{{ deck.win_rate }}% win rate</span>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                <div class="card-footer">
+                                    <div class="btn-group w-100 mb-2">
+                                        <a href="{{ url_for('decks.get_deck', filename=deck.filename) }}" class="btn btn-sm btn-outline-primary">View</a>
+                                        <a href="{{ url_for('decks.list_decks') }}?edit={{ deck.filename }}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-danger w-100 delete-deck-btn" 
+                                            data-deck-id="{{ deck.filename }}" 
+                                            data-deck-name="{{ deck.name }}">
+                                        Delete
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <p>You don't have any decks yet. <a href="{{ url_for('decks.list_decks') }}">Create your first deck!</a></p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete the deck "<span id="deckNameToDelete"></span>"? This action cannot be undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <a href="#" id="confirmDeleteBtn" class="btn btn-danger">Delete Deck</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle delete button clicks
+    const deleteButtons = document.querySelectorAll('.delete-deck-btn');
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+    const deckNameSpan = document.getElementById('deckNameToDelete');
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+    
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const deckId = this.dataset.deckId;
+            const deckName = this.dataset.deckName;
+            
+            // Update the modal with deck info
+            deckNameSpan.textContent = deckName;
+            confirmDeleteBtn.href = "{{ url_for('decks.delete_deck') }}?filename=" + deckId;
+            
+            // Show the confirmation modal
+            deleteModal.show();
+        });
+    });
+});
+</script>
+{% endblock %}

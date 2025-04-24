@@ -1,0 +1,25 @@
+{
+  "1742847556": {
+    "username": "wmusolf",
+    "password": "pbkdf2:sha256:260000$7HDh31CNiMc4grge$08329557e172cc5ed0f82fd03e40ddd24f788e7e49b8fc586e1682df537418af",
+    "created_at": "2025-03-24 16:19:17",
+    "decks": [
+      "random_deck_4138",
+      "random_deck_1352"
+    ]
+  },
+  "1742877843": {
+    "username": "w",
+    "password": "scrypt:32768:8:1$cGClmT1RVUiwNxnS$7b6cccc2930df3c07a7f29d16477d073c3e883acda58b38b55d7ae43000f4cf5e250c1ec30017f588e897f2614442ae83da8d351e6e4d6ce09da4176af5e4dcd",
+    "created_at": "2025-03-25 00:44:03",
+    "decks": [
+      "random_deck_5699",
+      "random_deck_6200",
+      "random_deck_9573",
+      "random_deck_3987",
+      "random_deck_5034",
+      "random_deck_7194",
+      "random_deck_7133"
+    ]
+  }
+}

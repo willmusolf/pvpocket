@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+
+{% block title %}Meta Rankings - Pokémon TCG Pocket{% endblock %}
+
+{% block extra_css %}
+<style>
+    .tier-header {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 1rem;
+        padding: 0.5rem;
+        border-radius: 5px;
+        color: white;
+    }
+    
+    .tier-s {
+        background-color: #FF5252;
+    }
+    
+    .tier-a {
+        background-color: #FF9800;
+    }
+    
+    .tier-b {
+        background-color: #8BC34A;
+    }
+    
+    .tier-c {
+        background-color: #2196F3;
+    }
+    
+    .deck-card {
+        border-left: 5px solid transparent;
+        transition: transform 0.2s;
+    }
+    
+    .deck-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .deck-card.tier-s {
+        border-left-color: #FF5252;
+    }
+    
+    .deck-card.tier-a {
+        border-left-color: #FF9800;
+    }
+    
+    .deck-card.tier-b {
+        border-left-color: #8BC34A;
+    }
+    
+    .deck-card.tier-c {
+        border-left-color: #2196F3;
+    }
+    
+    .win-rate-chart {
+        height: 5px;
+        width: 100%;
+        background-color: #f1f1f1;
+        border-radius: 5px;
+        margin-top: 5px;
+    }
+    
+    .win-rate-bar {
+        height: 100%;
+        border-radius: 5px;
+        background-color: #4CAF50;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h2>Meta Deck Rankings</h2>
+        <small>Last updated: {{ last_updated }}</small>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info">
+            <p>
+                These rankings are based on all battles simulated within the app. Each deck's matchups, win rates, and performance metrics are calculated from actual game results.
+            </p>
+            <ul>
+                <li><strong>Tier S:</strong> Top meta decks with exceptional win rates</li>
+                <li><strong>Tier A:</strong> Strong contenders with favorable matchups</li>
+                <li><strong>Tier B:</strong> Viable decks that can compete but have weaknesses</li>
+                <li><strong>Tier C:</strong> Challenging decks that may struggle against top tiers</li>
+            </ul>
+        </div>
+        
+        {% if ranked_decks %}
+            {% set tiers = {'S': [], 'A': [], 'B': [], 'C': []} %}
+            {% for deck in ranked_decks %}
+                {% if deck.tier == 'S' %}
+                    {% set _ = tiers['S'].append(deck) %}
+                {% elif deck.tier == 'A' %}
+                    {% set _ = tiers['A'].append(deck) %}
+                {% elif deck.tier == 'B' %}
+                    {% set _ = tiers['B'].append(deck) %}
+                {% elif deck.tier == 'C' %}
+                    {% set _ = tiers['C'].append(deck) %}
+                {% endif %}
+            {% endfor %}
+            
+            <!-- Tier S -->
+            {% if tiers['S'] %}
+            <div class="tier-section mb-4">
+                <div class="tier-header tier-s text-center">Tier S</div>
+                <div class="row g-3">
+                    {% for deck in tiers['S'] %}
+                    <div class="col-md-4">
+                        <div class="card deck-card tier-s h-100">
+                            <div class="card-header">
+                                <h5 class="mb-0">{{ deck.name }}</h5>
+                                <div>
+                                    {% for type in deck.types %}
+                                    <span class="type-badge type-{{ type }}">{{ type }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <div>Win Rate:</div>
+                                    <div class="fw-bold">{{ deck.win_rate }}%</div>
+                                </div>
+                                <div class="win-rate-chart">
+                                    <div class="win-rate-bar" style="width: {{ deck.win_rate }}%;"></div>
+                                </div>
+                                <div class="d-flex justify-content-between mt-3">
+                                    <div>Record:</div>
+                                    <div>{{ deck.wins }}W - {{ deck.losses }}L</div>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <div>Avg. Turns:</div>
+                                    <div>{{ deck.avg_turns }}</div>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <a href="{{ url_for('view_deck', filename=deck.filename) }}" class="btn btn-sm btn-primary">View Deck</a>
+                                <a href="{{ url_for('matchup_analysis', filename=deck.filename) }}" class="btn btn-sm btn-info">Matchups</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Tier A -->
+            {% if tiers['A'] %}
+            <div class="tier-section mb-4">
+                <div class="tier-header tier-a text-center">Tier A</div>
+                <div class="row g-3">
+                    {% for deck in tiers['A'] %}
+                    <div class="col-md-4">
+                        <div class="card deck-card tier-a h-100">
+                            <div class="card-header">
+                                <h5 class="mb-0">{{ deck.name }}</h5>
+                                <div>
+                                    {% for type in deck.types %}
+                                    <span class="type-badge type-{{ type }}">{{ type }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <div>Win Rate:</div>
+                                    <div class="fw-bold">{{ deck.win_rate }}%</div>
+                                </div>
+                                <div class="win-rate-chart">
+                                    <div class="win-rate-bar" style="width: {{ deck.win_rate }}%;"></div>
+                                </div>
+                                <div class="d-flex justify-content-between mt-3">
+                                    <div>Record:</div>
+                                    <div>{{ deck.wins }}W - {{ deck.losses }}L</div>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <div>Avg. Turns:</div>
+                                    <div>{{ deck.avg_turns }}</div>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <a href="{{ url_for('view_deck', filename=deck.filename) }}" class="btn btn-sm btn-primary">View Deck</a>
+                                <a href="{{ url_for('matchup_analysis', filename=deck.filename) }}" class="btn btn-sm btn-info">Matchups</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Tier B -->
+            {% if tiers['B'] %}
+            <div class="tier-section mb-4">
+                <div class="tier-header tier-b text-center">Tier B</div>
+                <div class="row g-3">
+                    {% for deck in tiers['B'] %}
+                    <div class="col-md-4">
+                        <div class="card deck-card tier-b h-100">
+                            <div class="card-header">
+                                <h5 class="mb-0">{{ deck.name }}</h5>
+                                <div>
+                                    {% for type in deck.types %}
+                                    <span class="type-badge type-{{ type }}">{{ type }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <div>Win Rate:</div>
+                                    <div class="fw-bold">{{ deck.win_rate }}%</div>
+                                </div>
+                                <div class="win-rate-chart">
+                                    <div class="win-rate-bar" style="width: {{ deck.win_rate }}%;"></div>
+                                </div>
+                                <div class="d-flex justify-content-between mt-3">
+                                    <div>Record:</div>
+                                    <div>{{ deck.wins }}W - {{ deck.losses }}L</div>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <div>Avg. Turns:</div>
+                                    <div>{{ deck.avg_turns }}</div>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <a href="{{ url_for('view_deck', filename=deck.filename) }}" class="btn btn-sm btn-primary">View Deck</a>
+                                <a href="{{ url_for('matchup_analysis', filename=deck.filename) }}" class="btn btn-sm btn-info">Matchups</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Tier C -->
+            {% if tiers['C'] %}
+            <div class="tier-section mb-4">
+                <div class="tier-header tier-c text-center">Tier C</div>
+                <div class="row g-3">
+                    {% for deck in tiers['C'] %}
+                    <div class="col-md-4">
+                        <div class="card deck-card tier-c h-100">
+                            <div class="card-header">
+                                <h5 class="mb-0">{{ deck.name }}</h5>
+                                <div>
+                                    {% for type in deck.types %}
+                                    <span class="type-badge type-{{ type }}">{{ type }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <div>Win Rate:</div>
+                                    <div class="fw-bold">{{ deck.win_rate }}%</div>
+                                </div>
+                                <div class="win-rate-chart">
+                                    <div class="win-rate-bar" style="width: {{ deck.win_rate }}%;"></div>
+                                </div>
+                                <div class="d-flex justify-content-between mt-3">
+                                    <div>Record:</div>
+                                    <div>{{ deck.wins }}W - {{ deck.losses }}L</div>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <div>Avg. Turns:</div>
+                                    <div>{{ deck.avg_turns }}</div>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <a href="{{ url_for('view_deck', filename=deck.filename) }}" class="btn btn-sm btn-primary">View Deck</a>
+                                <a href="{{ url_for('matchup_analysis', filename=deck.filename) }}" class="btn btn-sm btn-info">Matchups</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        {% else %}
+        <div class="alert alert-warning">
+            <p>Not enough battle data to generate meta rankings yet. Play more battles to see rankings!</p>
+        </div>
+        <div class="text-center mt-3">
+            <a href="{{ url_for('battle.battle') }}" class="btn btn-primary">Battle Now</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

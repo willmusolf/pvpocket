@@ -1,0 +1,1093 @@
+{% extends "base.html" %}
+
+{% block title %}Battle Simulator - Pokémon TCG Pocket{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background-color: #f5f5f5;
+    }
+    
+    .battle-container {
+        background-color: rgba(255, 255, 255, 0.9);
+        border-radius: 10px;
+        padding: 30px;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        margin-bottom: 30px;
+    }
+    
+    .battle-header {
+        margin-bottom: 25px;
+    }
+    
+    .deck-selection-container {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 30px;
+    }
+    
+    .deck-column {
+        width: 45%;
+        padding: 20px;
+        background-color: #f0f8ff;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    
+    .deck-column h4 {
+        margin-bottom: 15px;
+        color: #333;
+    }
+    
+    .vs-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 10%;
+    }
+    
+    .vs-badge {
+        width: 50px;
+        height: 50px;
+        background-color: #ff5757;
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 18px;
+        margin: 15px 0;
+    }
+    
+    .swap-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 10px;
+        padding: 0;
+    }
+    
+    .deck-options {
+        margin-bottom: 15px;
+    }
+    
+    .deck-list {
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 10px;
+        background-color: white;
+    }
+    
+    .deck-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    
+    .deck-item {
+        padding: 10px;
+        border: 1px solid #eee;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background-color: white;
+    }
+    
+    .deck-item:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .deck-item.selected {
+        border: 2px solid #4f8bf9;
+        box-shadow: 0 0 10px rgba(79, 139, 249, 0.3);
+    }
+    
+    .deck-cover {
+        width: 100%;
+        aspect-ratio: 0.7;
+        object-fit: cover;
+        border-radius: 5px;
+        margin-bottom: 8px;
+    }
+    
+    .deck-name {
+        font-weight: bold;
+        font-size: 14px;
+        text-align: center;
+        margin-bottom: 5px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .deck-types {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 5px;
+    }
+    
+    .battle-actions {
+        text-align: center;
+        margin-top: 30px;
+    }
+    
+    .battle-button {
+        padding: 12px 30px;
+        font-size: 18px;
+        font-weight: bold;
+        border-radius: 30px;
+    }
+    
+    .selected-deck-display {
+        min-height: 100px;
+        margin-top: 15px;
+        padding: 0;
+        background-color: white;
+        border-radius: 5px;
+        border: 1px solid #ddd;
+        position: relative;
+    }
+    
+    .clear-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        z-index: 10;
+        background-color: rgba(255, 255, 255, 0.8);
+        border: 1px solid #ddd;
+    }
+    
+    .deck-info-header {
+        padding: 15px;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .cards-container-wrapper {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    
+    .cards-container {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        padding: 15px;
+    }
+    
+    .option-buttons {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 15px;
+    }
+    
+    .random-button {
+        width: 100%;
+        padding: 8px;
+        border-radius: 5px;
+    }
+    
+    .instructions {
+        margin-bottom: 25px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        border-left: 4px solid #4f8bf9;
+    }
+    
+    .card-preview {
+        position: relative;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.2s ease;
+        width: 100%;
+        cursor: pointer;
+    }
+    
+    .card-preview:hover {
+        transform: scale(1.05);
+        z-index: 10;
+    }
+    
+    .card-preview img {
+        width: 100%;
+        display: block;
+        aspect-ratio: 0.7;
+        object-fit: cover;
+    }
+    
+    .card-preview-name {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background-color: rgba(0,0,0,0.7);
+        color: white;
+        font-size: 12px;
+        padding: 5px;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(0,0,0,0.2);
+        border-radius: 50%;
+        border-top-color: #007bff;
+        animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    .type-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        margin-right: 5px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: bold;
+        color: white;
+    }
+    
+    .no-decks-message {
+        text-align: center;
+        padding: 20px;
+        width: 200%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .no-decks-message .btn {
+        margin-top: 10px;
+    }
+    
+    .empty-deck-message {
+        text-align: center;
+        padding: 20px;
+    }
+    
+    /* Card Modal Styles */
+    .card-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+    
+    .card-modal-content {
+        background-color: white;
+        padding: 20px;
+        border-radius: 10px;
+        position: relative;
+        max-width: 90%;
+        max-height: 90%;
+        text-align: center;
+    }
+    
+    .card-modal-image {
+        max-height: 80vh;
+        max-width: 100%;
+    }
+    
+    .card-modal-close {
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="battle-header">
+        <h1 class="display-4">Battle Simulator</h1>
+    </div>
+    
+    <div class="battle-container">
+        
+        <!-- <div class="instructions">
+            <p><strong>How to battle:</strong> Select a deck for yourself (left) and a deck for the AI opponent (right), then click the Battle button. You can choose from your own decks or generate random decks.</p>
+        </div> -->
+        
+        <form action="{{ url_for('battle.simulate_battle') }}" method="post" id="battle-form">
+            <input type="hidden" name="use_random_decks" value="false" id="use-random-decks">
+            <input type="hidden" name="deck1" id="deck1-input" value="{{ request.args.get('deck1', '') }}">
+            <input type="hidden" name="deck2" id="deck2-input" value="{{ request.args.get('deck2', '') }}">
+            <input type="hidden" name="max_turns" value="100">
+            
+            <div class="deck-selection-container">
+                <!-- Your Deck (Left) -->
+                <div class="deck-column" id="your-deck-column">
+                    <h4>Your Deck</h4>
+                    
+                    <div class="option-buttons">
+                        <button type="button" class="btn btn-outline-primary random-button" id="random-deck1">
+                            <i class="fas fa-dice"></i> Random
+                        </button>
+
+                        <button type="button" class="btn btn-outline-secondary random-button mb-2" data-bs-toggle="modal" data-bs-target="#filterModal">
+                            <i class="fas fa-filter"></i> Filter Options
+                        </button>
+
+                    </div>
+                    
+                    <div class="selected-deck-display" id="selected-deck-1">
+                        {% if request.args.get('deck1') %}
+                            {% for deck in decks %}
+                                {% if deck.filename == request.args.get('deck1') %}
+                                <div class="deck-info-header">
+                                    <h5>{{ deck.name }}</h5>
+                                    <div>
+                                        {% for type in deck.types %}
+                                        <span class="type-badge type-{{ type }}">{{ type }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-outline-secondary clear-btn" id="clear-deck1">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                                <div class="cards-container-wrapper">
+                                    <div class="cards-container">
+                                        <!-- Cards will be loaded here -->
+                                        <div class="text-center py-4 w-100">
+                                            <div class="loading-spinner"></div>
+                                            <p class="mt-2">Loading cards...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        {% else %}
+                        <div class="empty-deck-message">
+                            <p class="text-muted">No deck selected</p>
+                            <p><small>Select a deck below or click "Random"</small></p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <h5 class="mt-3">Your Decks</h5>
+                    <div class="deck-list">
+                        <div class="deck-grid" id="deck-list-1">
+                            {% set user_has_decks = false %}
+                            {% for deck in decks %}
+                                {% if user_logged_in and deck.owner == username %}
+                                    {% set user_has_decks = true %}
+                                    <div class="deck-item {% if deck.filename == request.args.get('deck1') %}selected{% endif %}" 
+                                         data-deck-name="{{ deck.name }}" 
+                                         data-deck-filename="{{ deck.filename }}"
+                                         data-deck-types="{{ deck.types|join(' ') }}"
+                                         data-position="1">
+                                        <img src="{{ deck.cover_art_url if deck.cover_art_url else '/static/images/card-back.png' }}" 
+                                             alt="{{ deck.name }}" class="deck-cover">
+                                        <div class="deck-name">{{ deck.name }}</div>
+                                        <div class="deck-types">
+                                            {% for type in deck.types %}
+                                            <span class="type-badge type-{{ type }}">{{ type }}</span>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if not user_has_decks %}
+                                <div class="no-decks-message">
+                                    <p>You don't have any decks yet.</p>
+                                    {% if user_logged_in %}
+                                    <a href="{{ url_for('decks.list_decks') }}" class="btn btn-sm btn-primary">Create a Deck</a>
+                                    {% else %}
+                                    <a href="{{ url_for('auth.login') }}" class="btn btn-sm btn-primary">Login to Create Decks</a>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- VS Indicator with Swap Button-->
+                <div class="vs-container">
+                    <button type="button" class="btn btn-outline-secondary swap-btn" id="swap-decks">
+                        <i class="fas fa-exchange-alt"></i>
+                    </button>
+                    <div class="vs-badge">VS</div>
+                </div>
+                
+                <!-- AI Deck (Right) - Identical structure to Your Deck -->
+                <div class="deck-column" id="ai-deck-column">
+                    <h4>AI Deck</h4>
+                    
+                    <div class="option-buttons">
+                        <button type="button" class="btn btn-outline-primary random-button" id="random-deck2">
+                            <i class="fas fa-dice"></i> Random
+                        </button>
+
+                        <button type="button" class="btn btn-outline-secondary random-button mb-2" data-bs-toggle="modal" data-bs-target="#filterModal">
+                            <i class="fas fa-filter"></i> Filter Options
+                        </button>
+                    </div>
+                    
+                    <div class="selected-deck-display" id="selected-deck-2">
+                        {% if request.args.get('deck2') %}
+                            {% for deck in decks %}
+                                {% if deck.filename == request.args.get('deck2') %}
+                                <div class="deck-info-header">
+                                    <h5>{{ deck.name }}</h5>
+                                    <div>
+                                        {% for type in deck.types %}
+                                        <span class="type-badge type-{{ type }}">{{ type }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-outline-secondary clear-btn" id="clear-deck2">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                                <div class="cards-container-wrapper">
+                                    <div class="cards-container">
+                                        <!-- Cards will be loaded here -->
+                                        <div class="text-center py-4 w-100">
+                                            <div class="loading-spinner"></div>
+                                            <p class="mt-2">Loading cards...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        {% else %}
+                        <div class="empty-deck-message">
+                            <p class="text-muted">No deck selected</p>
+                            <p><small>Select a deck below or click "Random"</small></p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <h5 class="mt-3">Your Decks</h5>
+                    <div class="deck-list">
+                        <div class="deck-grid" id="deck-list-2">
+                            {% set user_has_decks = false %}
+                            {% for deck in decks %}
+                                {% if user_logged_in and deck.owner == username %}
+                                    {% set user_has_decks = true %}
+                                    <div class="deck-item {% if deck.filename == request.args.get('deck2') %}selected{% endif %}" 
+                                         data-deck-name="{{ deck.name }}" 
+                                         data-deck-filename="{{ deck.filename }}"
+                                         data-deck-types="{{ deck.types|join(' ') }}"
+                                         data-position="2">
+                                        <img src="{{ deck.cover_art_url if deck.cover_art_url else '/static/images/card-back.png' }}" 
+                                             alt="{{ deck.name }}" class="deck-cover">
+                                        <div class="deck-name">{{ deck.name }}</div>
+                                        <div class="deck-types">
+                                            {% for type in deck.types %}
+                                            <span class="type-badge type-{{ type }}">{{ type }}</span>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if not user_has_decks %}
+                                <div class="no-decks-message">
+                                    <p>You don't have any decks yet.</p>
+                                    {% if user_logged_in %}
+                                    <a href="{{ url_for('decks.list_decks') }}" class="btn btn-sm btn-primary">Create a Deck</a>
+                                    {% else %}
+                                    <a href="{{ url_for('auth.login') }}" class="btn btn-sm btn-primary">Login to Create Decks</a>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="battle-actions">
+                <button type="submit" class="btn btn-primary battle-button" id="start-battle-btn">
+                    <i class="fas fa-gamepad me-2"></i> Battle
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Filter Modal -->
+<div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="filterModalLabel">Random Deck Filter Options</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Deck Name</label>
+                    <input type="text" class="form-control" id="filter-deck-name" placeholder="Random Deck">
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Types (limit 3)</label>
+                    <div class="d-flex flex-wrap gap-2">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="Fire" id="type-fire">
+                            <label class="form-check-label" for="type-fire">Fire</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="Water" id="type-water">
+                            <label class="form-check-label" for="type-water">Water</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="Grass" id="type-grass">
+                            <label class="form-check-label" for="type-grass">Grass</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="Lightning" id="type-lightning">
+                            <label class="form-check-label" for="type-lightning">Lightning</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="Psychic" id="type-psychic">
+                            <label class="form-check-label" for="type-psychic">Psychic</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="Fighting" id="type-fighting">
+                            <label class="form-check-label" for="type-fighting">Fighting</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="Darkness" id="type-darkness">
+                            <label class="form-check-label" for="type-darkness">Darkness</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="Metal" id="type-metal">
+                            <label class="form-check-label" for="type-metal">Metal</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Minimum Pokémon Cards</label>
+                    <input type="number" class="form-control" id="filter-min-pokemon" placeholder="0" min="0" max="20">
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Minimum Trainer Cards</label>
+                    <input type="number" class="form-control" id="filter-min-trainers" placeholder="0" min="0" max="20">
+                </div>
+                
+                <p class="text-muted small">More filter options will be available in the future, such as including or excluding specific cards.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="apply-filters" data-bs-dismiss="modal">Apply Filters</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const deck1Input = document.getElementById('deck1-input');
+    const deck2Input = document.getElementById('deck2-input');
+    const selectedDeck1 = document.getElementById('selected-deck-1');
+    const selectedDeck2 = document.getElementById('selected-deck-2');
+    const startBattleBtn = document.getElementById('start-battle-btn');
+    const useRandomDecks = document.getElementById('use-random-decks');
+    
+    // Update battle button state
+    function updateBattleButtonState() {
+        if ((deck1Input.value && deck2Input.value) || useRandomDecks.value === 'true') {
+            startBattleBtn.disabled = false;
+        } else {
+            startBattleBtn.disabled = true;
+        }
+    }
+    
+    // Initial state
+    updateBattleButtonState();
+    
+    // Card enlargement functionality
+    function setupCardPreviewListeners() {
+        document.querySelectorAll('.card-preview').forEach(card => {
+            card.addEventListener('click', function() {
+                const imgSrc = this.querySelector('img').src;
+                const cardName = this.querySelector('.card-preview-name').textContent;
+                
+                // Create modal
+                const modal = document.createElement('div');
+                modal.className = 'card-modal';
+                modal.innerHTML = `
+                    <div class="card-modal-content">
+                        <span class="card-modal-close">&times;</span>
+                        <h3>${cardName}</h3>
+                        <img src="${imgSrc}" alt="${cardName}" class="card-modal-image">
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                
+                // Close modal when clicking close button or outside the modal
+                modal.querySelector('.card-modal-close').addEventListener('click', function() {
+                    document.body.removeChild(modal);
+                });
+                
+                modal.addEventListener('click', function(event) {
+                    if (event.target === modal) {
+                        document.body.removeChild(modal);
+                    }
+                });
+            });
+        });
+    }
+    
+    // Load deck cards when a deck is selected
+    async function loadDeckCards(deckFilename, targetElement) {
+        try {
+            const response = await fetch(`/get_deck_cards?filename=${deckFilename}`);
+            const deckData = await response.json();
+            
+            if (deckData.error) {
+                console.error('Error loading deck cards:', deckData.error);
+                targetElement.querySelector('.cards-container').innerHTML = `
+                    <div class="text-center py-4 w-100">
+                        <p class="text-danger">Error loading cards: ${deckData.error}</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Create cards HTML
+            const cardsHtml = deckData.cards.map(card => {
+                return `
+                    <div class="card-preview">
+                        ${card.image_url ? 
+                            `<img src="${card.image_url}" alt="${card.name}" onerror="this.src='/static/images/card-back.png'">` : 
+                            `<div style="background-color: #eee; aspect-ratio: 0.7; display: flex; align-items: center; justify-content: center;">
+                                <span style="font-size: 10px; text-align: center; padding: 5px;">${card.name}</span>
+                            </div>`
+                        }
+                        <div class="card-preview-name">${card.name}</div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Update the cards container
+            const cardsContainer = targetElement.querySelector('.cards-container');
+            if (cardsContainer) {
+                cardsContainer.innerHTML = cardsHtml;
+                setupCardPreviewListeners(); // Set up listeners for card enlargement
+            }
+        } catch (error) {
+            console.error('Error loading deck cards:', error);
+            targetElement.querySelector('.cards-container').innerHTML = `
+                <div class="text-center py-4 w-100">
+                    <p class="text-danger">Error loading cards: ${error.message}</p>
+                </div>
+            `;
+        }
+    }
+    
+    // Handle deck selection
+    document.querySelectorAll('.deck-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const position = this.dataset.position;
+            const deckName = this.dataset.deckName;
+            const deckFilename = this.dataset.deckFilename;
+            const deckTypes = this.dataset.deckTypes;
+            const coverArt = this.querySelector('.deck-cover').src;
+            
+            // Remove selected class from other decks in this position
+            document.querySelectorAll(`.deck-item[data-position="${position}"].selected`).forEach(selected => {
+                selected.classList.remove('selected');
+            });
+            
+            // Add selected class to this deck
+            this.classList.add('selected');
+            
+            // Update hidden input and selected deck display
+            if (position === '1') {
+                deck1Input.value = deckFilename;
+                selectedDeck1.innerHTML = `
+                    <div class="deck-info-header">
+                        <h5>${deckName}</h5>
+                        <div>
+                            ${deckTypes.split(' ').map(type => 
+                                `<span class="type-badge type-${type}">${type}</span>`
+                            ).join(' ')}
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-outline-secondary clear-btn" id="clear-deck1">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <div class="cards-container-wrapper">
+                        <div class="cards-container">
+                            <div class="text-center py-4 w-100">
+                                <div class="loading-spinner"></div>
+                                <p class="mt-2">Loading cards...</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Add event listener to the clear button
+                document.getElementById('clear-deck1').addEventListener('click', clearDeck1);
+                
+                // Load deck cards
+                loadDeckCards(deckFilename, selectedDeck1);
+            } else {
+                deck2Input.value = deckFilename;
+                selectedDeck2.innerHTML = `
+                    <div class="deck-info-header">
+                        <h5>${deckName}</h5>
+                        <div>
+                            ${deckTypes.split(' ').map(type => 
+                                `<span class="type-badge type-${type}">${type}</span>`
+                            ).join(' ')}
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-outline-secondary clear-btn" id="clear-deck2">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <div class="cards-container-wrapper">
+                        <div class="cards-container">
+                            <div class="text-center py-4 w-100">
+                                <div class="loading-spinner"></div>
+                                <p class="mt-2">Loading cards...</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Add event listener to the clear button
+                document.getElementById('clear-deck2').addEventListener('click', clearDeck2);
+                
+                // Load deck cards
+                loadDeckCards(deckFilename, selectedDeck2);
+            }
+            
+            updateBattleButtonState();
+        });
+    });
+    
+    // Fetch and display a random deck
+    async function fetchRandomDeck(position) {
+        try {
+            const response = await fetch(`/get_random_deck?name=Random Deck ${Math.floor(Math.random() * 1000)}`);
+            const deckData = await response.json();
+            
+            if (deckData.error) {
+                console.error('Error fetching random deck:', deckData.error);
+                return null;
+            }
+            
+            return deckData;
+        } catch (error) {
+            console.error('Error fetching random deck:', error);
+            return null;
+        }
+    }
+    
+    // Display random deck
+    function displayRandomDeck(deck, position) {
+        if (!deck) return;
+        
+        const targetDisplay = position === 1 ? selectedDeck1 : selectedDeck2;
+        const targetInput = position === 1 ? deck1Input : deck2Input;
+        const clearBtnId = position === 1 ? 'clear-deck1' : 'clear-deck2';
+        const clearFn = position === 1 ? clearDeck1 : clearDeck2;
+        
+        // Set input value to 'random' to indicate a random deck
+        targetInput.value = 'random';
+        
+        // Create cards HTML
+        const cardsHtml = deck.cards.map(card => {
+            return `
+                <div class="card-preview">
+                    ${card.image_url ? 
+                        `<img src="${card.image_url}" alt="${card.name}" onerror="this.src='/static/images/card-back.png'">` : 
+                        `<div style="background-color: #eee; aspect-ratio: 0.7; display: flex; align-items: center; justify-content: center;">
+                            <span style="font-size: 10px; text-align: center; padding: 5px;">${card.name}</span>
+                        </div>`
+                    }
+                    <div class="card-preview-name">${card.name}</div>
+                </div>
+            `;
+        }).join('');
+        
+        // Display deck information and all cards
+        targetDisplay.innerHTML = `
+            <div class="deck-info-header">
+                <h5>${deck.name}</h5>
+                <div>
+                    ${deck.types.map(type => 
+                        `<span class="type-badge type-${type}">${type}</span>`
+                    ).join(' ')}
+                </div>
+            </div>
+            <button type="button" class="btn btn-outline-secondary clear-btn" id="${clearBtnId}">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="cards-container-wrapper">
+                <div class="cards-container">
+                    ${cardsHtml}
+                </div>
+            </div>
+        `;
+        
+        // Add event listener to the clear button
+        document.getElementById(clearBtnId).addEventListener('click', clearFn);
+        
+        // Store the full deck data for later use
+        targetDisplay.dataset.randomDeckData = JSON.stringify(deck);
+        
+        // Set up card preview listeners
+        setupCardPreviewListeners();
+        
+        updateBattleButtonState();
+    }
+    
+    // Random deck buttons
+    document.getElementById('random-deck1').addEventListener('click', async function() {
+        // Set the input value to 'random' immediately to enable the battle button
+        deck1Input.value = 'random';
+        updateBattleButtonState();
+        
+        selectedDeck1.innerHTML = `
+            <div class="text-center py-4">
+                <div class="loading-spinner"></div>
+                <p class="mt-2">Generating random deck...</p>
+            </div>
+        `;
+        
+        const randomDeck = await fetchRandomDeck(1);
+        displayRandomDeck(randomDeck, 1);
+    });
+    
+    document.getElementById('random-deck2').addEventListener('click', async function() {
+        // Set the input value to 'random' immediately to enable the battle button
+        deck2Input.value = 'random';
+        updateBattleButtonState();
+        
+        selectedDeck2.innerHTML = `
+            <div class="text-center py-4">
+                <div class="loading-spinner"></div>
+                <p class="mt-2">Generating random deck...</p>
+            </div>
+        `;
+        
+        const randomDeck = await fetchRandomDeck(2);
+        displayRandomDeck(randomDeck, 2);
+    });
+    
+    // Swap decks button
+    document.getElementById('swap-decks').addEventListener('click', function() {
+        const tempVal = deck1Input.value;
+        const tempDisplay = selectedDeck1.innerHTML;
+        const tempData = selectedDeck1.dataset.randomDeckData;
+        
+        deck1Input.value = deck2Input.value;
+        selectedDeck1.innerHTML = selectedDeck2.innerHTML;
+        selectedDeck1.dataset.randomDeckData = selectedDeck2.dataset.randomDeckData;
+        
+        deck2Input.value = tempVal;
+        selectedDeck2.innerHTML = tempDisplay;
+        selectedDeck2.dataset.randomDeckData = tempData;
+        
+        updateBattleButtonState();
+        
+        // Replace the clear button IDs to match their new positions
+        const clearBtnInDeck1 = selectedDeck1.querySelector('.clear-btn');
+        const clearBtnInDeck2 = selectedDeck2.querySelector('.clear-btn');
+        
+        if (clearBtnInDeck1) {
+            clearBtnInDeck1.id = 'clear-deck1';
+            clearBtnInDeck1.addEventListener('click', clearDeck1);
+        }
+        
+        if (clearBtnInDeck2) {
+            clearBtnInDeck2.id = 'clear-deck2';
+            clearBtnInDeck2.addEventListener('click', clearDeck2);
+        }
+        
+        // Set up card preview listeners
+        setupCardPreviewListeners();
+    });
+    
+    // Clear deck functions
+    function clearDeck1() {
+        deck1Input.value = '';
+        selectedDeck1.innerHTML = `
+            <div class="empty-deck-message">
+                <p class="text-muted">No deck selected</p>
+                <p><small>Select a deck below or click "Random"</small></p>
+            </div>
+        `;
+        
+        // Unselect any selected deck in list 1
+        document.querySelectorAll('.deck-item[data-position="1"].selected').forEach(selected => {
+            selected.classList.remove('selected');
+        });
+        
+        // Reset any stored random deck data
+        selectedDeck1.dataset.randomDeckData = '';
+        
+        updateBattleButtonState();
+    }
+
+    function clearDeck2() {
+        deck2Input.value = '';
+        selectedDeck2.innerHTML = `
+            <div class="empty-deck-message">
+                <p class="text-muted">No deck selected</p>
+                <p><small>Select a deck below or click "Random"</small></p>
+            </div>
+        `;
+        
+        // Unselect any selected deck in list 2
+        document.querySelectorAll('.deck-item[data-position="2"].selected').forEach(selected => {
+            selected.classList.remove('selected');
+        });
+        
+        // Reset any stored random deck data
+        selectedDeck2.dataset.randomDeckData = '';
+        
+        updateBattleButtonState();
+    }
+    
+    // Add event listeners to existing clear buttons if they exist
+    const existingClearBtn1 = document.getElementById('clear-deck1');
+    const existingClearBtn2 = document.getElementById('clear-deck2');
+
+    if (existingClearBtn1) existingClearBtn1.addEventListener('click', clearDeck1);
+    if (existingClearBtn2) existingClearBtn2.addEventListener('click', clearDeck2);
+    
+    // Load cards for any preselected decks
+    if (deck1Input.value && deck1Input.value !== 'random') {
+        loadDeckCards(deck1Input.value, selectedDeck1);
+    }
+    
+    if (deck2Input.value && deck2Input.value !== 'random') {
+        loadDeckCards(deck2Input.value, selectedDeck2);
+    }
+    
+    // Set up any existing card preview listeners
+    setupCardPreviewListeners();
+});
+
+
+// Initialize filter variables (keeping this for future implementation)
+let deckFilters = {
+    player: {},
+    ai: {}
+};
+
+// Track which side (player or AI) was chosen when opening the filter modal
+let currentFilterSide = 'player';
+
+// When opening filter modal, track which side it was opened from
+document.querySelectorAll('[data-bs-toggle="modal"][data-bs-target="#filterModal"]').forEach(button => {
+    button.addEventListener('click', function() {
+        // Determine if this button is in player or AI column
+        const parentColumn = this.closest('.deck-column');
+        currentFilterSide = parentColumn.id === 'your-deck-column' ? 'player' : 'ai';
+        
+        // Reset the form fields to show current filters for this side
+        const filters = deckFilters[currentFilterSide];
+        
+        // Deck name
+        document.getElementById('filter-deck-name').value = filters.name || '';
+        
+        // Reset all type checkboxes
+        document.querySelectorAll('input[id^="type-"]').forEach(cb => {
+            cb.checked = false;
+        });
+        
+        // Check the types that are selected
+        if (filters.types) {
+            filters.types.forEach(type => {
+                const checkbox = document.getElementById(`type-${type.toLowerCase()}`);
+                if (checkbox) checkbox.checked = true;
+            });
+        }
+        
+        // Set min Pokemon and Trainers
+        document.getElementById('filter-min-pokemon').value = filters.minPokemon || '';
+        document.getElementById('filter-min-trainers').value = filters.minTrainers || '';
+    });
+});
+
+// Apply filters button click - just store the filters for now
+document.getElementById('apply-filters').addEventListener('click', function() {
+    // Read filter values
+    const deckName = document.getElementById('filter-deck-name').value;
+    const types = Array.from(document.querySelectorAll('input[id^="type-"]:checked')).map(cb => cb.value);
+    const minPokemon = document.getElementById('filter-min-pokemon').value;
+    const minTrainers = document.getElementById('filter-min-trainers').value;
+    
+    // Store filters for the current side (for future implementation)
+    deckFilters[currentFilterSide] = {
+        name: deckName,
+        types: types,
+        minPokemon: minPokemon,
+        minTrainers: minTrainers
+    };
+    
+    // Just notify the user that filters have been "applied" (though they won't actually do anything yet)
+    alert(`Filters saved for ${currentFilterSide === 'player' ? 'Your Deck' : 'AI Deck'}. Note: Filtering functionality will be implemented in the future.`);
+});
+
+// Fetch random deck without applying filters
+async function fetchRandomDeck(position) {
+    try {
+        // Use a random name regardless of any filters
+        const randomName = `Random Deck ${Math.floor(Math.random() * 1000)}`;
+        const response = await fetch(`/get_random_deck?name=${randomName}`);
+        const deckData = await response.json();
+        
+        if (deckData.error) {
+            console.error('Error fetching random deck:', deckData.error);
+            return null;
+        }
+        
+        return deckData;
+    } catch (error) {
+        console.error('Error fetching random deck:', error);
+        return null;
+    }
+}
+
+
+
+</script>
+{% endblock %}
