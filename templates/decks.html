@@ -1,25 +1,24 @@
 {% include 'navbar.html' %}
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Deck Builder - Pokémon TCG Pocket</title>
-    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <style>
 body {
-    padding-top: 20px;
+    padding-top: 0px; /* This should likely be increased for the fixed navbar */
     padding-bottom: 20px;
     background-color: #f8f9fa;
 }
 
 /* Navbar styles */
 .navbar {
-    margin-bottom: 20px;
+    margin-bottom: 0px;
 }
 
 .navbar-brand {
@@ -102,11 +101,18 @@ body {
 
 /* Card collection styles - FIXED CONTAINER */
 #card-collection {
-    height: 100%;
-    overflow-y: auto;
-    padding: 15px;
-    padding-bottom: 10px; /* Extra padding at bottom to prevent cutoff */
-    margin-bottom: 20px;
+    /* height: 100%; <-- REMOVE or keep, but absolute positioning is more direct */
+    overflow-y: auto; /* Keep */
+    padding: 15px; /* Keep */
+    padding-bottom: 10px; /* Keep */
+    /* margin-bottom: 20px; <-- REMOVE, padding handles spacing */
+
+    /* ADD THESE for absolute positioning within card-body */
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
 }
 
 #card-count-search {
@@ -119,13 +125,14 @@ body {
 .col-md-8.mb-4 .card {
     display: flex;
     flex-direction: column;
-    height: 819px; /* Fixed height - card collection */
+    height: 100%; /* ADD THIS to make card fill parent row height */
 }
 
 .col-md-8.mb-4 .card-body {
-    flex: 1;
-    overflow: hidden; /* Let the inner #card-collection handle scrolling */
-    padding: 0;
+    flex-grow: 1; /* CHANGE flex: 1 to flex-grow: 1 */
+    overflow: hidden; /* Keep this */
+    padding: 0; /* Keep this */
+    position: relative; /* ADD THIS for absolute positioning of child */
 }
 
 /* VERTICAL SPACING FOR CARD COLLECTION */
@@ -274,7 +281,455 @@ body {
     background-color: rgba(176, 42, 55, 0.95);
     transform: scale(1.05);
 }
-        
+
+/* Custom scrollbar */
+#card-collection::-webkit-scrollbar {
+    width: 8px;
+}
+
+#card-collection::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+#card-collection::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+#card-collection::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Current deck styles */
+#current-deck {
+    height: 100%;
+    overflow-y: auto;
+    padding: 5px;
+    width: 100%
+}
+
+.current-deck-container .card {
+    padding-right: 0;
+    overflow: hidden;
+}
+
+.current-deck-container .card-body {
+    padding: 10px 10px 10px 10px; /* Equal padding on all sides */
+}
+
+/* Improved deck header styling */
+.current-deck-container .card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid rgba(0,0,0,0.125);
+    padding: 15px;
+}
+
+.input-group {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+    margin-bottom: 5px;
+}
+
+#deck-name {
+    height: 45px;
+    border-radius: 8px 0 0 8px;
+    border: 1px solid #dee2e6;
+    padding: 0 12px;
+    flex-grow: 1;
+}
+
+#save-deck-btn, #clear-deck-btn {
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 16px;
+    font-weight: 500;
+    border-radius: 0%;
+}
+
+.deck-header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.deck-counter {
+    background-color: rgba(52, 58, 64, 0.55) !important; /* Same dark gray with transparency */
+    color: white;
+    font-weight: 600;
+    border-radius: 0 8px 8px 0;
+    min-width: 70px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.deck-counter.full {
+    background-color: rgba(52, 58, 64) !important; /* Green when full */
+}
+
+.energy-section {
+    margin-top: 12px;
+}
+
+/* Make sure nothing else moves */
+.energy-label {
+    margin-right: 8px;
+    margin-left: 6px;
+    margin-top: 4px;
+    margin-bottom: 8px;
+    color: #444;
+    display: block;
+    font-size: 16px;
+}
+
+/* Reduce space at the bottom of the card header */
+.card-header {
+    padding-bottom: 0px !important;  /* Reduced from 18px */
+}
+
+/* Keep energy section in place but reduce margin at the bottom */
+.energy-selection-bar {
+    display: flex;
+    align-items: center;
+    margin-top: 16px;
+    margin-bottom: 8px;  /* Reduced from 16px */
+    padding: 8px 0;
+}
+
+/* deck energies */
+.energy-selection-bar {
+    display: flex;
+    justify-content: space-evenly; /* This will create equal spacing */
+    width: 98%;
+    margin: 9px 0;
+    padding: 0;
+}
+
+.deck-energy {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    opacity: 0.5;
+    width: 27px; /* Slightly smaller */
+    height: 27px; /* Slightly smaller */
+    margin: 0; /* Remove any margin */
+}
+
+.deck-energy.active {
+    opacity: 1;
+    transform: scale(1.2);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.selected-energies-info {
+    display: block;
+    margin-top: 8px;
+    margin-bottom: 5px;
+}
+
+.energy-icon-wrapper.deck-energy {
+    width: 25px;
+    height: 25px;
+    margin: 0 2px;
+}
+
+/* Deck slot styles */
+Okay, here is the `decks.html` file, returned to the structure where it includes `navbar.html` and contains the full HTML document. This is the code you provided that you said was "working properly" in terms of using `navbar.html`.
+
+**`decks.html` (Original Structure with Include):**
+
+```html
+{% include 'navbar.html' %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deck Builder - Pokémon TCG Pocket</title>
+    <link href="[https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css](https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css)" rel="stylesheet">
+    <link rel="stylesheet" href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css)">
+    <link rel="stylesheet" href="[https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css](https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css)">
+    <style>
+body {
+    padding-top: 0px; /* Adjust this for fixed navbar if needed */
+    padding-bottom: 20px;
+    background-color: #f8f9fa;
+}
+
+/* Navbar styles */
+.navbar {
+    margin-bottom: 0px;
+}
+
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+/* Filter bar styles */
+.filter-bar {
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    border: 1px solid rgba(0,0,0,0.125);
+}
+
+.filter-bar .dropdown button {
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 160px;
+    text-align: left;
+    font-size: 16px;
+    padding: 10px 15px;
+    border: 1px solid #444;
+}
+
+.filter-bar .dropdown-menu {
+    width: 100%;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.filter-bar .dropdown-menu .dropdown-item {
+    border-bottom: 1px solid #e9ecef;
+}
+
+.filter-bar .dropdown-item {
+    white-space: normal;
+    word-wrap: break-word;
+}
+
+.filter-label {
+    color: #888;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.energy-icon-wrapper {
+    position: relative;
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    overflow: hidden;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    opacity: 0.5; /* Slightly greyed out when not selected */
+    filter: saturate(0.8);
+}
+
+.energy-icon-wrapper:hover {
+    opacity: 0.9;
+    filter: saturate(0.9);
+}
+
+.energy-icon-wrapper.active {
+    opacity: 1;
+    filter: saturate(1.1);
+    transform: scale(1.15); /* Make it slightly bigger when selected */
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.energy-icon {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Card collection styles - FIXED CONTAINER */
+#card-collection {
+    /* height: 100%; <-- REMOVE or keep, but absolute positioning is more direct */
+    overflow-y: auto; /* Keep */
+    padding: 15px; /* Keep */
+    padding-bottom: 10px; /* Keep */
+    /* margin-bottom: 20px; <-- REMOVE, padding handles spacing */
+
+    /* ADD THESE for absolute positioning within card-body */
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
+#card-count-search {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Make the card container have flex layout */
+.col-md-8.mb-4 .card {
+    display: flex;
+    flex-direction: column;
+    height: 100%; /* ADD THIS to make card fill parent row height */
+}
+
+.col-md-8.mb-4 .card-body {
+    flex-grow: 1; /* CHANGE flex: 1 to flex-grow: 1 */
+    overflow: hidden; /* Keep this */
+    padding: 0; /* Keep this */
+    position: relative; /* ADD THIS for absolute positioning of child */
+}
+
+/* VERTICAL SPACING FOR CARD COLLECTION */
+.col-6.col-sm-4.col-md-3.col-lg-2.mb-3 {
+    margin-bottom: 7px !important;
+}
+
+/* Card styles */
+.card-item {
+    position: relative;
+    margin-bottom: 200px;
+}
+
+.card-item img {
+    width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease;
+    cursor: pointer;
+}
+
+.clickable-card {
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.2s ease;
+}
+
+.clickable-card::before {
+    content: '+';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 36px;
+    height: 36px;
+    background-color: rgba(40, 40, 40, 0.8);
+    color: #2ecc71; /* Brighter green */
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    z-index: 10;
+    padding-bottom: 4px;
+    font-weight: bold;
+    font-size: 24px;
+    pointer-events: none;
+}
+
+.clickable-card:hover::before {
+    opacity: 0.9;
+}
+
+/* Make sure badge and remove button move with the card */
+.card-item .badge,
+.card-item .btn-remove-small {
+    transform: scale(1.05);
+    transition: transform 0.2s ease;
+    z-index: 10;
+}
+
+.card-item .badge {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    background-color: rgba(0, 13, 130, 0.826) !important;
+    color: white;
+    font-weight: 600;
+    border-radius: 50%;
+    border: none;
+    font-size: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.card-item:hover .badge {
+    transform: scale(1.05);
+    transition: all 0.2s ease;
+}
+
+.card-item:hover {
+    transform: scale(1.05);
+    transition: all 0.2s ease;
+}
+
+.card-item:hover img {
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    transition: all 0.2s ease;
+}
+
+/* Style for the remove button - position in top right */
+.btn-remove-small {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    background-color: rgba(220, 53, 69, 0.85);
+    color: white;
+    border-radius: 50%;
+    border: none;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.btn-remove-small:hover {
+    opacity: 1;
+    background-color: rgba(176, 42, 55, 0.95);
+    transform: scale(1.05);
+}
+
+/* Add/Remove buttons */
+.btn-remove {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    background-color: rgba(220, 53, 69, 0.85);
+    color: white;
+    border-radius: 50%;
+    border: none;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.btn-remove:hover {
+    opacity: 1;
+    background-color: rgba(176, 42, 55, 0.95);
+    transform: scale(1.05);
+}
+
 /* Custom scrollbar */
 #card-collection::-webkit-scrollbar {
     width: 8px;
@@ -451,7 +906,7 @@ body {
 
 .card-slot-container {
     aspect-ratio: 63/88;
-    border-radius: 8px;
+    border-radius: 4px;
     overflow: hidden;
     transition: all 0.2s ease;
 }
@@ -513,6 +968,7 @@ body {
     padding-right: 10px;
     max-width: 98%;
 }
+
 
 /* ===== IMPROVED FILTER BAR STYLING ===== */
 
@@ -745,105 +1201,129 @@ body {
     overflow-y: auto;
 }
 
+
 /* Large screens - 4 in a row layout */
 @media (min-width: 1430px) {
     .filter-bar .row {
         flex-direction: row;
-        align-items: flex-end;
+        align-items: flex-start; /* Align tops */
     }
-    
+
     .filter-bar .col-md-8 {
         width: 70%;
     }
-    
+
     .filter-bar .col-md-4 {
         width: 30%;
         padding-bottom: 0;
+        padding-top: 2px; /* Further increased padding to push Color section down */
     }
-    
+
     .filter-bar .col-md-3 {
         flex: 0 0 25%;
         margin-bottom: 0;
     }
-    
+
     .filter-bar .col-md-8 .row {
         flex-wrap: nowrap;
     }
 }
 
 /* Medium-large screens - Switch to 2x2 grid RIGHT when energy icons would wrap */
-@media (max-width: 1429px) and (min-width: 768px) {
-    /* Keep row horizontal, but make dropdowns 2x2 */
+@media (max-width: 1429px) and (min-width: 800px) {
+    /* Keep row horizontal, but make dropdowns 2x2. Align columns to top. */
     .filter-bar .row {
         flex-direction: row;
+        align-items: flex-start; /* Align columns to the top */
     }
-    
+
     /* IMPORTANT: Keep these widths exactly the same as the large screen layout */
     .filter-bar .col-md-8 {
         width: 70%;
     }
-    
+
     .filter-bar .col-md-4 {
         width: 30%;
+        height: 100%;
+        align-self: center;
     }
-    
+
     /* Make dropdowns 2x2 */
     .filter-bar .col-md-8 .row {
         flex-wrap: wrap;
     }
-    
+
     .filter-bar .col-md-3 {
         flex: 0 0 50%;
         margin-bottom: 10px;
     }
-    
+
     /* Top row needs margin */
     .filter-bar .col-md-3:nth-child(1),
     .filter-bar .col-md-3:nth-child(2) {
         margin-bottom: 10px;
     }
-    
+
     /* Bottom row doesn't need margin */
     .filter-bar .col-md-3:nth-child(3),
     .filter-bar .col-md-3:nth-child(4) {
         margin-bottom: 0;
     }
-    
-    /* Ensure energy icons container maintains its width */
+
+    /* Ensure energy icons container maintains its width and adjust top margin */
     .filter-bar .energy-icons {
         width: 100%;
         max-width: 100%;
         display: flex;
         flex-wrap: wrap;
+        margin-top: 4px; /* Increased margin slightly for better alignment */
     }
 }
 
 /* Small screens - stack everything */
-@media (max-width: 767px) {
+@media (max-width: 800px) { /* Increased breakpoint */
     /* Move icons below */
+    .filter-bar {
+        width: 100%;
+        padding-left: 10px; /* Adjust as needed */
+        padding-right: 10px; /* Adjust as needed */
+    }
+
+
+    .filter-bar .dropdown button {
+        width: 100%;
+    }
+
+    .filter-bar .col-md-3 {
+        flex-basis: 100%;
+        max-width: 100%; /* Ensure it doesn't exceed */
+    }
     .filter-bar .row {
         flex-direction: column;
     }
-    
+
     .filter-bar .col-md-8,
     .filter-bar .col-md-4 {
         width: 100%;
+
     }
-    
+
     .filter-bar .col-md-8 {
-        margin-bottom: 15px;
+        margin-bottom: 10px;
     }
-    
+
     /* Stack all dropdowns */
     .filter-bar .col-md-8 .row {
         flex-direction: column;
+        width: 100%;
     }
-    
+
     .filter-bar .col-md-3 {
         flex: 0 0 100%;
         margin-bottom: 10px;
+        width: 100%;
     }
-    
+
     /* Last dropdown doesn't need margin */
     .filter-bar .col-md-3:last-child {
         margin-bottom: 0;
@@ -851,13 +1331,13 @@ body {
 }
 
 /* Synchronize deck movement with filter bar changes */
-@media (max-width: 767px) {
-    /* This will ensure the current deck moves below at the same time 
+@media (max-width: 800px) { /* Increased breakpoint */
+    /* This will ensure the current deck moves below at the same time
        as the energy icons move below and filters stack */
     .row.mb-4 {
         flex-direction: column;
     }
-    
+
     .col-md-8.mb-4,
     .col-md-4.mb-4 {
         width: 100%;
@@ -865,6 +1345,99 @@ body {
         flex: 0 0 100%;
     }
 }
+
+/* ===== New Breakpoint for Fixing Deck Width ===== */
+
+@media (max-width: 1199px) and (min-width: 800px) {
+    .deck-builder-main-row {
+        display: flex;
+        flex-wrap: wrap;
+        /* align-items: stretch; */ /* Default for rows, might not be needed */
+        margin-right: 0;
+        margin-left: 0;
+    }
+
+    .add-cards-wrapper {
+        flex-grow: 1; /* Allow this column to grow/shrink */
+        flex-shrink: 1;
+        width: calc(100% - 390px); /* Calculate width: 100% minus deck width minus gap */
+        min-width: 0; /* Allow shrinking below content size */
+        /* Remove Bootstrap's default flex-basis if needed, handled by width */
+        flex-basis: auto;
+        padding-left: 0;
+    }
+
+    .current-deck-wrapper {
+        width: 359px;
+        /* width: 345.953px; REMOVED !important */
+        flex-shrink: 0 !important; /* KEEP !important */
+        /* Override Bootstrap column padding */
+        /* padding-left: 5px !important; */
+        padding-right: 0 !important;
+        margin-left: 0;
+        /* Remove basis */
+        flex-basis: auto !important;
+    }
+
+
+    /* Ensure card heights match via flexbox */
+    .add-cards-wrapper .card,
+    .current-deck-wrapper .card {
+        display: flex !important;
+        flex-direction: column !important;
+        /* height: 100% might be needed if h-100 fails */
+        height: 100% !important;
+    }
+    .add-cards-wrapper .card-body,
+    .current-deck-wrapper .card-body {
+        flex-grow: 1;
+        overflow: hidden;
+        position: relative; /* May be needed for inner positioning */
+    }
+    .add-cards-wrapper #card-collection,
+    .current-deck-wrapper #current-deck {
+        height: 100%;
+        overflow-y: auto;
+    }
+   /* REMOVE the specific .current-deck-wrapper .card { height: 861px; ... } rule entirely */
+}
+
+/* Adjustments for stacking */
+@media (max-width: 800px) {
+    .add-cards-wrapper.col-md-8,
+    .current-deck-wrapper.col-md-4 {
+        display: block !important; /* ADD THIS */
+        flex: none !important; /* ADD THIS to disable flex */
+        max-width: 100% !important; /* Keep */
+        width: 100% !important; /* Keep */
+        margin-bottom: 1rem !important; /* Keep */
+        min-height: 300px; /* ADD THIS - Adjust value if needed */
+    }
+    /* Keep height auto rules */
+    .add-cards-wrapper .card,
+    .current-deck-wrapper .card {
+         height: auto;
+         min-height: 620px; /* Add min-height here too */
+    }
+    .current-deck-wrapper #current-deck {
+      height: auto;
+    }
+    /* Ensure the row itself doesn't force flex */
+    .deck-builder-main-row {
+         display: block; /* Override display:flex */
+    }
+    .card-zoom-container img {
+     max-width: 260px; /* Adjust this pixel value until the zoom size looks right on small screens */
+     /* You probably don't need to change max-height: 90vh; */
+    }
+}
+
+/* Ensure the main row itself uses flex */
+.deck-builder-main-row {
+    display: flex;
+    flex-wrap: wrap; /* Allow wrapping for the smallest screens */
+}
+
 
 /* Smooth transitions */
 .filter-bar .row,
@@ -874,23 +1447,42 @@ body {
 .energy-icon-wrapper {
     transition: all 0.15s ease-out;
 }
-        
+
+/* These styles were in the deck.html provided in a previous turn. */
+/* If you want them applied when including navbar.html here, keep them. */
+#main-navbar-container .navbar-collapse {
+    justify-content: center !important; /* Force items inside to center */
+    flex-grow: 0; /* Prevent the collapse div from growing unnecessarily */
+}
+
+/* Target the UL holding the main links and remove its auto margin */
+#main-navbar-container .navbar-nav.me-auto {
+    margin-right: 0 !important; /* Override Bootstrap's me-auto */
+}
+
+/* Target the UL holding the account links and remove its auto margin */
+#main-navbar-container .navbar-nav.ms-auto {
+    margin-left: 0 !important; /* Override Bootstrap's ms-auto */
+}
+
+/* Optional: Add a little space between the main links and account dropdown if needed */
+#main-navbar-container .navbar-nav:not(:last-child) {
+    margin-right: 1rem; /* Adjust as needed */
+}
+
+
     </style>
 </head>
 <body>
     <div class="container">
 
-        <!-- Main content starts here -->
         <div class="container-fluid py-4">
             <h1 class="mb-4">Deck Builder</h1>
-            
-            <!-- Unified Filter Bar with Improved Structure -->
+
             <div class="filter-bar mb-4 p-3 rounded">
                 <div class="row align-items-start">
-                    <!-- Left Side - Dropdowns -->
                     <div class="col-md-8">
                         <div class="row">
-                            <!-- Card Type -->
                             <div class="col-md-3">
                                 <div class="filter-container">
                                     <div class="filter-label-top">Card Type</div>
@@ -906,8 +1498,7 @@ body {
                                     </div>
                                 </div>
                             </div>
-                            
-                            <!-- Stage/Trainer Type -->
+
                             <div class="col-md-3">
                                 <div class="filter-container">
                                     <div class="filter-label-top">Stage/Trainer Type</div>
@@ -927,8 +1518,7 @@ body {
                                     </div>
                                 </div>
                             </div>
-                            
-                            <!-- Set -->
+
                             <div class="col-md-3">
                                 <div class="filter-container">
                                     <div class="filter-label-top">Set</div>
@@ -949,7 +1539,6 @@ body {
                                 </div>
                             </div>
 
-                            <!-- Rarity -->
                             <div class="col-md-3">
                                 <div class="filter-container">
                                     <div class="filter-label-top">Rarity</div>
@@ -966,6 +1555,8 @@ body {
                                             <li><a class="dropdown-item" href="#" data-value="☆">☆</a></li>
                                             <li><a class="dropdown-item" href="#" data-value="☆☆">☆☆</a></li>
                                             <li><a class="dropdown-item" href="#" data-value="☆☆☆">☆☆☆</a></li>
+                                            <li><a class="dropdown-item" href="#" data-value='✵'>✵</a></li>
+                                            <li><a class="dropdown-item" href="#" data-value='✵✵'>✵✵</a></li>
                                             <li><a class="dropdown-item" href="#" data-value="Crown Rare">👑</a></li>
                                         </ul>
                                     </div>
@@ -973,48 +1564,37 @@ body {
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- Right Side - Energy Type Icons -->
+
                     <div class="col-md-4">
                         <div class="filter-label-top">Color</div>
                         <div class="energy-icons">
-                            <!-- Grass -->
                             <div class="energy-icon-wrapper" data-type="Grass" style="background-color: #7ACB5A;">
                                 <img src="{{ url_for('static', filename='energy/grass.png') }}" alt="Grass" class="energy-icon" data-energy-type="Grass" onerror="this.style.display='none'; this.parentElement.innerHTML += 'G';">
                             </div>
-                            <!-- Fire -->
                             <div class="energy-icon-wrapper" data-type="Fire" style="background-color: #FF9D55;">
                                 <img src="{{ url_for('static', filename='energy/fire.png') }}" alt="Fire" class="energy-icon" data-energy-type="Fire" onerror="this.style.display='none'; this.parentElement.innerHTML += 'F';">
                             </div>
-                            <!-- Water -->
                             <div class="energy-icon-wrapper" data-type="Water" style="background-color: #5AA6DD;">
                                 <img src="{{ url_for('static', filename='energy/water.png') }}" alt="Water" class="energy-icon" data-energy-type="Water" onerror="this.style.display='none'; this.parentElement.innerHTML += 'W';">
                             </div>
-                            <!-- Lightning -->
                             <div class="energy-icon-wrapper" data-type="Lightning" style="background-color: #FAD26B;">
                                 <img src="{{ url_for('static', filename='energy/electric.png') }}" alt="Lightning" class="energy-icon" data-energy-type="Lightning" onerror="this.style.display='none'; this.parentElement.innerHTML += 'L';">
                             </div>
-                            <!-- Psychic -->
                             <div class="energy-icon-wrapper" data-type="Psychic" style="background-color: #BA79C1;">
                                 <img src="{{ url_for('static', filename='energy/psychic.png') }}" alt="Psychic" class="energy-icon" data-energy-type="Psychic" onerror="this.style.display='none'; this.parentElement.innerHTML += 'P';">
                             </div>
-                            <!-- Fighting -->
                             <div class="energy-icon-wrapper" data-type="Fighting" style="background-color: #D56969;">
                                 <img src="{{ url_for('static', filename='energy/fighting.png') }}" alt="Fighting" class="energy-icon" data-energy-type="Fighting" onerror="this.style.display='none'; this.parentElement.innerHTML += 'F';">
                             </div>
-                            <!-- Darkness -->
                             <div class="energy-icon-wrapper" data-type="Darkness" style="background-color: #705848;">
                                 <img src="{{ url_for('static', filename='energy/dark.png') }}" alt="Darkness" class="energy-icon" data-energy-type="Darkness" onerror="this.style.display='none'; this.parentElement.innerHTML += 'D';">
                             </div>
-                            <!-- Metal -->
                             <div class="energy-icon-wrapper" data-type="Metal" style="background-color: #B8B8D0;">
                                 <img src="{{ url_for('static', filename='energy/metal.png') }}" alt="Metal" class="energy-icon" data-energy-type="Metal" onerror="this.style.display='none'; this.parentElement.innerHTML += 'M';">
                             </div>
-                            <!-- Dragon (New) -->
                             <div class="energy-icon-wrapper" data-type="Dragon">
                                 <img src="{{ url_for('static', filename='energy/dragon.png') }}" alt="Dragon" class="energy-icon" data-energy-type="Dragon" onerror="this.style.display='none'; this.parentElement.innerHTML += 'R';">
                             </div>
-                            <!-- Colorless -->
                             <div class="energy-icon-wrapper" data-type="Colorless" style="background-color: #C8C8C8;">
                                 <img src="{{ url_for('static', filename='energy/colorless.png') }}" alt="Colorless" class="energy-icon" data-energy-type="Colorless" onerror="this.style.display='none'; this.parentElement.innerHTML += 'C';">
                             </div>
@@ -1022,11 +1602,9 @@ body {
                     </div>
                 </div>
             </div>
-            
-            <!-- Main Content Area -->
-            <div class="row">
-                <!-- Add Cards Section - FIXED CONTAINER -->
-                <div class="col-md-8 mb-4">
+
+            <div class="row deck-builder-main-row">
+                <div class="col-md-8 mb-4 add-cards-wrapper">
                     <div class="card">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <div class="input-group">
@@ -1045,9 +1623,8 @@ body {
                         </div>
                     </div>
                 </div>
-                
-                <!-- Current Deck Section -->
-                <div class="col-md-4 mb-4 current-deck-container">
+
+                <div class="col-md-4 mb-4 current-deck-container current-deck-wrapper">
                     <div class="card">
                         <div class="card-header">
                             <div class="input-group mb-2">
@@ -1056,39 +1633,30 @@ body {
                                 <button id="clear-deck-btn" class="btn btn-outline-danger">Clear</button>
                                 <span class="deck-counter">0/20</span>
                             </div>
-                            
-                            <!-- Deck Energy Types Selection -->
+
                             <div class="energy-selection-bar d-flex flex-wrap">
                                 <label class="energy-label">Energy:</label>
-                                <!-- Grass -->
                                 <div class="energy-icon-wrapper deck-energy" data-type="Grass" style="background-color: #7ACB5A;">
                                     <img src="{{ url_for('static', filename='energy/grass.png') }}" alt="Grass" class="energy-icon" data-energy-type="Grass" onerror="this.style.display='none'; this.parentElement.innerHTML += 'G';">
                                 </div>
-                                <!-- Fire -->
                                 <div class="energy-icon-wrapper deck-energy" data-type="Fire" style="background-color: #FF9D55;">
                                     <img src="{{ url_for('static', filename='energy/fire.png') }}" alt="Fire" class="energy-icon" data-energy-type="Fire" onerror="this.style.display='none'; this.parentElement.innerHTML += 'F';">
                                 </div>
-                                <!-- Water -->
                                 <div class="energy-icon-wrapper deck-energy" data-type="Water" style="background-color: #5AA6DD;">
                                     <img src="{{ url_for('static', filename='energy/water.png') }}" alt="Water" class="energy-icon" data-energy-type="Water" onerror="this.style.display='none'; this.parentElement.innerHTML += 'W';">
                                 </div>
-                                <!-- Lightning -->
                                 <div class="energy-icon-wrapper deck-energy" data-type="Lightning" style="background-color: #FAD26B;">
                                     <img src="{{ url_for('static', filename='energy/electric.png') }}" alt="Lightning" class="energy-icon" data-energy-type="Lightning" onerror="this.style.display='none'; this.parentElement.innerHTML += 'L';">
                                 </div>
-                                <!-- Psychic -->
                                 <div class="energy-icon-wrapper deck-energy" data-type="Psychic" style="background-color: #BA79C1;">
                                     <img src="{{ url_for('static', filename='energy/psychic.png') }}" alt="Psychic" class="energy-icon" data-energy-type="Psychic" onerror="this.style.display='none'; this.parentElement.innerHTML += 'P';">
                                 </div>
-                                <!-- Fighting -->
                                 <div class="energy-icon-wrapper deck-energy" data-type="Fighting" style="background-color: #D56969;">
                                     <img src="{{ url_for('static', filename='energy/fighting.png') }}" alt="Fighting" class="energy-icon" data-energy-type="Fighting" onerror="this.style.display='none'; this.parentElement.innerHTML += 'F';">
                                 </div>
-                                <!-- Darkness -->
                                 <div class="energy-icon-wrapper deck-energy" data-type="Darkness" style="background-color: #705848;">
                                     <img src="{{ url_for('static', filename='energy/dark.png') }}" alt="Darkness" class="energy-icon" data-energy-type="Darkness" onerror="this.style.display='none'; this.parentElement.innerHTML += 'D';">
                                 </div>
-                                <!-- Metal -->
                                 <div class="energy-icon-wrapper deck-energy" data-type="Metal" style="background-color: #B8B8D0;">
                                     <img src="{{ url_for('static', filename='energy/metal.png') }}" alt="Metal" class="energy-icon" data-energy-type="Metal" onerror="this.style.display='none'; this.parentElement.innerHTML += 'M';">
                                 </div>
@@ -1096,8 +1664,7 @@ body {
                         </div>
                         <div class="card-body">
                             <div id="current-deck" class="deck-slots">
-                                <!-- Empty slots will be generated here -->
-                            </div>
+                                </div>
                         </div>
                     </div>
                 </div>
@@ -1105,53 +1672,50 @@ body {
         </div>
     </div>
 
-    <!-- Card Zoom Container -->
     <div class="card-zoom-container" id="card-zoom-container"></div>
 
-    <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- Main Script -->
+
     <script>
     // Global variables
     let allCards = [];
     let filteredCards = [];
     let currentDeck = [];
     let loadedDeckId = null;
-    let selectedFilters = {
+    let selectedFilters = { // This now ONLY stores filters from clicks/dropdowns
         cardType: 'All',
         stageType: 'All',
         rarity: 'All',
         set: 'All',
-        energyTypes: [],
-        searchText: ''
+        energyTypes: [] // Energy types selected by clicking icons
     };
+    let rawSearchText = ''; // Variable to store the raw text from the search input
     let deckSaved = true;
 
     document.addEventListener('DOMContentLoaded', function() {
         console.log('Page loaded, initializing deck builder...');
-        
+
         // Check for edit parameter in URL
         const urlParams = new URLSearchParams(window.location.search);
         const editDeckFilename = urlParams.get('edit');
-        
+
         // Set up global variable to track if we're editing
         if (editDeckFilename) {
             loadedDeckId = editDeckFilename;
         }
-        
+
         // Setup event listeners
         setupEventListeners();
-        
+
         // Load cards
         loadCards();
-        
+
         // Initialize empty deck slots
         initializeDeckDisplay();
-        
+
         // Update dropdown text display
         updateDropdownDisplays();
-        
+
         // If editing a deck, load it after cards are loaded
         if (editDeckFilename) {
             // We need to wait for cards to load before loading the deck
@@ -1159,24 +1723,24 @@ body {
             console.log('Will load deck for editing:', editDeckFilename);
         }
     });
-    
+
     // Helper function to update dropdown button text with filter labels
     // Helper function to update dropdown button text without filter labels
     function updateDropdownDisplays() {
         // Card Type dropdown - just show the selected value without a label
-        document.getElementById('cardTypeDropdown').textContent = 
+        document.getElementById('cardTypeDropdown').textContent =
             selectedFilters.cardType === 'All' ? 'All' : selectedFilters.cardType;
-            
-        // Stage/Trainer Type dropdown - just show the selected value without a label  
-        document.getElementById('stageTypeDropdown').textContent = 
+
+        // Stage/Trainer Type dropdown - just show the selected value without a label
+        document.getElementById('stageTypeDropdown').textContent =
             selectedFilters.stageType === 'All' ? 'All' : selectedFilters.stageType;
-            
+
         // Rarity dropdown - just show the selected value without a label
-        document.getElementById('rarityDropdown').textContent = 
+        document.getElementById('rarityDropdown').textContent =
             selectedFilters.rarity === 'All' ? 'All' : selectedFilters.rarity;
-            
+
         // Set dropdown - just show the selected value without a label
-        document.getElementById('setDropdown').textContent = 
+        document.getElementById('setDropdown').textContent =
             selectedFilters.set === 'All' ? 'All' : selectedFilters.set;
     }
 
@@ -1184,10 +1748,10 @@ body {
 
     function loadCards() {
         console.log('Loading cards...');
-        
+
         const cardCollection = document.getElementById('card-collection');
         cardCollection.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-primary"></div><p>Loading cards...</p></div>';
-        
+
         fetch('/api/cards')
             .then(response => {
                 console.log('API response status:', response.status);
@@ -1196,20 +1760,20 @@ body {
             .then(data => {
                 if (data && data.cards && data.cards.length > 0) {
                     console.log(`Found ${data.cards.length} cards`);
-                    
+
                     // Store cards
                     allCards = data.cards;
                     filteredCards = [...allCards];
-                    
+
                     // Setup dropdowns with predefined options instead of dynamic population
                     setupDropdowns();
-                    
+
                     // Display cards
                     updateCardDisplay();
-                    
+
                     // Update card counter
                     document.getElementById('card-count-search').textContent = `${filteredCards.length} cards found`;
-                    
+
                     // Load deck if we're editing
                     if (loadedDeckId) {
                         loadExistingDeck(loadedDeckId);
@@ -1226,22 +1790,22 @@ body {
     // Add the loadExistingDeck function
     function loadExistingDeck(filename) {
         console.log('Loading existing deck:', filename);
-        
+
         fetch(`/api/decks/${filename}`)
             .then(response => response.json())
             .then(data => {
                 console.log("Loaded deck data:", data);
-                
+
                 // Set deck name
                 document.getElementById('deck-name').value = data.name || 'Untitled Deck';
-                
+
                 // Clear current deck
                 currentDeck = [];
-                
+
                 document.querySelectorAll('.energy-selection-bar .energy-icon-wrapper').forEach(icon => {
                     icon.classList.remove('active');
                 });
-                
+
                 // Add each card to the deck
                 if (data.cards && Array.isArray(data.cards)) {
                     data.cards.forEach(card => {
@@ -1252,14 +1816,14 @@ body {
                         }
                     });
                 }
-                
+
                 // Load deck energy types
                 console.log("Deck types from server:", data.deck_types);
                 if (data.deck_types && Array.isArray(data.deck_types)) {
                     // Make a new copy of the array
                     selectedDeckEnergies = [...data.deck_types];
                     console.log("Set selectedDeckEnergies to:", selectedDeckEnergies);
-                    
+
                     // Update UI to reflect selected energies
                     document.querySelectorAll('.energy-selection-bar .energy-icon-wrapper').forEach(icon => {
                         const energyType = icon.getAttribute('data-type');
@@ -1267,10 +1831,10 @@ body {
                             icon.classList.add('active');
                         }
                     });
-                    
+
                     updateEnergyCounter();
                 }
-                
+
                 // Update displays
                 updateDeckDisplay();
                 updateCardDisplay();
@@ -1287,15 +1851,15 @@ body {
         const dropdownOptions = {
             'card-type-dropdown': ['All', 'Pokémon', 'Trainer'],
             'stage-type-dropdown': ['All', 'Item', 'Supporter', 'Tool', 'Basic', 'Stage 1', 'Stage 2'],
-            'rarity-dropdown': ['All', '◊', '◊◊', '◊◊◊', '◊◊◊◊', '☆', '☆☆', '☆☆☆', 'Crown Rare'],
+            'rarity-dropdown': ['All', '◊', '◊◊', '◊◊◊', '◊◊◊◊', '☆', '☆☆', '☆☆☆', '✵', '✵✵', 'Crown Rare'],
             'set-dropdown': ['All', 'Promo-A', 'Genetic Apex', 'Mythical Island', 'Space-Time Smackdown', 'Triumphant Light', 'Shining Revelry']
         };
-        
+
         // Apply for each dropdown
         Object.entries(dropdownOptions).forEach(([dropdownId, options]) => {
             populateDropdown(dropdownId, options);
         });
-        
+
         // Setup dropdown click handlers
         setupDropdownListeners();
     }
@@ -1304,10 +1868,10 @@ body {
     function populateDropdown(dropdownId, options) {
         const dropdown = document.getElementById(dropdownId);
         if (!dropdown) return;
-        
+
         // Clear existing items
         dropdown.innerHTML = '';
-        
+
         // Add each option
         options.forEach((option, index) => {
             const li = document.createElement('li');
@@ -1315,7 +1879,7 @@ body {
             link.className = 'dropdown-item' + (index === 0 ? ' active' : '');
             link.href = '#';
             link.dataset.value = option;
-            
+
             // Special handling for Crown Rare to use emoji
             if (option === 'Crown Rare') {
                 link.innerHTML = '👑'; // Crown emoji
@@ -1323,7 +1887,7 @@ body {
             } else {
                 link.textContent = option;
             }
-            
+
             li.appendChild(link);
             dropdown.appendChild(li);
         });
@@ -1338,33 +1902,32 @@ body {
             'rarity-dropdown': { property: 'rarity', labelId: 'rarityDropdown' },
             'set-dropdown': { property: 'set', labelId: 'setDropdown' }
         };
-        
+
         // Add click handlers to all dropdowns
         Object.entries(dropdownConfig).forEach(([dropdownId, config]) => {
             const dropdown = document.getElementById(dropdownId);
             if (!dropdown) return;
-            
+
             dropdown.addEventListener('click', function(e) {
                 if (e.target.tagName === 'A') {
                     e.preventDefault();
                     selectedFilters[config.property] = e.target.dataset.value;
-                    
+
                     // Update active class
                     this.querySelectorAll('a').forEach(a => a.classList.remove('active'));
                     e.target.classList.add('active');
-                    
+
                     // Update dropdown button text (just the value, no label)
                     const button = document.getElementById(config.labelId);
                     if (button) {
                         button.textContent = e.target.textContent;
                     }
-                    
+
                     applyFilters();
                 }
             });
         });
     }
-
 
 
     let selectedDeckEnergies = [];
@@ -1376,87 +1939,87 @@ body {
             selectedFilters.searchText = this.value.toLowerCase();
             applyFilters();
         });
-        
+
         // Card Type dropdown
         document.getElementById('card-type-dropdown').addEventListener('click', function(e) {
             if (e.target.tagName === 'A') {
                 e.preventDefault();
                 selectedFilters.cardType = e.target.dataset.value;
-                
+
                 // Update active class
                 this.querySelectorAll('a').forEach(a => a.classList.remove('active'));
                 e.target.classList.add('active');
-                
+
                 // Update dropdown text with label
-                document.getElementById('cardTypeDropdown').innerHTML = 
+                document.getElementById('cardTypeDropdown').innerHTML =
                     '<span class="filter-label">Card Type:</span> ' + e.target.textContent;
-                
+
                 applyFilters();
             }
         });
-        
+
         // Stage/Trainer Type dropdown
         document.getElementById('stage-type-dropdown').addEventListener('click', function(e) {
             if (e.target.tagName === 'A') {
                 e.preventDefault();
                 selectedFilters.stageType = e.target.dataset.value;
-                
+
                 // Update active class
                 this.querySelectorAll('a').forEach(a => a.classList.remove('active'));
                 e.target.classList.add('active');
-                
+
                 // Update dropdown text with label
-                document.getElementById('stageTypeDropdown').innerHTML = 
+                document.getElementById('stageTypeDropdown').innerHTML =
                     '<span class="filter-label">Stage/Type:</span> ' + e.target.textContent;
-                
+
                 applyFilters();
             }
         });
-        
+
         // Rarity dropdown
         document.getElementById('rarity-dropdown').addEventListener('click', function(e) {
             if (e.target.tagName === 'A') {
                 e.preventDefault();
                 selectedFilters.rarity = e.target.dataset.value;
-                
+
                 // Update active class
                 this.querySelectorAll('a').forEach(a => a.classList.remove('active'));
                 e.target.classList.add('active');
-                
+
                 // Update dropdown text - special handling for Crown Rare
                 const displayValue = e.target.dataset.value === 'Crown Rare' ? '👑' : e.target.textContent;
                 document.getElementById('rarityDropdown').textContent = displayValue;
-                
+
                 applyFilters();
             }
         });
-        
+
         // Set dropdown
         document.getElementById('set-dropdown').addEventListener('click', function(e) {
             if (e.target.tagName === 'A') {
                 e.preventDefault();
                 selectedFilters.set = e.target.dataset.value;
-                
+
                 // Update active class
                 this.querySelectorAll('a').forEach(a => a.classList.remove('active'));
                 e.target.classList.add('active');
-                
+
                 // Update dropdown text with label
-                document.getElementById('setDropdown').innerHTML = 
+                document.getElementById('setDropdown').innerHTML =
                     '<span class="filter-label">Set:</span> ' + e.target.textContent;
-                
+
                 applyFilters();
             }
         });
-        
+
         // Energy type icons for filtering
         document.querySelectorAll('.energy-icons .energy-icon-wrapper').forEach(iconWrapper => {
             iconWrapper.addEventListener('click', function() {
                 const energyType = this.getAttribute('data-type');
-                
+
                 // Toggle active class
                 this.classList.toggle('active');
-                
+
                 // Update the selected energy types array for filtering
                 if (this.classList.contains('active')) {
                     // Add energy type if not already in the array
@@ -1467,7 +2030,7 @@ body {
                     // Remove energy type
                     selectedFilters.energyTypes = selectedFilters.energyTypes.filter(type => type !== energyType);
                 }
-                
+
                 // Apply filters
                 applyFilters();
             });
@@ -1479,7 +2042,7 @@ body {
             iconWrapper.addEventListener('click', function() {
                 const energyType = this.getAttribute('data-type');
                 console.log("Clicked energy type:", energyType);
-                
+
                 // Toggle active class
                 if (this.classList.contains('active')) {
                     // Remove from active
@@ -1491,48 +2054,48 @@ body {
                     if (selectedDeckEnergies.length >= 3) {
                         return; // Don't add more, don't show alert
                     }
-                    
+
                     // Add to active
                     this.classList.add('active');
                     // Create a new array with this type added
                     selectedDeckEnergies = [...selectedDeckEnergies, energyType];
                 }
-                
+
                 console.log("Updated selectedDeckEnergies:", selectedDeckEnergies);
-                
+
                 // Update counter
                 updateEnergyCounter();
             });
         });
-        
+
         // Card hover zoom functionality
         setupCardZoom();
-        
+
         // Fix for the remove button to properly remove cards
         document.addEventListener('click', function(e) {
             // Handle remove button clicks
             const removeBtn = e.target.closest('.btn-remove') || e.target.closest('.btn-remove-small');
             if (removeBtn) {
                 e.stopPropagation(); // Prevent event from bubbling
-                
+
                 const cardItem = removeBtn.closest('.card-item');
                 const cardSlot = removeBtn.closest('.card-slot');
-                
+
                 if (cardItem && cardItem.dataset.cardId) {
                     // Convert to number if it's a string
-                    const id = typeof cardItem.dataset.cardId === 'string' ? 
+                    const id = typeof cardItem.dataset.cardId === 'string' ?
                         parseInt(cardItem.dataset.cardId, 10) : cardItem.dataset.cardId;
-                    
+
                     // Find just the first occurrence
                     const index = currentDeck.findIndex(card => card.id === id);
                     if (index !== -1) {
                         // Remove only one instance
                         currentDeck.splice(index, 1);
-                        
+
                         // Force a full refresh of the display
                         updateDeckDisplay();
                         updateCardDisplay();
-                        
+
                         // This is important - it ensures the DOM is updated immediately
                         // so the next click will work on the fresh elements
                         setTimeout(() => {
@@ -1545,14 +2108,14 @@ body {
                     if (slotIndex !== -1) {
                         // Remove the specific card in the slot
                         currentDeck.splice(slotIndex, 1);
-                        
+
                         // Force updates
                         updateDeckDisplay();
                         updateCardDisplay();
                     }
                 }
             }
-            
+
             // Handle clickable cards separately
             const cardContainer = e.target.closest('.clickable-card');
             if (cardContainer && !e.target.closest('.btn-remove') && !e.target.closest('.btn-remove-small')) {
@@ -1562,13 +2125,13 @@ body {
                 }
             }
         });
-    
-        
+
+
         // Clear deck button
         document.getElementById('clear-deck-btn').addEventListener('click', function() {
             clearDeck();
         });
-        
+
         // Save deck button
         document.getElementById('save-deck-btn').addEventListener('click', function() {
             saveDeck();
@@ -1600,7 +2163,7 @@ body {
         let hasMouseMoved = false;
         let lastMouseX = 0;
         let lastMouseY = 0;
-        
+
         // Detect scrolling
         window.addEventListener('scroll', function() {
             // Set scrolling flag to true and hide zoom
@@ -1608,90 +2171,91 @@ body {
             hasMouseMoved = false;
             hideCardZoom();
         });
-        
+
         // Track mouse movement to detect when user moves mouse after scrolling
         document.addEventListener('mousemove', function(e) {
             // Check if the mouse has moved significantly from last position
             const mouseMoved = Math.abs(e.clientX - lastMouseX) > 5 || Math.abs(e.clientY - lastMouseY) > 5;
-            
+
             // If scrolling and mouse has moved, we can enable zoom again
             if (isScrolling && mouseMoved) {
                 isScrolling = false;
                 hasMouseMoved = true;
             }
-            
+
             // Update last mouse position
             lastMouseX = e.clientX;
             lastMouseY = e.clientY;
-            
+
             // Only show zoom if not scrolling
             if (!isScrolling) {
                 // First check if the target itself is an image
                 if (e.target.tagName === 'IMG') {
                     // Check if the image is within a card container in either section
-                    if (e.target.closest('.card-item') || e.target.closest('.card-slot-container.filled')) {
+                    if (e.target.closest(".card-item") || e.target.closest(".card-slot-container.filled")) {
                         showCardZoom(e.target.src, e);
                         return;
                     }
                 }
-                
+
                 // If we get here, no image was hovered, so hide zoom
                 hideCardZoom();
             }
         });
-        
+
         // Hide zoom when mouse leaves any card image
         document.addEventListener('mouseout', function(e) {
-            if (e.target.tagName === 'IMG' && 
+            if (e.target.tagName === 'IMG' &&
                 (e.target.closest('.card-item') || e.target.closest('.card-slot-container.filled'))) {
                 hideCardZoom();
             }
         });
     }
 
+
     // Show card zoom
     function showCardZoom(imgSrc, event) {
         const zoomContainer = document.getElementById('card-zoom-container');
         if (!zoomContainer) return;
-        
+
         // Create or update the image
         let img = zoomContainer.querySelector('img');
         if (!img) {
             img = document.createElement('img');
             zoomContainer.appendChild(img);
         }
-        
+
         img.src = imgSrc;
-        
+
         // Find the card element and determine which section it belongs to
         const isInDeck = event.target.closest('.card-slot-container.filled') !== null;
         const isInCollection = event.target.closest('.card-item') !== null;
-        
+
         // Get the card element
-        const cardElement = isInDeck 
+        const cardElement = isInDeck
             ? event.target.closest('.card-slot-container.filled')
             : event.target.closest('.card-item');
-        
+
         if (!cardElement) return;
-        
+
         // Get the position of the card
         const cardRect = cardElement.getBoundingClientRect();
-        
+
         // Get viewport dimensions
         const viewportHeight = window.innerHeight;
         const viewportWidth = window.innerWidth;
-        
+
         // Estimate card dimensions
         const zoomHeight = 500; // Approximate height of zoomed card
         const zoomWidth = 300;  // Approximate width of zoomed card
-        
+
         // Calculate center position of the original card
         const cardCenterX = cardRect.left + (cardRect.width / 2);
         const cardCenterY = cardRect.top + (cardRect.height / 2);
-        
+
         // Calculate ideal position for the zoomed card
         let zoomLeft, zoomTop;
-        
+
         // Horizontal positioning based on section
         if (isInDeck) {
             // Card is in the deck (right section) - show zoom on the left
@@ -1700,24 +2264,23 @@ body {
             // Card is in the collection (left section) - show zoom on the right
             zoomLeft = Math.min(viewportWidth - zoomWidth - 10, cardRect.right + 20);
         }
-        
+
         // Vertical positioning - center the zoomed card vertically with the original card
         zoomTop = cardCenterY - (zoomHeight / 2);
-        
+
         // Ensure the zoomed card stays within the viewport
         if (zoomTop < 10) {
             zoomTop = 10; // Minimum 10px from top
         } else if (zoomTop + zoomHeight > viewportHeight - 10) {
             zoomTop = viewportHeight - zoomHeight - 10; // Minimum 10px from bottom
         }
-        
+
         // Apply positions
         zoomContainer.style.top = zoomTop + 'px';
         zoomContainer.style.left = zoomLeft + 'px';
         zoomContainer.style.display = 'block';
     }
 
-    
 
     // Hide card zoom
     function hideCardZoom() {
@@ -1726,218 +2289,226 @@ body {
             zoomContainer.style.display = 'none';
         }
     }
-// Simplified search input handler
+
 document.getElementById('search-input').addEventListener('input', function() {
-    // Update search text
-    selectedFilters.searchText = this.value.toLowerCase();
-    
-    // Define energy type keywords
-    const energyTypeKeywords = {
-        'grass': 'Grass',
-        'fire': 'Fire',
-        'water': 'Water',
-        'lightning': 'Lightning',
-        'electric': 'Lightning',
-        'psychic': 'Psychic',
-        'fighting': 'Fighting',
-        'darkness': 'Darkness',
-        'dark': 'Darkness',
-        'metal': 'Metal',
-        'steel': 'Metal',
-        'dragon': 'Dragon',
-        'colorless': 'Colorless',
-        'normal': 'Colorless'
-    };
+    // Update the raw search text variable
+    rawSearchText = this.value.toLowerCase();
 
-    const cardTypeKeywords = {
-        'trainer': 'Trainer',
-    };
-
-    const stageTypeKeywords = {
-        'item': 'Item',
-        'tool': 'Tool',
-        'supporter': 'Supporter',
-        'basic': 'Basic',
-        'stage 1': 'Stage 1',
-        'stage 2': 'Stage 2'
-    };
-    
-    // Always reset energy type selections first
-    selectedFilters.energyTypes = [];
-    document.querySelectorAll('.energy-icons .energy-icon-wrapper').forEach(icon => {
-        icon.classList.remove('active');
-    });
-    
-    // Reset card type and stage/trainer type
-    selectedFilters.cardType = 'All';
-    selectedFilters.stageType = 'All';
-    
-    // Update the dropdown displays to show 'All'
-    document.getElementById('cardTypeDropdown').textContent = 'All';
-    document.getElementById('stageTypeDropdown').textContent = 'All';
-    
-    // Make sure the dropdowns reflect the 'All' state
-    document.querySelectorAll('#card-type-dropdown a, #stage-type-dropdown a').forEach(a => {
-        a.classList.remove('active');
-        if (a.dataset.value === 'All') {
-            a.classList.add('active');
-        }
-    });
-    
-    // Get the search terms (split by spaces)
-    const searchTerms = selectedFilters.searchText.split(/\s+/);
-    for (const term of searchTerms) {
-        // Check for exact matches with card types or stage/trainer types
-        if (cardTypeKeywords[term]) {
-            selectedFilters.cardType = cardTypeKeywords[term];
-            // Update the dropdown button text and active state
-            document.getElementById('cardTypeDropdown').textContent = cardTypeKeywords[term];
-            document.querySelectorAll('#card-type-dropdown a').forEach(a => {
-                a.classList.remove('active');
-                if (a.dataset.value === cardTypeKeywords[term]) {
-                    a.classList.add('active');
-                }
-            });
-        }
-        
-        if (stageTypeKeywords[term]) {
-            selectedFilters.stageType = stageTypeKeywords[term];
-            // Update the dropdown button text and active state
-            document.getElementById('stageTypeDropdown').textContent = stageTypeKeywords[term];
-            document.querySelectorAll('#stage-type-dropdown a').forEach(a => {
-                a.classList.remove('active');
-                if (a.dataset.value === stageTypeKeywords[term]) {
-                    a.classList.add('active');
-                }
-            });
-        }
-        
-        // Check for energy type keywords (existing code)
-        if (energyTypeKeywords[term]) {
-            const energyType = energyTypeKeywords[term];
-            selectedFilters.energyTypes.push(energyType);
-            
-            // Activate the corresponding energy icon
-            document.querySelectorAll('.energy-icons .energy-icon-wrapper').forEach(icon => {
-                if (icon.getAttribute('data-type') === energyType) {
-                    icon.classList.add('active');
-                }
-            });
-        }
-    }
-    
-    // Apply filters and update the display
+    // Apply filters - applyFilters will now read the rawSearchText
     applyFilters();
 });
 
 // Simplify the applyFilters function to focus on just filtering
 function applyFilters() {
+    // Define keywords INSIDE the function as they are used here to parse rawSearchText
+    const energyTypeKeywords = {
+        'grass': 'Grass', 'fire': 'Fire', 'water': 'Water',
+        'lightning': 'Lightning', 'electric': 'Lightning', 'psychic': 'Psychic',
+        'fighting': 'Fighting', 'darkness': 'Darkness', 'dark': 'Darkness',
+        'metal': 'Metal', 'steel': 'Metal', 'dragon': 'Dragon',
+        'colorless': 'Colorless', 'normal': 'Colorless'
+    };
+    const cardTypeKeywords = {'trainer': 'Trainer'};
+    const stageTypeKeywords = {'item': 'Item', 'tool': 'Tool', 'supporter': 'Supporter', 'basic': 'Basic', 'stage 1': 'Stage 1', 'stage 2': 'Stage 2'};
+
+    // --- Ephemeral Filters (derived from rawSearchText) ---
+    let ephemeralEnergyTypes = [];
+    let ephemeralCardType = 'All';
+    let ephemeralStageType = 'All';
+    let nameSearchTerm = rawSearchText.trim(); // Start with the full raw text
+
+    const searchTerms = nameSearchTerm.split(/\s+/).filter(term => term.length > 0);
+
+    for (const term of searchTerms) {
+        if (energyTypeKeywords[term]) {
+            ephemeralEnergyTypes.push(energyTypeKeywords[term]);
+            // Remove the keyword from the name search term
+            nameSearchTerm = nameSearchTerm.replace(new RegExp('\\b' + term + '\\b', 'gi'), '').trim();
+        } else if (cardTypeKeywords[term]) {
+            // Typing a card type keyword sets the ephemeral card type filter
+            ephemeralCardType = cardTypeKeywords[term];
+            // Remove the keyword from the name search term
+            nameSearchTerm = nameSearchTerm.replace(new RegExp('\\b' + term + '\\b', 'gi'), '').trim();
+        } else if (stageTypeKeywords[term]) {
+            // Typing a stage type keyword sets the ephemeral stage type filter
+            ephemeralStageType = stageTypeKeywords[term];
+            // Remove the keyword from the name search term
+            nameSearchTerm = nameSearchTerm.replace(new RegExp('\\b' + term + '\\b', 'gi'), '').trim();
+        }
+    }
+     // --- End Ephemeral Filters ---
+
+
+    // Now filter the cards based on ALL filters (Persistent AND Ephemeral)
     filteredCards = allCards.filter(card => {
-        // Get search text without the special keywords
-        let searchTextToUse = selectedFilters.searchText;
-        
-        // Remove card type keywords from the search text for name matching
-        const cardTypeKeywords = ['trainer'];
-        const stageTypeKeywords = ['item', 'tool', 'supporter'];
-        
-        // Remove exact matches of these keywords from the search
-        for (const keyword of [...cardTypeKeywords, ...stageTypeKeywords]) {
-            // Replace the exact keyword with space (only when it's a whole word)
-            searchTextToUse = searchTextToUse.replace(new RegExp(`\\b${keyword}\\b`, 'gi'), '');
-        }
-        
-        // Clean up extra spaces
-        searchTextToUse = searchTextToUse.trim();
-        
-        // Filter by search text (name searching) - only if there's text left after removing keywords
-        if (searchTextToUse) {
-            const searchLower = searchTextToUse.toLowerCase();
-            const cardNameLower = card.name.toLowerCase();
-            
-            // Handle 'poke' vs 'poké'
-            const normalizedCardName = cardNameLower.replace(/poké/g, 'poke');
-            const normalizedSearch = searchLower.replace(/poke/g, 'poke');
-            
-            // Check if name contains search text
-            const nameMatch = normalizedCardName.includes(normalizedSearch);
-            
-            // If name doesn't match, filter out (unless energy type matches)
-            if (!nameMatch && !(selectedFilters.energyTypes.length > 0 && 
-                               card.energy_type && 
-                               selectedFilters.energyTypes.includes(card.energy_type))) {
-                return false;
-            }
-        }
-        
-        // Filter by card type
+
+        // Persistent Filter: Card Type (from dropdown click)
         if (selectedFilters.cardType !== 'All') {
-            if (!card.card_type || !card.card_type.includes(selectedFilters.cardType)) {
+             if (!card.card_type || !card.card_type.includes(selectedFilters.cardType)) {
+                 return false;
+             }
+        }
+
+         // Persistent Filter: Stage/Trainer Type (from dropdown click)
+         if (selectedFilters.stageType !== 'All') {
+              if (!card.card_type || !card.card_type.includes(selectedFilters.stageType)) {
+                 return false;
+              }
+         }
+
+        // Persistent Filter: Rarity (from dropdown click)
+        if (selectedFilters.rarity !== 'All') {
+            if (card.rarity !== selectedFilters.rarity) {
                 return false;
             }
         }
-        
-        // Filter by stage/trainer type
-        if (selectedFilters.stageType !== 'All') {
-            if (!card.card_type || !card.card_type.includes(selectedFilters.stageType)) {
+
+        // Persistent Filter: Set (from dropdown click)
+        if (selectedFilters.set !== 'All') {
+            if (!card.set_name || card.set_name !== selectedFilters.set) {
                 return false;
             }
         }
-        
+
+        const combinedEnergyTypes = [...selectedFilters.energyTypes, ...ephemeralEnergyTypes];
+        const uniqueCombinedEnergyTypes = [...new Set(combinedEnergyTypes)]; // Get unique types
+
+        document.querySelectorAll('.energy-icons .energy-icon-wrapper').forEach(icon => {
+            const energyType = icon.getAttribute('data-type');
+            if (uniqueCombinedEnergyTypes.includes(energyType)) {
+                icon.classList.add('active');
+            } else {
+                icon.classList.remove('active');
+            }
+        });
+
+        // Update Card Type Dropdown
+        const effectiveCardType = selectedFilters.cardType !== 'All' ? selectedFilters.cardType : ephemeralCardType;
+        document.getElementById('cardTypeDropdown').textContent = effectiveCardType;
+        document.querySelectorAll('#card-type-dropdown a').forEach(a => {
+            if (a.dataset.value === effectiveCardType) {
+                a.classList.add('active');
+            } else {
+                a.classList.remove('active');
+            }
+        });
+
+
+        // Update Stage/Trainer Type Dropdown
+        const effectiveStageType = selectedFilters.stageType !== 'All' ? selectedFilters.stageType : ephemeralStageType;
+        document.getElementById('stageTypeDropdown').textContent = effectiveStageType;
+        document.querySelectorAll('#stage-type-dropdown a').forEach(a => {
+            if (a.dataset.value === effectiveStageType) {
+                a.classList.add('active');
+            } else {
+                a.classList.remove('active');
+            }
+        });
+
+        // Update Rarity Dropdown (based on persistent filter only)
+        document.getElementById('rarityDropdown').textContent = selectedFilters.rarity;
+        document.querySelectorAll('#rarity-dropdown a').forEach(a => {
+            if (a.dataset.value === selectedFilters.rarity) {
+                a.classList.add('active');
+            } else {
+                a.classList.remove('active');
+            }
+        });
+
+
+        // Update Set Dropdown (based on persistent filter only)
+        document.getElementById('setDropdown').textContent = selectedFilters.set;
+        document.querySelectorAll('#set-dropdown a').forEach(a => {
+            if (a.dataset.value === selectedFilters.set) {
+                a.classList.add('active');
+            } else {
+                a.classList.remove('active');
+            }
+        });
+
+        // Ephemeral Filter: Name search term (the part of rawSearchText that wasn't a keyword)
+        if (effectiveCardType !== 'All') {
+             if (!card.card_type || !card.card_type.includes(effectiveCardType)) {
+                 return false;
+             }
+        }
+
+        // Filter by stage/trainer type (now uses effectiveStageType logic implicitly)
+         if (effectiveStageType !== 'All') {
+             if (!card.card_type || !card.card_type.includes(effectiveStageType)) {
+                 return false;
+             }
+         }
+
         // Filter by rarity
         if (selectedFilters.rarity !== 'All') {
             if (card.rarity !== selectedFilters.rarity) {
                 return false;
             }
         }
-        
+
         // Filter by set
         if (selectedFilters.set !== 'All') {
             if (!card.set_name || card.set_name !== selectedFilters.set) {
                 return false;
             }
         }
-        
-        // Filter by energy type
-        if (selectedFilters.energyTypes.length > 0) {
-            if (!card.energy_type || !selectedFilters.energyTypes.includes(card.energy_type)) {
+
+        // Filter by energy type (uses the uniqueCombinedEnergyTypes list)
+        if (uniqueCombinedEnergyTypes.length > 0) {
+            if (!card.energy_type || !uniqueCombinedEnergyTypes.includes(card.energy_type)) {
                 return false;
             }
         }
-        
+
+        // Filter by name search term
+        if (nameSearchTerm) {
+            const nameLower = card.name.toLowerCase();
+            const normalizedName = nameLower.replace(/poké/g, 'poke');
+            const normalizedSearch = nameSearchTerm.toLowerCase().replace(/poké/g, 'poke');
+
+            if (!normalizedName.includes(normalizedSearch)) {
+                return false;
+            }
+        }
+
+
+        // If the card passed all active filter checks, include it
         return true;
     });
-    
-    // Update card display
+
+    // Update card display (Keep this)
     updateCardDisplay();
-    
-    // Update count
+
+    // Update count (Keep this)
     document.getElementById('card-count-search').textContent = `${filteredCards.length} cards found`;
 }
+
 
     // Display cards
     function updateCardDisplay() {
         const cardCollection = document.getElementById('card-collection');
         if (!cardCollection) return;
-        
+
         // Create row for cards
         const rowDiv = document.createElement('div');
         rowDiv.className = 'row g-2';
-        
+
         // Check if we have any cards to display after filtering
         if (filteredCards.length === 0) {
             // No cards found - show reset filters button
             const noResultsDiv = document.createElement('div');
             noResultsDiv.className = 'col-12 text-center p-5';
-            
+
             const message = document.createElement('p');
             message.className = 'mb-4';
             message.textContent = 'No cards found with the current filters.';
-            
+
             const resetButton = document.createElement('button');
             resetButton.className = 'btn btn-primary';
             resetButton.textContent = 'Reset All Filters';
             resetButton.addEventListener('click', resetAllFilters);
-            
+
             noResultsDiv.appendChild(message);
             noResultsDiv.appendChild(resetButton);
             rowDiv.appendChild(noResultsDiv);
@@ -1946,21 +2517,21 @@ function applyFilters() {
             filteredCards.forEach(card => {
                 // Count how many of THIS SPECIFIC card are in the deck (for badge/button)
                 const exactCopies = currentDeck.filter(c => c.id === card.id).length;
-                
+
                 // Count total cards with same name (for greying out)
                 const cardName = card.name;
                 const totalCopiesByName = currentDeck.filter(deckCard => deckCard.name === cardName).length;
-                
+
                 // Create card element
                 const colDiv = document.createElement('div');
-                colDiv.className = 'col-6 col-sm-4 col-md-3 col-lg-2 mb-3 card-item';
+                colDiv.className = 'col-4 col-sm-4 col-md-4 col-lg-3 col-xl-2 mb-3 card-item';
                 colDiv.dataset.cardId = card.id;
                 colDiv.dataset.cardName = card.name;
-                
+
                 // Create card container
                 const cardContainer = document.createElement('div');
                 cardContainer.className = 'position-relative';
-                
+
                 // Apply styles based on total copies by name
                 if (totalCopiesByName >= 2) {
                     cardContainer.classList.add('max-copies');
@@ -1968,7 +2539,7 @@ function applyFilters() {
                     // Make it clear the card is clickable when not at max copies
                     cardContainer.classList.add('clickable-card');
                 }
-                
+
                 // Create card image
                 const img = document.createElement('img');
                 img.src = card.display_image_path;
@@ -1976,14 +2547,14 @@ function applyFilters() {
                 img.className = 'img-fluid rounded';
                 img.loading = 'lazy';
                 img.setAttribute('data-card-name', card.name);
-                
+
                 // Add copy badge and remove button ONLY if this exact card is in the deck
                 if (exactCopies > 0) {
                     const badge = document.createElement('div');
                     badge.className = 'position-absolute top-0 start-0 badge bg-primary rounded-circle m-1';
                     badge.textContent = `${exactCopies}/2`;
                     cardContainer.appendChild(badge);
-                    
+
                     // Add small remove button on the card (only in the card collection)
                     if (cardCollection.id === 'card-collection') {
                         const removeSmallBtn = document.createElement('button');
@@ -1992,18 +2563,18 @@ function applyFilters() {
                         cardContainer.appendChild(removeSmallBtn);
                     }
                 }
-                
+
                 // Add to DOM
                 cardContainer.appendChild(img);
                 colDiv.appendChild(cardContainer);
                 rowDiv.appendChild(colDiv);
             });
         }
-        
+
         // Replace content
         cardCollection.innerHTML = '';
         cardCollection.appendChild(rowDiv);
-        
+
         // Update count
         document.getElementById('card-count-search').textContent = `${filteredCards.length} cards found`;
     }
@@ -2012,7 +2583,7 @@ function applyFilters() {
     function resetAllFilters() {
         // Reset search text
         document.getElementById('search-input').value = '';
-        
+
         // Reset all dropdowns
         document.querySelectorAll('.dropdown-menu').forEach(menu => {
             // Find the "All" option in each dropdown and click it
@@ -2027,13 +2598,13 @@ function applyFilters() {
                 allOption.dispatchEvent(clickEvent);
             }
         });
-        
+
         // Reset energy type filters
         document.querySelectorAll('.energy-icons .energy-icon-wrapper.active').forEach(icon => {
             // Simulate a click to deactivate
             icon.click();
         });
-        
+
         // Reset filters in the selectedFilters object
         selectedFilters = {
             cardType: 'All',
@@ -2043,7 +2614,7 @@ function applyFilters() {
             energyTypes: [],
             searchText: ''
         };
-        
+
         // Update displays
         updateDropdownDisplays();
         applyFilters();
@@ -2053,9 +2624,9 @@ function applyFilters() {
     function countCardCopiesInDeck(cardId) {
         // First, find the card name using the ID
         const cardName = allCards.find(card => card.id === cardId)?.name;
-        
+
         if (!cardName) return 0;
-        
+
         // Then count all cards in the deck with that name
         return currentDeck.filter(card => card.name === cardName).length;
     }
@@ -2066,22 +2637,22 @@ function applyFilters() {
         if (currentDeck.length >= 20) {
             return;
         }
-        
+
         const id = typeof cardId === 'string' ? parseInt(cardId, 10) : cardId;
-        
+
         const card = allCards.find(c => c.id === id);
         if (!card) {
             console.error(`Card not found with ID: ${id}`);
             return;
         }
-        
+
         const copies = countCardCopiesInDeck(id);
         if (copies >= 2) {
             return; // Silently do nothing
         }
-        
+
         currentDeck.push(card);
-        
+
         updateDeckDisplay();
         updateCardDisplay();
         deckSaved = false;
@@ -2096,13 +2667,13 @@ function applyFilters() {
             // Otherwise find the first occurrence of the card by ID
             const id = typeof cardId === 'string' ? parseInt(cardId, 10) : cardId;
             const index = currentDeck.findIndex(card => card.id === id);
-            
+
             if (index !== -1) {
                 // Remove only that one instance of the card
                 currentDeck.splice(index, 1);
             }
         }
-        
+
         // Update displays
         updateDeckDisplay();
         updateCardDisplay();
@@ -2113,12 +2684,12 @@ function applyFilters() {
     function updateDeckDisplay() {
         const deckContainer = document.getElementById('current-deck');
         if (!deckContainer) return;
-        
+
         // Update count badge
         const deckCountBadge = document.querySelector('.deck-counter');
         if (deckCountBadge) {
             deckCountBadge.textContent = `${currentDeck.length}/20`;
-            
+
             // Add or remove the "full" class based on deck size
             if (currentDeck.length === 20) {
                 deckCountBadge.classList.add('full');
@@ -2126,28 +2697,28 @@ function applyFilters() {
                 deckCountBadge.classList.remove('full');
             }
         }
-        
+
         // Create a grid for 20 card slots (5x4 grid)
         const rowDiv = document.createElement('div');
         rowDiv.className = 'row g-2';
-        
+
         // Create 20 slots total
         for (let i = 0; i < 20; i++) {
             const card = i < currentDeck.length ? currentDeck[i] : null;
-            
+
             // Create column for card slot
             const colDiv = document.createElement('div');
             colDiv.className = 'col-3 mb-2 card-slot';
-            
+
             // Create card container
             const cardContainer = document.createElement('div');
             cardContainer.className = 'position-relative card-slot-container';
-            
+
             if (card) {
                 // Slot has a card
                 cardContainer.classList.add('filled');
                 cardContainer.dataset.cardId = card.id;
-                
+
                 // Create card image
                 const img = document.createElement('img');
                 img.src = card.display_image_path;
@@ -2155,31 +2726,31 @@ function applyFilters() {
                 img.className = 'img-fluid rounded';
                 // Add data attribute to indicate this is a card image
                 img.dataset.cardImage = 'true';
-                
+
                 // Add remove button
                 const removeBtn = document.createElement('button');
                 removeBtn.className = 'btn btn-sm btn-danger position-absolute top-0 end-0 m-1 rounded-circle btn-remove';
                 removeBtn.innerHTML = '-';
-                
+
                 // Add to DOM
                 cardContainer.appendChild(img);
                 cardContainer.appendChild(removeBtn);
             } else {
                 // Empty slot
                 cardContainer.classList.add('empty');
-                
+
                 // Create empty slot placeholder
                 const emptySlot = document.createElement('div');
                 emptySlot.className = 'empty-slot';
                 emptySlot.innerHTML = '<div class="empty-slot-text">EMPTY</div>';
-                
+
                 cardContainer.appendChild(emptySlot);
             }
-            
+
             colDiv.appendChild(cardContainer);
             rowDiv.appendChild(colDiv);
         }
-        
+
         // Replace content
         deckContainer.innerHTML = '';
         deckContainer.appendChild(rowDiv);
@@ -2191,25 +2762,25 @@ function applyFilters() {
     }
 
 
-    // Clear deck           
+    // Clear deck
     function clearDeck() {
         if (currentDeck.length > 0) {
             // Only show confirmation if there are cards in the deck
             if (confirm('Are you sure you want to clear your deck?')) {
                 // Clear the deck cards
                 currentDeck = [];
-                
+
                 // Clear the selected energy types too
                 selectedDeckEnergies = [];
-                
+
                 // Reset the energy icon visual states
                 document.querySelectorAll('.energy-selection-bar .energy-icon-wrapper').forEach(icon => {
                     icon.classList.remove('active');
                 });
-                
+
                 // Update the energy counter if it exists
                 updateEnergyCounter();
-                
+
                 // Update displays
                 updateDeckDisplay();
                 updateCardDisplay();
@@ -2217,26 +2788,26 @@ function applyFilters() {
         } else {
             // If there are no cards, just clear energies without confirmation
             selectedDeckEnergies = [];
-            
+
             // Reset the energy icon visual states
             document.querySelectorAll('.energy-selection-bar .energy-icon-wrapper').forEach(icon => {
                 icon.classList.remove('active');
             });
-            
+
             // Update the energy counter if it exists
             updateEnergyCounter();
         }
     }
 
-    // Save deck 
+    // Save deck
     function saveDeck() {
         const deckName = document.getElementById('deck-name').value.trim() || 'Untitled Deck';
-        
+
         if (currentDeck.length === 0) {
             alert('Your deck is empty! Please add some cards before saving.');
             return;
         }
-        
+
         // Check if energy types are selected
         if (selectedDeckEnergies.length === 0) {
             // Just add a border to the container without affecting layout
@@ -2247,7 +2818,7 @@ function applyFilters() {
                 energyContainer.style.outlineOffset = '-2px';
                 energyContainer.style.borderRadius = '6px';
             }
-            
+
             // Change the text to red without changing size
             const counterElem = document.querySelector('.selected-energies-info');
             if (counterElem) {
@@ -2256,10 +2827,10 @@ function applyFilters() {
                 // Keep the original text format to avoid layout shift
                 counterElem.textContent = '0/3 energy types selected - required';
             }
-            
+
             // Show a friendly message
             alert('Please select at least one energy type for your deck before saving.');
-            
+
             // Add event listener to remove the highlighting once they select an energy
             const resetStyles = function() {
                 if (selectedDeckEnergies.length > 0) {
@@ -2268,42 +2839,42 @@ function applyFilters() {
                         energyContainer.style.outlineOffset = '';
                         energyContainer.style.borderRadius = '';
                     }
-                    
+
                     if (counterElem) {
                         counterElem.style.color = '';
                         counterElem.style.fontWeight = '';
                         counterElem.textContent = `${selectedDeckEnergies.length}/3 energy types selected`;
                     }
-                    
+
                     // Remove the event listener
                     document.querySelectorAll('.energy-selection-bar .energy-icon-wrapper')
                         .forEach(icon => icon.removeEventListener('click', resetStyles));
                 }
             };
-            
+
             document.querySelectorAll('.energy-selection-bar .energy-icon-wrapper').forEach(icon => {
                 icon.addEventListener('click', resetStyles);
             });
-            
+
             return;
         }
-        
+
         console.log("Selected deck energies before save:", selectedDeckEnergies);
-        
+
         // Prepare the deck data
         const deckData = {
             name: deckName,
             cards: currentDeck.map(card => ({ id: card.id })),
             deck_types: selectedDeckEnergies
         };
-        
+
         console.log("Final deck data to be saved:", JSON.stringify(deckData));
-        
+
         // Determine if we're creating or updating
         const isUpdating = !!loadedDeckId;
         const url = isUpdating ? `/api/decks/${loadedDeckId}` : '/api/decks';
         const method = isUpdating ? 'PUT' : 'POST';
-        
+
         // Send request to server
         fetch(url, {
             method: method,
@@ -2327,7 +2898,7 @@ function applyFilters() {
             alert('Failed to save deck. Please try again.');
         });
     }
-        
+
     </script>
 </body>
 </html>
