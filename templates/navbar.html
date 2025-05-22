@@ -6,7 +6,6 @@
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav me-auto">
-                <!-- Main navigation items - Battle Simulator first as requested -->
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('decks.list_decks') }}">Deck Builder</a>
                 </li>
@@ -34,13 +33,11 @@
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
                         {% if user_logged_in %}
-                        <li><a class="dropdown-item" href="{{ url_for('auth.user_profile') }}">Profile</a></li>
-                        <li><a class="dropdown-item" href="{{ url_for('auth.user_settings') }}">Settings</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('auth.user_profile_and_settings') }}">Profile/Settings</a></li>
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Logout</a></li>
+                        <li><a class="dropdown-item" id="user-logout-link" href="{{ url_for('auth.logout') }}">Logout</a></li>
                         {% else %}
-                        <li><a class="dropdown-item" href="{{ url_for('auth.login') }}">Login</a></li>
-                        <li><a class="dropdown-item" href="{{ url_for('auth.signup') }}">Sign Up</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('auth.login_prompt_page', next=request.full_path) }}">Log In / Sign Up</a></li>
                         {% endif %}
                     </ul>
                 </li>

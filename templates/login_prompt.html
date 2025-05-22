@@ -1,0 +1,41 @@
+{# templates/login_prompt.html #}
+{% extends "base.html" %}
+
+{% block title %}Login or Sign Up - Pokémon TCG Pocket{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Access Your Account</h3>
+                </div>
+                <div class="card-body text-center">
+                    <p>Please sign in with your Google account to continue.</p>
+                    <p>
+                        {# Retrieve the 'next' parameter passed to this page #}
+                        {% set next_url = request.args.get('next') %}
+                        {# Pass the retrieved 'next_url' to the google.login endpoint #}
+                        <a href="{{ url_for('google.login', next=next_url) }}" class="btn btn-danger btn-lg">
+                            <i class="fab fa-google"></i> Sign in with Google
+                        </a>
+                    </p>
+                    <hr>
+                    <p class="text-muted small">
+                        By signing in, you agree to our terms of service and privacy policy.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .btn-danger { background-color: #DB4437; border-color: #DB4437; }
+    .btn-danger:hover { background-color: #C33D2E; border-color: #B03226; }
+    .fa-google { margin-right: 0.5em; }
+</style>
+{% endblock %}

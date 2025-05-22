@@ -2,186 +2,256 @@ import requests
 from bs4 import BeautifulSoup
 import sqlite3
 import time
-import csv
 import re
 import os
 from urllib.parse import urlparse
+from typing import Optional
 
-CUSTOM_RARITY_OVERRIDES = {
-    "A2b": {  # Shining Revelry
-        "97": "✵",
-        "98": "✵",
-        "99": "✵",
-        "100": "✵",
-        "101": "✵",
-        "102": "✵",
-        "103": "✵",
-        "104": "✵",
-        "105": "✵",
-        "106": "✵",
-        "107": "✵✵",
-        "108": "✵✵",
-        "109": "✵✵",
-        "110": "✵✵",
-    },
-    # --- Example: Add future overrides below ---
-    # "XYZ": { # Replace with actual set code
-    #     "015": "★", # Replace with actual card number and rarity
-    #     "025": "★"
-    # },
-    # "PROMO1": { # Replace with actual promo set code
-    #      "001": "P" # Replace with actual card number and promo rarity symbol
-    # }
-}
+# This constant remains to control scraping behavior for the database
+SCRAPE_ONLY_NEW_CARDS = True
+
+
+# --- HELPER FUNCTION for cleaning rule text ---
+def clean_rules_text(text: Optional[str]) -> Optional[str]:  # Allow None input
+    if not text:
+        return None
+
+    # Replace <br> tags with newlines (if they exist, though site uses divs/newlines more)
+    cleaned_text = text.replace("<br>", "\n")
+
+    # --- More aggressive cleaning around brackets and symbols ---
+    # Remove any whitespace immediately inside brackets: "[ P ]" -> "[P]"
+    cleaned_text = re.sub(r"\[\s*(.*?)\s*\]", r"[\1]", cleaned_text)
+
+    # Remove newlines and excessive whitespace BEFORE a bracketed symbol, add a single space
+    cleaned_text = re.sub(r"\s*\n\s*(\[[A-Za-z]+\])", r" \1", cleaned_text)
+
+    # Remove newlines and excessive whitespace AFTER a bracketed symbol, add a single space
+    cleaned_text = re.sub(r"(\[[A-Za-z]+\])\s*\n\s*", r"\1 ", cleaned_text)
+
+    # Ensure a single space before and after bracketed symbols if they are adjacent to non-whitespace
+    # This is a fallback in case the above didn't cover all cases.
+    cleaned_text = re.sub(r"(?<!\s)(\[[A-Za-z]+\])", r" \1", cleaned_text)
+    cleaned_text = re.sub(r"(\[[A-Za-z]+\])(?!\s)", r"\1 ", cleaned_text)
+    # --- End aggressive cleaning ---
+
+    # Normalize multiple newlines into single newlines
+    cleaned_text = re.sub(r"\n+", "\n", cleaned_text)
+
+    # Collapse multiple spaces/tabs anywhere into a single space
+    cleaned_text = re.sub(r"[ \t]+", " ", cleaned_text)
+
+    # Trim leading/trailing whitespace from the whole block
+    cleaned_text = cleaned_text.strip()
+
+    # If text becomes empty after stripping, return None
+    if not cleaned_text:
+        return None
+
+    lines = cleaned_text.splitlines()
+    processed_lines = []
+
+    for line in lines:
+        # Trim leading/trailing whitespace from each line
+        current_line = line.strip()
+
+        if not current_line:  # Skip empty lines after trimming
+            continue
+
+        # Append the cleaned line
+        processed_lines.append(current_line)
+
+    if not processed_lines:
+        return None
+
+    # Join lines with a single newline. This preserves intended line breaks.
+    final_text = "\n".join(processed_lines)
+
+    # Post-processing: Ensure single space after colon if followed by text on the next line
+    # This handles cases like "Ability:\nSome description" -> "Ability: Some description"
+    final_text = re.sub(
+        r":\n([^\n])", r": \1", final_text
+    )  # Colon followed by newline and then non-newline char
+    final_text = re.sub(
+        r":\n$", ":", final_text
+    )  # Colon followed by newline at the end
+
+    return final_text if final_text else None
 
 
 # Function to download and save card images locally
-# Function to download and save card images locally (Corrected Return Path Logic)
 def download_card_image(image_url, set_name, set_code, card_number):
     try:
-        # --- Determine Relative Path (for DB/HTML) ---
-        # Create a safe directory name from the set name for the relative path
         safe_set_name = (
             set_name.lower().replace(" ", "-").replace("'", "").replace(",", "")
         )
-
-        # Parse URL to get file extension
         parsed_url = urlparse(image_url)
         path = parsed_url.path
         ext = os.path.splitext(path)[1]
-        if not ext:
-            ext = ".png"  # Default extension if none found
+        if not ext:  # Default extension if not found in URL
+            ext = (
+                ".png"
+                if ".png" in image_url.lower()
+                else ".webp" if ".webp" in image_url.lower() else ".jpg"
+            )
+            if not ext.startswith("."):
+                ext = "." + ext
 
-        # Create filename using card number
         filename = f"{card_number}{ext}"
 
-        # Define the desired relative path explicitly - THIS is what should be stored/used by HTML
-        relative_path = f"cards/{safe_set_name}/{filename}"
+        # Path to be stored in DB (relative to the 'images' static folder)
+        db_relative_path = os.path.join("cards", safe_set_name, filename).replace(
+            "\\", "/"
+        )
 
-        # --- Determine Full Server Save Path ---
-        # Create the actual directory structure on the server where the file will be saved
-        # This includes the root 'images' directory.
-        base_dir = os.path.join("images", "cards", safe_set_name)
-        os.makedirs(base_dir, exist_ok=True)  # Create directories if they don't exist
-        full_save_path = os.path.join(
-            base_dir, filename
-        )  # Full path for saving the file
+        # Full path for saving the file locally
+        base_dir_for_saving = os.path.join("images", "cards", safe_set_name)
+        os.makedirs(base_dir_for_saving, exist_ok=True)
+        full_save_path = os.path.join(base_dir_for_saving, filename)
 
-        # --- Check if file exists on server ---
         if os.path.exists(full_save_path):
-            # print(f"Image already exists: {full_save_path}") # Log the full path where it exists
-            return relative_path  # <<< Return the RELATIVE path
+            return db_relative_path  # Already exists
 
-        # --- Download if needed ---
         print(
             f"Downloading image for {set_name} - {card_number} from {image_url} to {full_save_path}"
         )
         response = requests.get(image_url, stream=True, timeout=15)
         response.raise_for_status()
-
-        # Save to the full server path
         with open(full_save_path, "wb") as f:
             for chunk in response.iter_content(chunk_size=8192):
                 f.write(chunk)
-        # print(f"Downloaded image to {full_save_path}")
-
-        # --- Return the relative path ---
-        return relative_path  # <<< Return the RELATIVE path
-
+        return db_relative_path
     except Exception as e:
         print(
             f"Error downloading/saving image for {set_name} - {card_number} ({image_url}): {e}"
         )
-        return None  # Return None on error
+        return None
 
 
-# Database setup (Resistance column addition REMOVED)
+# Database setup
 def setup_database():
     conn = sqlite3.connect("pokemon_cards.db")
     cursor = conn.cursor()
 
     cursor.execute("PRAGMA table_info(cards)")
-    columns = [column[1] for column in cursor.fetchall()]
+    existing_columns_info = cursor.fetchall()
+    existing_column_names = [col_info[1] for col_info in existing_columns_info]
 
-    if not columns:
-        cursor.execute(
-            """
+    # Define the ideal schema with columns in the desired order
+    # Changed 'effects' to 'abilities' and moved it before 'attacks'
+    ideal_schema_ordered = [
+        ("id", "INTEGER PRIMARY KEY AUTOINCREMENT"),
+        ("name", "TEXT"),
+        ("energy_type", "TEXT"),
+        ("set_name", "TEXT"),
+        ("set_code", "TEXT"),
+        ("card_number", "TEXT"),
+        ("card_type", "TEXT"),
+        ("hp", "INTEGER"),
+        ("abilities", "TEXT"),  # Changed from 'effects' and moved here
+        ("attacks", "TEXT"),
+        ("weakness", "TEXT"),
+        ("retreat_cost", "INTEGER"),
+        ("illustrator", "TEXT"),
+        ("flavor_text", "TEXT"),
+        ("image_url", "TEXT"),
+        ("rarity", "TEXT"),
+        ("pack", "TEXT"),
+        ("local_image_path", "TEXT"),
+    ]
+
+    if not existing_column_names:  # Table doesn't exist, create it
+        cols_definitions = ", ".join(
+            [f"'{col_name}' {col_type}" for col_name, col_type in ideal_schema_ordered]
+        )
+        # Note: UNIQUE constraint handled separately for clarity in CREATE statement
+        create_table_sql = f"""
             CREATE TABLE cards (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT,
-                set_name TEXT,
-                set_code TEXT,
-                card_number TEXT,
-                card_type TEXT,
-                hp INTEGER,
-                attacks TEXT,
-                weakness TEXT,
-                retreat_cost INTEGER,
-                illustrator TEXT,
-                flavor_text TEXT,
-                image_url TEXT
+                {cols_definitions},
+                UNIQUE(set_code, card_number)
             )
         """
-        )
-        print("Created base cards table.")
+        cursor.execute(create_table_sql)
+        print("Created 'cards' table with columns in specified order.")
+        # Update existing_columns list after creation
         cursor.execute("PRAGMA table_info(cards)")
-        columns = [column[1] for column in cursor.fetchall()]
+        existing_column_names = [col[1] for col in cursor.fetchall()]
+    else:  # Table exists, check for and add missing columns from the ideal_schema
+        for col_name, col_type in ideal_schema_ordered:
+            # Handle renaming 'effects' to 'abilities' if 'effects' exists but 'abilities' doesn't
+            if (
+                col_name == "abilities"
+                and "effects" in existing_column_names
+                and "abilities" not in existing_column_names
+            ):
+                try:
+                    cursor.execute(
+                        "ALTER TABLE cards RENAME COLUMN effects TO abilities"
+                    )
+                    print("Renamed column 'effects' to 'abilities'.")
+                except sqlite3.OperationalError as e:
+                    print(f"Warning during RENAME COLUMN effects to abilities: {e}")
+            elif (
+                col_name not in existing_column_names
+                and col_name != "id"
+                and col_name
+                != "effects"  # Don't try to add 'effects' if we're renaming it
+            ):  # 'id' is special
+                try:
+                    cursor.execute(
+                        f"ALTER TABLE cards ADD COLUMN '{col_name}' {col_type}"
+                    )
+                    print(f"Added missing column '{col_name}' to 'cards' table.")
+                except sqlite3.OperationalError as e:
+                    if "duplicate column name" in str(e).lower():
+                        # This case should ideally not be hit if existing_column_names is accurate
+                        print(
+                            f"Note: Column '{col_name}' was marked missing but already exists."
+                        )
+                    else:
+                        print(f"Warning during ALTER TABLE for '{col_name}': {e}")
 
-    # Add columns dynamically if they don't exist (NO resistance here)
-    cols_to_add = {
-        "energy_type": "TEXT",
-        "rarity": "TEXT",
-        "pack": "TEXT",
-        "local_image_path": "TEXT",
-        # 'resistance': 'TEXT' # <<< REMOVED
-    }
-
-    for col_name, col_type in cols_to_add.items():
-        if col_name not in columns:
-            try:
-                cursor.execute(f"ALTER TABLE cards ADD COLUMN {col_name} {col_type}")
-                print(f"Added {col_name} column to cards table")
-            except sqlite3.OperationalError as e:
-                if "duplicate column name" in str(e):
-                    print(f"Note: Column {col_name} already exists.")
-                else:
-                    print(f"Warning during ALTER TABLE for {col_name}: {e}")
-
-    # Clear previous data before fresh scrape
-    print("Clearing existing card data from database.")
-    cursor.execute("DELETE FROM cards")
+    if not SCRAPE_ONLY_NEW_CARDS:
+        print("Clearing ALL existing card data from 'cards' table (full scrape mode).")
+        cursor.execute("DELETE FROM cards")
+    else:
+        print(
+            "Scraping only new cards. Existing data in 'cards' table will be preserved."
+        )
 
     conn.commit()
     conn.close()
 
 
-# Function to save data to database (Reverted to 16 columns)
+# Function to save data to database
 def save_to_database(card_data):
-    # card_data tuple should now have 16 elements again
-    if len(card_data) != 16:
+    # Updated expected fields count and column names/order
+    expected_fields = 17  # name, energy_type, set_name, set_code, card_number, card_type, hp, abilities, attacks, weakness, retreat_cost, illustrator, flavor_text, image_url, rarity, pack, local_image_path
+    if len(card_data) != expected_fields:
         print(
-            f"Error: Expected 16 data fields, but got {len(card_data)} for card {card_data[3]}-{card_data[4]}. Skipping DB save."
-        )
+            f"Error: Expected {expected_fields} data fields, but got {len(card_data)} for card {card_data[3]}-{card_data[4]}. Skipping DB save."
+        )  # card_data[3] is set_code, card_data[4] is card_number
         print(f"Data: {card_data}")
         return
 
     conn = sqlite3.connect("pokemon_cards.db")
     cursor = conn.cursor()
-
     try:
+        # Order of columns in INSERT must match the order in card_data tuple
+        # Updated column names and order to reflect 'abilities' before 'attacks'
         cursor.execute(
             """
             INSERT INTO cards (
                 name, energy_type, set_name, set_code, card_number, card_type,
-                hp, attacks, weakness, retreat_cost, illustrator,
+                hp, abilities, attacks, weakness, retreat_cost, illustrator,
                 flavor_text, image_url, rarity, pack, local_image_path
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
             card_data,
-        )  # <<< Back to 16 placeholders
+        )
         conn.commit()
-    except sqlite3.IntegrityError:
+    except sqlite3.IntegrityError:  # Handles UNIQUE constraint violation
         print(
             f"Card {card_data[3]}-{card_data[4]} likely already exists (IntegrityError). Skipping."
         )
@@ -189,36 +259,6 @@ def save_to_database(card_data):
         print(f"Error saving card {card_data[3]}-{card_data[4]} to DB: {e}")
     finally:
         conn.close()
-
-
-# Function to reset and save data to CSV
-def save_to_csv(card_data, write_header=False):
-    mode = "w" if write_header else "a"  # 'w' for reset, 'a' for append
-    with open("pokemon_cards.csv", mode, newline="") as f:
-        writer = csv.writer(f)
-        if write_header:
-            writer.writerow(
-                [
-                    "Name",
-                    "Energy Type",
-                    "Set Name",
-                    "Set Code",
-                    "Card Number",
-                    "Card Type",
-                    "HP",
-                    "Attacks",
-                    "Weakness",
-                    "Retreat Cost",
-                    "Illustrator",
-                    "Flavor Text",
-                    "Image URL",
-                    "Rarity",
-                    "Pack",
-                    "Local Image Path",
-                ]
-            )
-        elif card_data:
-            writer.writerow(card_data)
 
 
 # Function to get all sets
@@ -230,25 +270,25 @@ def get_card_sets():
     except requests.RequestException as e:
         print(f"Error fetching card sets: {e}")
         return []
-
     soup = BeautifulSoup(response.text, "html.parser")
     sets = []
-    for link in soup.select("a[href^='/cards/']"):
-        href = link["href"]
-        if href.count("/") == 2:
+    for link_tag in soup.select("a[href^='/cards/']"):  # Iterate over <a> tags
+        href = link_tag["href"]
+        if href.count("/") == 2:  # Format /cards/SET_CODE
             set_code = href.split("/")[-1]
-            set_name = " ".join(link.text.split()).strip()
-
-            if not set_name or set_name.isspace():
+            set_name = " ".join(
+                link_tag.text.split()
+            ).strip()  # Cleaned set name from link text
+            # Basic filters for invalid set names
+            if (
+                not set_name
+                or set_name.isspace()
+                or re.match(r"^\d{1,2} \w{3,} \d{2}$", set_name)
+                or set_name.isdigit()
+            ):
                 continue
-            if re.match(r"^\d{1,2} \w{3,} \d{2}$", set_name):
-                continue
-            if set_name.isdigit():
-                continue
-
             print(f"Extracted set: {set_name} ({set_code})")
             sets.append((set_name, set_code))
-
     return sets
 
 
@@ -261,229 +301,323 @@ def get_cards_from_set(set_code):
     except requests.RequestException as e:
         print(f"Error fetching cards from set {set_code}: {e}")
         return []
+    soup = BeautifulSoup(response.text, "html.parser")
+    card_numbers = []
+    for link_tag in soup.select(f"a[href^='/cards/{set_code}/']"):
+        href = link_tag["href"]
+        if href.count("/") == 3:  # Format /cards/SET_CODE/CARD_NUMBER
+            card_number = href.split("/")[-1]
+            card_numbers.append(card_number)
+    return card_numbers
+
+
+# Function to check if card exists in DB
+def card_exists_in_db(set_code, card_number):
+    conn = sqlite3.connect("pokemon_cards.db")
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT 1 FROM cards WHERE set_code = ? AND card_number = ?",
+        (set_code, card_number),
+    )
+    exists = cursor.fetchone() is not None
+    conn.close()
+    return exists
+
+
+def scrape_card_details(set_code, card_number):
+    url = f"https://pocket.limitlesstcg.com/cards/{set_code}/{card_number}"
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+    except requests.RequestException as e:
+        print(f"Error fetching details for {set_code}-{card_number}: {e}")
+        return None
 
     soup = BeautifulSoup(response.text, "html.parser")
-    cards = []
-    for link in soup.select(f"a[href^='/cards/{set_code}/']"):
-        href = link["href"]
-        if href.count("/") == 3:
-            card_number = href.split("/")[-1]
-            cards.append(card_number)
+    try:
+        name_element = soup.select_one(
+            ".card-text .card-text-name"
+        )  # More specific to avoid other names
+        if not name_element:
+            print(f"Could not find name for {set_code}-{card_number}. Skipping.")
+            return None
+        name = " ".join(name_element.text.split()).strip()
+        print(f"Scraping card: {name} ({set_code}-{card_number})")
 
-    return cards
-
-
-def scrape_card_details(set_code, card_number): 
-    url = f"https://pocket.limitlesstcg.com/cards/{set_code}/{card_number}" 
-    try: 
-        response = requests.get(url, timeout=10) 
-        response.raise_for_status() 
-    except requests.RequestException as e: 
-        print(f"Error fetching details for card {card_number} from set {set_code}: {e}") 
-        return None 
-    soup = BeautifulSoup(response.text, "html.parser") 
-    try: 
-        name = " ".join(soup.select_one(".card-text-name").text.split()).strip() 
-        print(f"Scraping card: {name} ({set_code}-{card_number})") 
-        # Clean up the set name
-        set_name_element = soup.select_one(".prints-current-details span.text-lg") 
-        if set_name_element: 
-            set_name = re.sub(r'\s+', ' ', set_name_element.text).strip() 
-            # Remove the set code in parentheses
-            set_name = re.sub(r'\s*\([A-Za-z0-9]+\)\s*$', '', set_name).strip() 
-        else: 
-            set_name = "Unknown Set" 
-        card_type = " ".join(soup.select_one(".card-text-type").text.split()).strip() 
-        # Extract energy type from the title text
-        energy_type = "" 
-        title_element = soup.select_one(".card-text-title") 
-        if title_element: 
-            full_title_text = title_element.get_text() 
-            # Simplest approach: look for "- Type -" pattern in the text
-            energy_types = ["Grass", "Fire", "Water", "Lightning", "Psychic",  
-                            "Fighting", "Darkness", "Metal", "Colorless", "Dragon", "Fairy"] 
-            for type_name in energy_types: 
-                pattern = f"- {type_name}" 
-                if pattern in full_title_text: 
-                    energy_type = type_name 
-                    break 
-
-        # Extract rarity and pack from card print details
-        rarity = "" 
-        pack = "" 
-        prints_details = soup.select_one(".prints-current-details span:not(.text-lg)") 
-        if prints_details: 
-            details_text = prints_details.get_text().strip() 
-            # Example: "#1 · ◊◊ · Arceus pack"
-            details_parts = details_text.split("·") 
-            if len(details_parts) >= 2: 
-                rarity = details_parts[1].strip() 
-            if len(details_parts) >= 3: 
-                pack = details_parts[2].strip() 
-                # Remove the word "pack" if present
-                if "pack" in pack: 
-                    pack = pack.replace("pack", "").strip() 
-        # <<< START OF ADDED RARITY OVERRIDE LOGIC >>>
-        # Check if there's a custom rarity override defined for this card
-        # This uses the CUSTOM_RARITY_OVERRIDES dictionary defined outside this function
-        if (
-            set_code in CUSTOM_RARITY_OVERRIDES
-            and card_number in CUSTOM_RARITY_OVERRIDES[set_code]
-        ):
-            original_scraped_rarity = rarity  # Store original for logging if needed
-            new_rarity = CUSTOM_RARITY_OVERRIDES[set_code][card_number]
-            print(
-                f"Applying custom rarity override '{new_rarity}' for {set_code}-{card_number} (Original: '{original_scraped_rarity}')"
+        set_name_el = soup.select_one(".prints-current-details span.text-lg")
+        set_name = (
+            re.sub(
+                r"\s*\([A-Za-z0-9\-]+\)\s*$",
+                "",
+                re.sub(r"\s+", " ", set_name_el.text).strip(),
             )
-            rarity = new_rarity  # Apply the override, replacing the scraped value
-        # <<< END OF ADDED RARITY OVERRIDE LOGIC >>>
-        # Extract HP
-        hp = None
-        if title_element:
-            hp_match = re.search(r"(\d+)\s*HP", title_element.get_text())
-            if hp_match:
-                hp = int(hp_match.group(1))
-        # Extract weakness and retreat cost - only for Pokemon cards
-        weakness = None
-        retreat_cost = None
+            if set_name_el
+            else "Unknown Set"
+        )
+
+        card_type_el = soup.select_one(".card-text .card-text-type")
+        card_type = (
+            " ".join(card_type_el.text.split()).strip()
+            if card_type_el
+            else "Unknown Type"
+        )
+
+        energy_type = ""
+        title_el = soup.select_one(".card-text .card-text-title")
+        if title_el:
+            title_text = title_el.get_text()
+            pkmn_energies = [
+                "Grass",
+                "Fire",
+                "Water",
+                "Lightning",
+                "Psychic",
+                "Fighting",
+                "Darkness",
+                "Metal",
+                "Colorless",
+                "Dragon",
+                "Fairy",
+            ]
+            for etype in pkmn_energies:
+                if f"- {etype}" in title_text:
+                    energy_type = etype
+                    break
+            hp_match = re.search(r"(\d+)\s*HP", title_text)
+            hp = int(hp_match.group(1)) if hp_match else None
+        else:
+            hp = None
+
+        rarity_pack_el = soup.select_one(".prints-current-details span:not(.text-lg)")
+        rarity, pack = "", ""
+        if rarity_pack_el:
+            parts = rarity_pack_el.get_text("·", strip=True).split("·")
+            if len(parts) >= 2:
+                rarity = parts[1].strip()  # Assuming rarity is second part
+            if len(parts) >= 3:
+                pack_text = parts[2].strip()
+                pack = (
+                    re.sub(r"(?i)\s*pack\s*", "", pack_text)
+                    if "pack" in pack_text.lower()
+                    else pack_text
+                )
+
+        weakness, retreat_cost = None, None
         if "Pokémon" in card_type:
-            wrr_element = soup.select_one(".card-text-wrr")
-            if wrr_element:
-                wrr_text = wrr_element.get_text()
-                # Extract weakness
-                weakness_match = re.search(r"Weakness:\s*([A-Za-z]+)", wrr_text)
-                if weakness_match:
-                    weakness = weakness_match.group(1).strip()
-                # Extract retreat cost
+            wrr_el = soup.select_one(".card-text-wrr")
+            if wrr_el:
+                wrr_text = wrr_el.get_text()
+                weak_match = re.search(
+                    r"Weakness:\s*([A-Za-z]+(?:[\s×x+]\d+)?)", wrr_text
+                )
+                if weak_match:
+                    weakness = weak_match.group(1).strip()
                 retreat_match = re.search(r"Retreat:\s*(\d+)", wrr_text)
                 if retreat_match:
                     retreat_cost = int(retreat_match.group(1))
-        # Extract illustrator
-        illustrator = None
-        artist_element = soup.select_one(".card-text-artist")
-        if artist_element:
-            artist_text = artist_element.text.strip()
+
+        artist_el = soup.select_one(".card-text-artist")
+        illustrator = None  # Initialize illustrator
+        if artist_el:
+            artist_text = artist_el.text.strip()  # Get the full text once
             if "Illustrated by" in artist_text:
-                illustrator = artist_text.split("Illustrated by")[1].strip()
-        # Extract flavor text
-        flavor_text = None
-        flavor_element = soup.select_one(".card-text-flavor")
-        if flavor_element:
-            flavor_text = flavor_element.text.strip()
-        # Get image URL
-        image_url = soup.select_one(".card-image img")["src"]
-        # Download the image and get local path
-        local_image_path = download_card_image(
-            image_url, set_name, set_code, card_number
-        )
-        # Handle attacks for Pokemon cards or effects for Trainer cards
-        attacks = []
-        # For Pokemon cards, extract attacks
-        if "Pokémon" in card_type:
-            attack_elements = soup.select(".card-text-attack")
-            for attack in attack_elements:
-                # Get energy symbols
-                energy_costs = attack.select(".ptcg-symbol")
-                attack_cost = (
-                    [cost.text.strip() for cost in energy_costs] if energy_costs else []
+                # Split by "Illustrated by" and take the second part
+                parts = artist_text.split("Illustrated by", 1)
+                if len(parts) > 1:
+                    illustrator = parts[1].strip()
+            elif (
+                "illustrator:" in artist_text.lower()
+            ):  # Check lowercase for "illustrator:"
+                # Split by "illustrator:" (case-insensitive due to .lower())
+                parts = re.split(
+                    r"illustrator:", artist_text, maxsplit=1, flags=re.IGNORECASE
                 )
-                # Get attack info line
-                attack_info = attack.select_one(".card-text-attack-info")
-                if not attack_info:
-                    continue
-                attack_info_text = attack_info.get_text(strip=True)
-                # Parse attack name and damage - special handling for energy symbols
-                # First, identify energy symbols positions in the text
-                energy_positions = []
-                for energy in energy_costs:
-                    energy_symbol = energy.text.strip()
-                    # Find the position in the original HTML
-                    energy_html_pos = attack_info_text.find(energy_symbol)
-                    if energy_html_pos != -1:
-                        energy_positions.append((energy_html_pos, energy_symbol))
-                # Clean the attack name and damage
-                # Find the last number with optional + or x at the end
-                damage_match = re.search(r"(\d+(?:\+|x)?)$", attack_info_text)
-                if damage_match:
-                    attack_damage = damage_match.group(1)
-                    attack_name = attack_info_text[: damage_match.start()].strip()
-                    # If the attack name is just 'x', it's likely a parsing error
-                    if attack_name.strip() == "x":
-                        temp_parts = attack_info_text.split()
-                        if len(temp_parts) > 1:
-                            attack_name = " ".join(temp_parts[:-1])
-                            attack_damage = temp_parts[-1]
-                else:
-                    # Handle attacks with no damage value
-                    attack_damage = "0"
-                    attack_name = attack_info_text.strip()
-                # Remove energy symbols from the beginning of the name
-                # But make sure we're only removing if they are at the start
-                for pos, symbol in sorted(energy_positions, key=lambda x: x[0]):
-                    if attack_name.startswith(symbol):
-                        attack_name = attack_name[len(symbol) :].strip()
-                # Get effect text
-                attack_effect = attack.select_one(".card-text-attack-effect")
-                attack_effect = attack_effect.text.strip() if attack_effect else ""
-                attacks.append(
+                if len(parts) > 1:
+                    illustrator = (
+                        parts[1].strip().title()
+                    )  # .title() to capitalize words
+            else:
+                # If no specific prefix, assume the whole text is the illustrator's name
+                illustrator = artist_text
+
+            # Further clean up common extraneous details if any (e.g. trailing set info if not caught by selectors)
+            # For now, the above logic should be safer.
+            if illustrator:  # Ensure illustrator is not empty after stripping
+                illustrator = " ".join(illustrator.split())  # Normalize spaces
+
+        flavor_el = soup.select_one(".card-text-flavor")
+        flavor_text = (
+            clean_rules_text(flavor_el.get_text()) if flavor_el else None
+        )  # Also clean flavor text
+
+        img_el = soup.select_one(".card-image img")
+        image_url_val = img_el["src"] if img_el and img_el.has_attr("src") else ""
+        local_image_path = (
+            download_card_image(image_url_val, set_name, set_code, card_number)
+            if image_url_val
+            else None
+        )
+
+        attacks_data = []
+        abilities_list = []  # Renamed from effects_list
+
+        if "Pokémon" in card_type:
+            # Scrape Abilities
+            ability_elements = soup.select(
+                ".card-text-ability"
+            )  # Common class for abilities
+            for ab_el in ability_elements:
+                raw_ability_text = ab_el.get_text(separator="\n")
+                cleaned_ability_text = clean_rules_text(raw_ability_text)
+                if cleaned_ability_text:
+                    abilities_list.append(cleaned_ability_text)
+
+            # Scrape Attacks
+            attack_elements = soup.select(".card-text-attack")
+            for idx, atk_el in enumerate(attack_elements):
+                atk_name, atk_dmg, atk_costs, atk_effect_raw = "", "0", [], ""
+
+                cost_spans = atk_el.select(
+                    ".card-text-attack-info span.ptcg-symbol, .card-text-attack-cost span.ptcg-symbol"
+                )
+                for cs in cost_spans:
+                    atk_costs.append(cs.get("aria-label", cs.text.strip()))
+
+                info_el = atk_el.select_one(".card-text-attack-info")
+                current_info_text = ""
+                if info_el:
+                    text_parts = [
+                        node.strip()
+                        for node in info_el.find_all(string=True, recursive=False)
+                        if node.strip()
+                    ]
+                    current_info_text = " ".join(text_parts).strip()
+                    dmg_match = re.search(
+                        r"((?:\d+\+?)|(?:[xX×]\d+)|(?:\d+x))$", current_info_text
+                    )
+                    if dmg_match:
+                        atk_dmg = dmg_match.group(1)
+                        atk_name = current_info_text[: dmg_match.start()].strip()
+                    else:
+                        atk_name = current_info_text
+
+                if not atk_costs and atk_name:  # Minimal fix for costs in name
+                    cost_name_match = re.match(r"^([A-Z]+)\s+(.*)", atk_name)
+                    if cost_name_match:
+                        atk_costs.extend(list(cost_name_match.group(1)))
+                        atk_name = cost_name_match.group(2).strip()
+
+                if not atk_name and info_el:  # Fallback for attack name
+                    atk_name = info_el.get_text(strip=True).split(" ")[0]
+
+                effect_el = atk_el.select_one(".card-text-attack-effect")
+                if effect_el:
+                    atk_effect_raw = effect_el.get_text(separator="\n")
+
+                attacks_data.append(
                     {
-                        "name": attack_name,
-                        "cost": attack_cost,
-                        "damage": attack_damage,
-                        "effect": attack_effect,
+                        "name": atk_name if atk_name else f"Attack {idx + 1}",
+                        "cost": atk_costs,
+                        "damage": atk_dmg,
+                        "effect": clean_rules_text(
+                            atk_effect_raw
+                        ),  # Clean attack effect text
                     }
                 )
-        # For Trainer cards, extract text description
-        elif "Trainer" in card_type: 
-            # Find all card text sections that aren't title, type, or artist info
-            trainer_text_sections = soup.select(".card-text-section") 
-            trainer_effect = "" 
-            for section in trainer_text_sections: 
-                # Skip title, type, and artist sections
-                if section.select_one(".card-text-title") or section.select_one(".card-text-type") or section.select_one(".card-text-artist"): 
-                    continue 
-                # Get the text content and add it to the effect
-                section_text = section.get_text(strip=True) 
-                if section_text: 
-                    trainer_effect += section_text + " " 
-            if trainer_effect: 
-                # For trainer cards, we'll represent the effect in the attack array to keep consistent format
-                attacks = [{ 
-                     "name": "Effect",  
-                     "cost": [], 
-                     "damage": "", 
-                     "effect": trainer_effect.strip()
-                 }] 
-        # Return card data including the local image path
-        return (name, energy_type, set_name, set_code, card_number, card_type, hp, str(attacks), 
-                weakness, retreat_cost, illustrator, flavor_text, image_url, rarity, pack, local_image_path) 
+        elif "Trainer" in card_type or (
+            "Energy" in card_type
+            and "Basic" not in card_type
+            and name
+            and "Basic" not in name
+        ):
+            main_text_div = soup.select_one(".card-text")
+            if main_text_div:
+                # Explicitly remove the artist element if it exists within the main text div
+                # This prevents "Illustrated by" from being scraped with the rules text.
+                artist_div_to_remove = main_text_div.select_one(".card-text-artist")
+                if artist_div_to_remove:
+                    artist_div_to_remove.decompose()  # Remove the element from the soup
 
-    except AttributeError as e: 
+                # Now scrape the remaining text sections
+                sections = main_text_div.select(":scope > div.card-text-section")
+                for sec in sections:
+                    # Skip sections that are known meta-data containers or attacks/abilities
+                    # (The artist element is already removed)
+                    if not (
+                        sec.select_one(
+                            ".card-text-title, .card-text-type, .card-text-wrr, .card-text-flavor, .card-text-attack, .card-text-ability"
+                        )
+                    ):
+                        raw_section_text = sec.get_text(
+                            separator="\n"
+                        )  # Keep original newlines for context
+                        cleaned_section_text = clean_rules_text(raw_section_text)
+                        if cleaned_section_text:
+                            # No need for the "illustrated by" filter here as the element is removed
+                            abilities_list.append(
+                                cleaned_section_text
+                            )  # Append to abilities_list
 
-        print(f"Error parsing card details for {card_number} in set {set_code}: {e}") 
+        # Join the collected abilities/effects text.
+        # For Trainer/Energy, this is the main rules text.
+        # For Pokémon, this is the ability text(s).
+        # Join with newline.
+        final_abilities_text = "\n".join(abilities_list) if abilities_list else None
 
+        # Ensure the order here matches the INSERT statement and ideal_schema_ordered
+        return (
+            name,
+            energy_type,
+            set_name,
+            set_code,
+            card_number,
+            card_type,
+            hp,
+            final_abilities_text,  # Changed from final_effects_text and moved before attacks
+            str(attacks_data),
+            weakness,
+            retreat_cost,
+            illustrator,
+            flavor_text,
+            image_url_val,
+            rarity,
+            pack,
+            local_image_path,
+        )
+    except Exception as e:
+        print(
+            f"Error parsing card details for {set_code}-{card_number} (URL: {url}): {e}"
+        )
+        import traceback
+
+        traceback.print_exc()
         return None
 
 
-# Main function to scrape all data
+# Main function
 def main():
-    # Create base directory for images
     os.makedirs(os.path.join("images", "cards"), exist_ok=True)
-
     setup_database()
-    save_to_csv([], write_header=True)  # Reset CSV before scraping
-
-    sets = get_card_sets()
-    for set_name, set_code in sets:
-        for card_number in get_cards_from_set(set_code):
-            card_data = scrape_card_details(set_code, card_number)
-            # print(card_data)
-            if card_data:
-                save_to_csv(card_data)
-                save_to_database(card_data)
-            # time.sleep(1)  # Uncomment to add delay between requests
-
-    print("Scraping complete!")
+    card_sets = get_card_sets()
+    total_scraped = 0
+    for set_n, set_c in card_sets:
+        print(f"\nProcessing Set: {set_n} ({set_c})")
+        scraped_in_set = 0
+        for card_num_str in get_cards_from_set(set_c):
+            if SCRAPE_ONLY_NEW_CARDS and card_exists_in_db(set_c, card_num_str):
+                continue
+            card_details_tuple = scrape_card_details(set_c, card_num_str)
+            if card_details_tuple:
+                save_to_database(card_details_tuple)
+                scraped_in_set += 1
+            # time.sleep(0.05) # Optional delay
+        print(
+            f"Finished set {set_n}. Scraped {scraped_in_set} new card(s)."
+            if scraped_in_set > 0
+            else f"Finished set {set_n}. No new cards to add."
+        )
+        total_scraped += scraped_in_set
+    print(f"\nScraping complete! Total new cards added: {total_scraped}")
 
 
 if __name__ == "__main__":

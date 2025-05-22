@@ -428,7 +428,7 @@
                                     {% if user_logged_in %}
                                     <a href="{{ url_for('decks.list_decks') }}" class="btn btn-sm btn-primary">Create a Deck</a>
                                     {% else %}
-                                    <a href="{{ url_for('auth.login') }}" class="btn btn-sm btn-primary">Login to Create Decks</a>
+                                    <a href="{{ url_for('auth.login_prompt_page') }}" class="btn btn-sm btn-primary">Login to Create Decks</a>
                                     {% endif %}
                                 </div>
                             {% endif %}
@@ -522,7 +522,7 @@
                                     {% if user_logged_in %}
                                     <a href="{{ url_for('decks.list_decks') }}" class="btn btn-sm btn-primary">Create a Deck</a>
                                     {% else %}
-                                    <a href="{{ url_for('auth.login') }}" class="btn btn-sm btn-primary">Login to Create Decks</a>
+                                    <a href="{{ url_for('auth.login_prompt_page') }}" class="btn btn-sm btn-primary">Login to Create Decks</a>
                                     {% endif %}
                                 </div>
                             {% endif %}

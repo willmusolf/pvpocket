@@ -1,6 +1,5 @@
 import sqlite3
 import json
-import csv
 import re
 from typing import Dict, List, Optional, Union, Any, Tuple
 
@@ -184,40 +183,40 @@ class Card:
 
 class CardCollection:
     """A collection of Pokemon cards with methods for loading and querying."""
-    
+
     def __init__(self):
         """Initialize an empty card collection."""
         self.cards: List[Card] = []
         self.cards_by_id: Dict[int, Card] = {}
         self.cards_by_name: Dict[str, List[Card]] = {}
-    
+
     def add_card(self, card: Card) -> None:
         """Add a card to the collection."""
         self.cards.append(card)
-        
+
         # Update lookup dictionaries
         if card.id:
             self.cards_by_id[card.id] = card
-        
+
         if card.name not in self.cards_by_name:
             self.cards_by_name[card.name] = []
         self.cards_by_name[card.name].append(card)
-    
+
     def get_card_by_id(self, card_id: int) -> Optional[Card]:
         """Get a card by its ID."""
         return self.cards_by_id.get(card_id)
-    
+
     def get_cards_by_name(self, name: str) -> List[Card]:
         """Get all cards with the given name."""
         return self.cards_by_name.get(name, [])
-    
+
     def get_card(self, set_code: str, card_number: str) -> Optional[Card]:
         """Get a specific card by set code and card number."""
         for card in self.cards:
             if card.set_code == set_code and card.card_number == card_number:
                 return card
         return None
-    
+
     def filter(self, **kwargs) -> List[Card]:
         """Filter cards by various attributes."""
         result = []
@@ -234,106 +233,81 @@ class CardCollection:
             if match:
                 result.append(card)
         return result
-    
+
     def load_from_db(self, db_path: str = "pokemon_cards.db") -> None:
         """Load cards from the SQLite database."""
         conn = sqlite3.connect(db_path)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
-        
-        # Check how many rows actually exist
+
         cursor.execute("SELECT COUNT(*) FROM cards")
         row_count = cursor.fetchone()[0]
         print(f"Database contains {row_count} rows")
-        
+
         # Get list of unique card IDs to avoid duplicates
         cursor.execute("SELECT id, name, set_code, card_number FROM cards")
         rows = cursor.fetchall()
-        
+
         # Keep track of unique card identifiers to avoid duplicates
         seen_cards = set()
-        
+
         for row in rows:
             # Create a unique identifier for the card (set code + card number)
             card_key = f"{row['set_code']}_{row['card_number']}"
-            
+
             # Skip if we've already loaded this card
             if card_key in seen_cards:
                 # print(f"Skipping duplicate: {row['name']} ({card_key})")
                 continue
-                
+
             seen_cards.add(card_key)
-            
+
             # Now load the full card data
             cursor.execute("SELECT * FROM cards WHERE id = ?", (row['id'],))
-            card_data = cursor.fetchone()
-        
+            card_data_row = cursor.fetchone()
+
             card = Card(
-                id=card_data['id'],
-                name=card_data['name'],
-                energy_type=card_data.get('energy_type', ''),
-                set_name=card_data['set_name'],
-                set_code=card_data['set_code'],
-                card_number=card_data['card_number'],
-                card_type=card_data['card_type'],
-                hp=card_data['hp'],
-                attacks=card_data['attacks'],
-                weakness=card_data['weakness'],
-                retreat_cost=card_data['retreat_cost'],
-                illustrator=card_data['illustrator'],
-                image_url=card_data['image_url'],
-                rarity=card_data.get('rarity', ''),
-                pack=card_data.get('pack', ''),
-                local_image_path=card_data.get('local_image_path', None)
+                id=card_data_row["id"],
+                name=card_data_row["name"],
+                # Use direct access; if DB value is NULL, it becomes None.
+                # If an empty string is preferred over None for these specific fields, use 'or ""'.
+                energy_type=card_data_row["energy_type"] or "",
+                set_name=card_data_row["set_name"],
+                set_code=card_data_row["set_code"],
+                card_number=card_data_row["card_number"],
+                card_type=card_data_row["card_type"],
+                hp=card_data_row["hp"],  # Assumes 'hp' exists; if NULL, hp will be None
+                attacks=card_data_row["attacks"],  # Assumes 'attacks' exists
+                weakness=card_data_row["weakness"],  # Assumes 'weakness' exists
+                retreat_cost=card_data_row[
+                    "retreat_cost"
+                ],  # Assumes 'retreat_cost' exists
+                illustrator=card_data_row[
+                    "illustrator"
+                ],  # Assumes 'illustrator' exists
+                image_url=card_data_row["image_url"],  # Assumes 'image_url' exists
+                rarity=card_data_row["rarity"] or "",
+                pack=card_data_row["pack"] or "",
+                local_image_path=card_data_row[
+                    "local_image_path"
+                ],  # Directly use, None from DB is fine here
             )
             self.add_card(card)
-        
-        print(f"Actually loaded {len(self.cards)} unique cards")
         conn.close()
-    
-    def load_from_csv(self, csv_path: str = "pokemon_cards.csv") -> None:
-        """Load cards from CSV file."""
-        with open(csv_path, 'r', newline='', encoding='utf-8') as f:
-            reader = csv.DictReader(f)
-            
-            id_counter = 1
-            for row in reader:
-                # CSV doesn't have IDs, so we generate them
-                card = Card(
-                    id=id_counter,
-                    name=row.get('Name', ''),
-                    energy_type=row.get('Energy Type', ''),
-                    set_name=row.get('Set Name', ''),
-                    set_code=row.get('Set Code', ''),
-                    card_number=row.get('Card Number', ''),
-                    card_type=row.get('Card Type', ''),
-                    hp=int(row.get('HP', 0)) if row.get('HP') and row.get('HP').isdigit() else None,
-                    attacks=row.get('Attacks', '[]'),
-                    weakness=row.get('Weakness', ''),
-                    retreat_cost=int(row.get('Retreat Cost', 0)) if row.get('Retreat Cost') and row.get('Retreat Cost').isdigit() else None,
-                    illustrator=row.get('Illustrator', ''),
-                    image_url=row.get('Image URL', ''),
-                    rarity=row.get('Rarity', ''),
-                    pack=row.get('Pack', ''),
-                    local_image_path=row.get('Local Image Path', '')
-                )
-                self.add_card(card)
-                id_counter += 1
-    
+
+
     def get_pokemon_cards(self) -> List[Card]:
         """Get all Pokemon cards in the collection."""
         return [card for card in self.cards if card.is_pokemon]
-    
+
     def get_trainer_cards(self) -> List[Card]:
         """Get all Trainer cards in the collection."""
         return [card for card in self.cards if card.is_trainer]
 
-    
     def get_cards_by_type(self, card_type: str) -> List[Card]:
         """Get cards of a specific type."""
         return [card for card in self.cards if card_type.lower() in card.card_type.lower()]
-    
+
     def __len__(self) -> int:
         """Return the number of cards in the collection."""
         return len(self.cards)
-

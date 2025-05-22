@@ -707,7 +707,7 @@ def test_battle_with_random_decks():
     # Create two random decks
     from Card import CardCollection
     collection = CardCollection()
-    collection.load_from_db()  # or load_from_csv()
+    collection.load_from_db()
     
     deck1 = Deck.generate_random_deck(collection, "Random Deck 1")
     deck2 = Deck.generate_random_deck(collection, "Random Deck 2")

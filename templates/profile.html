@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}{{ user_info.username }}'s Profile & Settings{% endblock %}
+
+{% block extra_css %}
+<style>
+    .profile-page-card {
+        background-color: var(--card-bg);
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
+        border-radius: .5rem;
+        margin-bottom: 1.5rem;
+        padding: 1.5rem;
+    }
+    [data-theme="dark"] .profile-page-card {
+        /* Specific dark theme overrides for this card if needed, else it uses base card styles */
+    }
+    .stat-item {
+        margin-bottom: 0.5rem;
+    }
+    .form-text {
+        font-size: 0.875em;
+        color: var(--text-color-muted, #6c757d); /* Default light mode form-text color */
+    }
+    [data-theme="dark"] .form-text {
+        color: var(--text-color-muted-dark, #adb5bd); /* Dark mode form-text color */
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+
+            <div class="profile-header text-center mb-4">
+                <h1>{{ user_info.username }}</h1>
+                <p class="lead text-muted">{{ user_info.email }}</p>
+            </div>
+
+            {# Flashed Messages #}
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="profile-page-card">
+                <h4 class="mb-3">My Stats</h4>
+                <div class="stat-item"><strong>Decks Created:</strong> {{ decks|length }}</div>
+                <div class="stat-item"><strong>Battles Recorded:</strong> {{ battles|length }}</div>
+                <div class="stat-item"><strong>Joined:</strong> 
+                    {% if user_info.created_at %}
+                        {{ user_info.created_at.split(' ')[0] }} {# Display only date part #}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="profile-page-card">
+                <h4 class="mb-3">Settings</h4>
+                
+                <hr class="my-3">
+                <h5>Change Username</h5>
+                <form method="POST" action="{{ url_for('auth.user_profile_and_settings') }}"> {# Ensure endpoint name is correct #}
+                    <div class="mb-3">
+                        <input type="text" class="form-control" 
+                               id="new_username" name="new_username" 
+                               value="{{ request.form.get('new_username', '') }}" {# Keep value on failed POST #}
+                               required minlength="3" maxlength="20" pattern="^[a-zA-Z0-9_]+$" autocomplete="off">
+                        <div id="usernameHelp" class="form-text">
+                            Must be 3-20 characters. Letters, numbers, and underscores only. No spaces.
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Update Username</button>
+                </form>
+
+                <hr class="my-4">
+
+                <h5>Appearance</h5>
+                <div class="mb-3">
+                    <label class="form-check-label me-2" for="darkModeToggle">Dark Mode:</label>
+                    <div class="form-check form-switch d-inline-block align-middle">
+                        <input class="form-check-input" type="checkbox" id="darkModeToggle">
+
+                    </div>
+            </div>
+            <hr class="my-4">
+            <div class="mb-3">
+                    <a href="{{ url_for('auth.logout') }}" class="btn btn-warning" id="danger-zone-logout-btn">
+                        <i class="bi bi-box-arrow-right me-1"></i>Log Out
+                    </a>
+                </div>
+
+                
+                <button type="button" class="btn btn-danger" id="delete-account-btn">Delete My Account</button>
+        </div>
+    </div>
+</div>
+
+<form id="delete-account-form" method="POST" action="{{ url_for('auth.delete_account') }}" style="display: none;">
+    {# Add CSRF token here if you are using Flask-WTF or similar #}
+    {# Example: <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"> #}
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const deleteAccountBtn = document.getElementById('delete-account-btn');
+    const deleteAccountForm = document.getElementById('delete-account-form'); // Your hidden form
+
+    if (deleteAccountBtn && deleteAccountForm) {
+        deleteAccountBtn.addEventListener('click', function() {
+            // First confirmation
+            const firstConfirm = window.confirm("Are you absolutely sure you want to delete your account?\nThis action is permanent and cannot be undone.\nAll your decks, stats, and user data will be erased.");
+            
+            if (firstConfirm) {
+                // Second confirmation
+                const secondConfirm = window.confirm("LAST WARNING: This will permanently delete your account and all associated data. There is NO recovery. Proceed?");
+                
+                if (secondConfirm) {
+                    console.log("User confirmed account deletion twice. Submitting delete request...");
+                    deleteAccountForm.submit(); // Submits the hidden form
+                } else {
+                    console.log("Account deletion cancelled at second warning.");
+                }
+            } else {
+                console.log("Account deletion cancelled at first warning.");
+            }
+        });
+    }
+
+    // Your existing dark mode toggle script (ensure it's still here if it was)
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    if (darkModeToggle) {
+        const currentTheme = localStorage.getItem('theme');
+        if (currentTheme === 'dark') {
+            darkModeToggle.checked = true;
+        }
+        darkModeToggle.addEventListener('change', function() {
+            if (this.checked) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+                localStorage.setItem('theme', 'light');
+            }
+            // updateNavbarTheme(); // If you have this function globally for navbar
+        });
+    }
+});
+</script>
+{% endblock %}

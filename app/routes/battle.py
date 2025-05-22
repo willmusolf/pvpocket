@@ -4,7 +4,7 @@ from battle_engine import SimpleAI, BattleEngine
 import os
 import json
 import random
-from .auth import is_logged_in, get_current_user
+from .auth import is_logged_in, get_current_user_data
 
 battle_bp = Blueprint('battle', __name__)
 
