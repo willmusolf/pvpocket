@@ -24,7 +24,6 @@ class Config:
         directories = [
             os.path.join(cls.PROJECT_ROOT, 'decks'),
             os.path.join(cls.PROJECT_ROOT, 'data'),
-            os.path.join(cls.PROJECT_ROOT, 'users')
         ]
 
         for directory in directories:

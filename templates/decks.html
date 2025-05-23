@@ -3058,10 +3058,18 @@
         return stageOrder['default']; // Return default if cardTypes is not an array or no known stage is found
     }
 
-    async function saveDeck() { 
+    
+
+    async function saveDeck() {
         const authStatus = await checkUserAuthentication();
 
         const deckNameValue = document.getElementById('deck-name').value.trim(); // Get name early for validation
+
+        // Define a helper function to check for Basic Pokémon
+        const hasBasicPokemon = () => {
+            const pokemonCards = currentDeck.filter(card => card.card_type && card.card_type.includes('Pokémon'));
+            return pokemonCards.some(card => card.card_type.includes('Basic'));
+        };
 
         // --- Handle Unauthenticated User ---
         if (!authStatus.isAuthenticated) {
@@ -3077,10 +3085,15 @@
                 // Optionally, highlight the energy selection area
                 return;
             }
+            // NEW VALIDATION: Check for Basic Pokémon
+            if (!hasBasicPokemon()) {
+                alert('Your deck must contain at least one Basic Pokémon before saving.');
+                return;
+            }
             if (!deckNameValue && currentDeck.length > 0) { // Prompt for name if deck has cards but no name
-                    alert('Please enter a name for your deck before saving.');
-                    document.getElementById('deck-name').focus();
-                    return;
+                alert('Please enter a name for your deck before saving.');
+                document.getElementById('deck-name').focus();
+                return;
             }
 
             // Deck is valid enough to save temporarily, store it
@@ -3117,6 +3130,11 @@
             alert('Please select at least one energy type for your deck before saving.');
             return;
         }
+        // NEW VALIDATION: Check for Basic Pokémon
+        if (!hasBasicPokemon()) {
+            alert('Your deck must contain at least one Basic Pokémon before saving.');
+            return;
+        }
         if (!deckNameValue) {
             alert('Please enter a name for your deck.');
             document.getElementById('deck-name').focus();
@@ -3136,11 +3154,11 @@
                 if (bestPokemonCandidates.length > 0) candidateCard = bestPokemonCandidates[0];
             }
             if (candidateCard === null) {
-                    if (currentDeck.length > 0) {
+                if (currentDeck.length > 0) {
                     const highestRarityRankAll = Math.min(...currentDeck.map(card => getRank(card.rarity, rarityOrder)));
                     const highestRarityAllCards = currentDeck.filter(card => getRank(card.rarity, rarityOrder) === highestRarityRankAll);
                     if (highestRarityAllCards.length > 0) candidateCard = highestRarityAllCards[0];
-                    }
+                }
             }
             if (candidateCard !== null) autoAssignedCoverCardId = candidateCard.id;
             else if (currentDeck.length > 0) autoAssignedCoverCardId = currentDeck[0].id;
@@ -3168,15 +3186,15 @@
         })
         .then(response => {
             if (!response.ok) { // Improved error handling
-                    return response.json().then(err => { throw (err || {error: `HTTP error! Status: ${response.status}`}); });
+                return response.json().then(err => { throw (err || {error: `HTTP error! Status: ${response.status}`}); });
             }
             return response.json();
         })
         .then(data => {
             if (data.success) {
                 deckSaved = true;
-                if (data.filename && !isUpdating) { 
-                    loadedDeckId = data.filename; 
+                if (data.filename && !isUpdating) {
+                    loadedDeckId = data.filename;
                 }
                 if (data.cover_card_ids) {
                     selectedCoverCardIds = data.cover_card_ids;

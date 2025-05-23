@@ -4,12 +4,17 @@
 
 {% block content %}
     <style>
+        .card-body {
+            position: relative;
+            padding-bottom: 0; /* Or whatever smaller value you prefer, e.g., 0.25rem, 0 */
+        }
         .energy-icon-wrapper {
             width: 24px;
             height: 24px;
             border-radius: 50%;
             margin-right: 5px;
             margin-bottom: 5px;
+            margin-top: -6px;
             overflow: hidden;
             display: inline-flex;
             align-items: center;
@@ -32,262 +37,350 @@
         }
 
         .collection-main-content {
-        width: 100%;
-        /* Adjust this max-width to your preference. 
-           Bootstrap's .container max-widths are roughly:
-           lg: 960px, xl: 1140px, xxl: 1320px.
-           Choose a value that's wider than what feels "too narrow".
-           Example: Make it similar to .container-xl or a bit more.
-        */
-        max-width: 1390px; /* Example: Slightly wider than .container-xl, narrower than .container-xxl default */
-                           /* Or use a percentage like: max-width: 90%; */
-        
-        /* Standard Bootstrap gutter padding for left/right */
-        padding-right: var(--bs-gutter-x, .75rem); 
-        padding-left: var(--bs-gutter-x, .75rem);
-        
-        /* Centering the container */
-        margin-right: auto;
-        margin-left: auto;
+            width: 100%;
+            max-width: 1390px; /* Overall container max-width */
+            padding-right: var(--bs-gutter-x, .75rem);
+            padding-left: var(--bs-gutter-x, .75rem);
+            margin-right: auto;
+            margin-left: auto;
+        }
+
+        /* Container for both the badge and the dropdown button */
+        .deck-header-right-actions {
+            position: absolute;
+            top: 0.5rem; /* Adjust as needed */
+            right: 0.5rem; /* Adjust as needed */
+            display: flex; /* Use flexbox to align badge and button */
+            align-items: center; /* Vertically center them */
+            gap: 0.25rem; /* Small gap between badge and button */
+            z-index: 10; /* Ensure it's above other card content */
+        }
+
+        .deck-actions-dropdown .dropdown-toggle {
+            background-color: transparent;
+            border: none;
+            box-shadow: none;
+            padding: 0.3rem 0.5rem;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--bs-secondary-color, #6c757d);
+            transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
+            margin-top: 1.5px;
+        }
+
+        .deck-actions-dropdown .dropdown-toggle:hover,
+        .deck-actions-dropdown .dropdown-toggle:focus,
+        .deck-actions-dropdown .dropdown-toggle:active {
+            background-color: rgba(0, 0, 0, 0.075);
+            color: var(--bs-body-color, #212529);
+            box-shadow: none;
+            border: none;
+        }
+
+        [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle {
+             color: var(--bs-gray-500, #adb5bd);
+        }
+
+        [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle:hover,
+        [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle:focus,
+        [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle:active {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--bs-light, #f8f9fa);
+        }
+
+        .deck-actions-dropdown .dropdown-toggle i.bi-three-dots-vertical {
+            font-size: 1.3rem;
+            vertical-align: middle;
+        }
+
+        .deck-actions-dropdown .dropdown-menu {
+            min-width: 190px;
+        }
+
+        .deck-actions-dropdown .dropdown-item {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+        .deck-actions-dropdown .dropdown-item .bi {
+            width: 1.5em;
+        }
+
+        .deck-cover-cards-area {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 140px;
+            margin-bottom: 0.5rem;
+            gap: 5px;
+            position: relative; /* Needed for absolute positioning of overlay */
+            border-radius: 6px; /* Match the general card corner roundness */
+            overflow: hidden; /* Ensures overlay doesn't spill out */
+        }
+
+        .deck-cover-cards-area .cover-card-image-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100px; /* Ideal height */
+            width: 75px;  /* Ideal width */
+            /* Allow these to shrink with the card, but set a base minimum */
+            min-height: 90px;
+            min-width: 68px;
+        }
+
+        .deck-cover-cards-area .cover-card-image-wrapper:first-child {
+            height: 155px; /* Ideal height */
+            width: 120px; /* Ideal width */
+            /* Allow this to shrink with the card, but set a base minimum */
+            min-height: 140px;
+            min-width: 110px;
+        }
+
+        .deck-cover-cards-area .cover-card-image-wrapper img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 4px;
+        }
+
+        /* Specific order for 3 cards: card_2, card_1, card_3 */
+        .deck-cover-cards-area.has-three-cards .cover-card-image-wrapper:nth-child(1) { order: 1; } /* Middle (1st selected) */
+        .deck-cover-cards-area.has-three-cards .cover-card-image-wrapper:nth-child(2) { order: 2; } /* Left (2nd selected) */
+        .deck-cover-cards-area.has-three-cards .cover-card-image-wrapper:nth-child(3) { order: 3; } /* Right (3rd selected) */
+
+        /* Style for the "Deck Not Full" overlay */
+        .deck-not-full-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%); /* Center horizontally and vertically */
+            background-color: rgba(122, 122, 122, 0.6); /* Lighter gray, more transparent */
+            color: #fff; /* White text */
+            padding: 0.25rem 0.6rem; /* Smaller padding for a more compact box */
+            border-radius: 4px; /* Slightly rounded corners for the box */
+            font-weight: bold;
+            font-size: 0.8rem; /* Even smaller font size */
+            text-align: center;
+            white-space: nowrap; /* Prevent text wrapping */
+            pointer-events: none; /* Allow clicks to pass through to cards below */
+            z-index: 5; /* Ensure it's above cards but below dropdown */
+        }
+
+        /* Adjust for dark theme if needed */
+        [data-theme="dark"] .deck-not-full-overlay {
+            background-color: rgba(122, 122, 122, 0.6); /* Lighter transparent white for dark mode */
+        }
+
+        /* ****************************************************** */
+        /* FLUID COLUMNS WITH MIN/MAX WIDTHS FOR DYNAMIC SIZING */
+        /* ****************************************************** */
+
+        /* Base column properties */
+        .col-12.col-sm-6.col-md-4.col-lg-3 {
+            flex-grow: 0;   /* Allow column to grow */
+            flex-shrink: 0; /* Allow column to shrink */
+            padding-right: var(--bs-gutter-x, .75rem);
+            padding-left: var(--bs-gutter-x, .75rem);
+        }
+
+        /* The card itself just fills its column's available space */
+        .card.h-100 {
+            width: 100%; /* Card fills its fluid column */
+            /* Min/max widths are now applied to the column itself in media queries */
+        }
+
+        /* The .row needs to handle wrapping and Bootstrap's gutter system */
+        .row {
+            flex-wrap: wrap; /* Allow items to wrap to the next line */
+            justify-content: flex-start; /* Default alignment, overridden by media queries */
+            margin-left: calc(var(--bs-gutter-x, .75rem) * -1);
+            margin-right: calc(var(--bs-gutter-x, .75rem) * -1);
+        }
+
+        .deck-actions-dropdown .dropdown-toggle::after {
+            display: none; /* This hides the default Bootstrap arrow */
+        }
+
+/* Extra small screens (phones) - 1 COLUMN: STRETCHING IS OK */
+@media (max-width: 581.98px) { /* Your breakpoint */
+    .card-body > .row {
+        /* If you want a single item centered if it's not full width: */
+        /* justify-content: center; */
+        /* If you want it always left-aligned: */
+        justify-content: flex-start;
     }
 
+    .col-12.col-sm-6.col-md-4.col-lg-3.mb-4 { /* Targeting your specific deck items */
+        /* For 1-column layout, .col-12 makes it width: 100% by default.
+           Allowing it to "stretch" (grow) is fine if the row is somehow wider,
+           but width: 100% usually makes this moot. */
+        flex-grow: 1; /* Allow stretching for 1-column layout if desired */
+        width: 100%;  /* Ensure it aims for full width */
+        min-width: 0; /* Reset min-width for XS if 340px is too wide */
+                      /* Or set a smaller min-width like 280px if needed for very small screens */
+                      /* e.g., min-width: 280px; */
+    }
+}
 
-    .deck-actions-dropdown {    
-        position: absolute;
-        top: 0.5rem;  /* Adjust for vertical position from top */
-        right: 0.5rem; /* Adjust for horizontal position from right */
-        z-index: 10;   /* Ensure it's above other card content */
-        top: 13px;
+/* Small screens (tablets portrait) - 2 COLUMNS: FIXED SIZE WANTED */
+@media (min-width: 582px) and (max-width: 899.98px) { /* Your breakpoint */
+    .card-body > .row {
+        justify-content: flex-start; /* Ensures items align left */
     }
 
-    .deck-actions-dropdown .dropdown-toggle {
-        /* Reset Bootstrap button defaults for a cleaner icon-only look */
-        background-color: transparent; /* No !important needed if other btn styles are removed from HTML class */
-        border: none;
-        box-shadow: none;
-        padding: 0.3rem 0.5rem; /* Fine-tune padding for click area vs icon size */
-        line-height: 1;         /* Helps with vertical alignment of icon */
-        display: inline-flex;   /* Allows alignment of icon */
-        align-items: center;
-        justify-content: center;
-        color: var(--bs-secondary-color, #6c757d); /* Default subtle icon color */
-        /* Add transition for smoother hover effect */
-        transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
+    .col-12.col-sm-6.col-md-4.col-lg-3.mb-4 { /* Targeting your specific deck items */
+        /* Override Bootstrap's .col-sm-6 (width: 50%) to make it a fixed width */
+        width: 340px;         /* Set a fixed width */
+        flex-basis: 340px;    /* Set flex-basis to this fixed width */
+        flex-grow: 0;         /* Ensure it does not grow */
+        flex-shrink: 0;       /* Ensure it does not shrink (it will wrap if row is too narrow for two) */
+        /* min-width: 340px; is now redundant due to width: 340px */
+    }
+}
 
+/* Medium screens (tablets landscape, small desktops) - 3 COLUMNS: GOOD (Responsive percentage + min-width) */
+@media (min-width: 900px) and (max-width: 1199.98px) { /* Your breakpoint */
+    .card-body > .row {
+        justify-content: flex-start;
     }
 
-    .deck-actions-dropdown .dropdown-toggle:hover,
-    .deck-actions-dropdown .dropdown-toggle:focus,
-    .deck-actions-dropdown .dropdown-toggle:active { /* Added :active for completeness */
-        background-color: rgba(0, 0, 0, 0.075); 
-        color: var(--bs-body-color, #212529); 
-        box-shadow: none; /* Ensure no shadow on interaction */
-        border: none; /* Ensure no border on interaction */
+    .col-12.col-sm-6.col-md-4.col-lg-3.mb-4 { /* Targeting your specific deck items */
+        min-width: 340px; /* Your defined min-width */
     }
-    
-    /* Dark theme overrides for the dropdown toggle button */
-    [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle {
-         color: var(--bs-gray-500, #adb5bd); /* Lighter subtle icon color for dark mode */
+}
+
+/* Large screens (larger desktops) - 4 COLUMNS: GOOD (Responsive percentage + min-width) */
+@media (min-width: 1200px) { /* Your breakpoint */
+    .card-body > .row {
+        justify-content: flex-start;
     }
 
-    [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle:hover,
-    [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle:focus,
-    [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle:active {
-        background-color: rgba(255, 255, 255, 0.1); 
-        color: var(--bs-light, #f8f9fa); 
-    }
+    .col-12.col-sm-6.col-md-4.col-lg-3.mb-4 { /* Targeting your specific deck items */
+        min-width: 340px; /* Your defined min-width */
+}
+}
 
-    /* Styling for the icon itself within the button */
-    .deck-actions-dropdown .dropdown-toggle i.bi-three-dots-vertical {
-        font-size: 1.3rem;  /* Adjust icon size as desired (e.g., 1.2rem, 1.4rem) */
-        vertical-align: middle; 
-    }
+    </style>
 
-    /* Hide the default Bootstrap dropdown caret */
-    .deck-actions-dropdown .dropdown-toggle::after {
-        display: none; 
-    }
+    <div class="collection-main-content">
+        <div class="row">
+            <div class="col-12 mb-4">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h3>My Decks</h3>
+                        <a href="{{ url_for('decks.list_decks') }}" class="btn btn-primary">
+                            <i class="bi bi-plus-circle"></i> Create New Deck
+                        </a>
+                    </div>
+                    <div class="card-body position-relative"> {# IMPORTANT: card-body must be position-relative #}
+                        {% if decks %}
+                        <div class="row">
+                            {% for deck in decks %}
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4">
+                                <div class="card h-100">
+                                    <div class="card-body position-relative"> {# IMPORTANT: Add position-relative here #}
 
-    /* Styling for the dropdown menu itself */
-    .deck-actions-dropdown .dropdown-menu {
-        min-width: 190px; /* A good minimum width for dropdown items with icons */
-        /* It will inherit dark/light mode styling from Bootstrap if your base.html sets data-bs-theme on <html> or <body> */
-    }
+                                        {# NEW: Container for card count AND dropdown, positioned to the right #}
+                                        <div class="deck-header-right-actions">
+                                            <span class="badge bg-primary">{{ deck.card_count }}/20 cards</span>
 
-    /* Styling for individual items within the dropdown menu */
-    .deck-actions-dropdown .dropdown-item {
-        cursor: pointer; 
-        display: flex;         /* Align icon and text nicely */
-        align-items: center;
-    }
-    /* Space for icons in dropdown items, assuming icons use .bi class */
-    .deck-actions-dropdown .dropdown-item .bi { 
-        width: 1.5em; /* Give icons a little fixed space so text aligns well */
-        /* margin-right is handled by Bootstrap's .me-2 class on the <i> tags in HTML */
-    }
-
-    .deck-cover-cards-area {
-        display: flex;
-        justify-content: center; /* Center items for 1 or 2 cards */
-        align-items: center;   /* Vertically align items */
-        min-height: 140px;     /* Keep your original height consistent */
-        margin-bottom: 0.5rem; /* Equivalent to mb-2 */
-        gap: 5px;             /* Small gap between card images */
-    }
-
-    .deck-cover-cards-area .cover-card-image-wrapper {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        /* Adjust width & height to fit 3 cards + gap within available space */
-        /* Max height is 140px from your inline style. Let's set a max width too. */
-        /* For 3 cards, if card aspect ratio is ~0.7 (e.g., 63/88), and height is ~100-120px, width ~70-84px */
-        /* Max container width for col-md-3 is around 250-300px. (250 - 10gap) / 3 = ~80px per card. */
-        max-width: 30%; /* Allows 3 cards to fit with small gaps */
-        height: 120px;  /* Slightly reduced height to help them fit side-by-side */
-    }
-
-    .deck-cover-cards-area .cover-card-image-wrapper img {
-        max-width: 100%;
-        max-height: 100%;
-        object-fit: contain; /* Or 'cover', depending on desired look */
-        border-radius: 4px; /* Smaller radius for smaller images */
-    }
-
-    /* Specific order for 3 cards: card_2, card_1, card_3 */
-    .deck-cover-cards-area.has-three-cards .cover-card-image-wrapper:nth-child(1) { order: 2; } /* Middle (1st selected) */
-    .deck-cover-cards-area.has-three-cards .cover-card-image-wrapper:nth-child(2) { order: 1; } /* Left (2nd selected) */
-    .deck-cover-cards-area.has-three-cards .cover-card-image-wrapper:nth-child(3) { order: 3; } /* Right (3rd selected) */
-
-    /* Styling for placeholder if no cover cards */
-    .deck-cover-placeholder { 
-        height: 140px; 
-        display: flex; 
-        align-items: center; 
-        justify-content: center;
-    }
-</style>
-
-<div class="collection-main-content">
-    <div class="row">
-        <div class="col-12 mb-4">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h3>My Decks</h3>
-                    <a href="{{ url_for('decks.list_decks') }}" class="btn btn-primary">
-                        <i class="bi bi-plus-circle"></i> Create New Deck
-                    </a>
-                </div>
-                <div class="card-body">
-                    {% if decks %}
-                    <div class="row">
-                        {% for deck in decks %}
-                        <div class="col-md-3 mb-4">
-                            <div class="card h-100">
-                                <div class="card-body position-relative">
-                                    {# ++ ADD DECK ACTIONS DROPDOWN ++ #}
-                                    <div class="dropdown deck-actions-dropdown">
-                                        <button class="btn dropdown-toggle" type="button" id="deckActions_{{ deck.filename | replace('.json', '') }}" data-bs-toggle="dropdown" aria-expanded="false" title="Deck Actions">
-                                            <i class="bi bi-three-dots-vertical"></i> {# Assumes Bootstrap Icons are loaded via base.html #}
-                                        </button>
-                                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="deckActions_{{ deck.filename | replace('.json', '') }}">
-                                            <li><a class="dropdown-item" href="{{ url_for('decks.list_decks') }}?edit={{ deck.filename }}">
-                                                <i class="bi bi-pencil-square me-2"></i>Edit
-                                            </a></li>
-                                            <li>
-                                               <a class="dropdown-item deck-action-copy" 
-                                                href="{{ url_for('decks.list_decks', copy_from=deck.filename) }}"
-                                                data-deck-id="{{ deck.filename }}" 
-                                                data-deck-name="{{ deck.name }}">
-                                                    <i class="bi bi-files me-2"></i>Make a copy
-                                                </a>
-                                            </li>
-                                            <li><a class="dropdown-item" href="{{ url_for('battle.battle') }}">
-                                                <i class="bi bi-joystick me-2"></i>Load into Battle Sim
-                                            </a></li>
-                                            <li><hr class="dropdown-divider"></li>
-                                            <li><a class="dropdown-item text-danger deck-action-delete" href="#" data-deck-id="{{ deck.filename }}" data-deck-name="{{ deck.name }}">
-                                                <i class="bi bi-trash me-2"></i>Delete
-                                            </a></li>
-                                        </ul>
-                                    </div>
-                                    <div class="d-flex mb-2">
-                                        {% for type in deck.types %}
-                                        <div class="energy-icon-wrapper" data-type="{{ type }}">
-                                            {% if type == "Grass" %}
-                                            <img src="{{ url_for('static', filename='energy/grass.png') }}" alt="Grass" class="energy-icon" onerror="this.style.display='none'; this.parentElement.innerHTML += 'G';">
-                                            {% elif type == "Fire" %}
-                                            <img src="{{ url_for('static', filename='energy/fire.png') }}" alt="Fire" class="energy-icon" onerror="this.style.display='none'; this.parentElement.innerHTML += 'F';">
-                                            {% elif type == "Water" %}
-                                            <img src="{{ url_for('static', filename='energy/water.png') }}" alt="Water" class="energy-icon" onerror="this.style.display='none'; this.parentElement.innerHTML += 'W';">
-                                            {% elif type == "Lightning" %}
-                                            <img src="{{ url_for('static', filename='energy/electric.png') }}" alt="Electric" class="energy-icon" onerror="this.style.display='none'; this.parentElement.innerHTML += 'L';">
-                                            {% elif type == "Psychic" %}
-                                            <img src="{{ url_for('static', filename='energy/psychic.png') }}" alt="Psychic" class="energy-icon" onerror="this.style.display='none'; this.parentElement.innerHTML += 'P';">
-                                            {% elif type == "Fighting" %}
-                                            <img src="{{ url_for('static', filename='energy/fighting.png') }}" alt="Fighting" class="energy-icon" onerror="this.style.display='none'; this.parentElement.innerHTML += 'F';">
-                                            {% elif type == "Darkness" %}
-                                            <img src="{{ url_for('static', filename='energy/dark.png') }}" alt="Darkness" class="energy-icon" onerror="this.style.display='none'; this.parentElement.innerHTML += 'D';">
-                                            {% elif type == "Metal" %}
-                                            <img src="{{ url_for('static', filename='energy/metal.png') }}" alt="Metal" class="energy-icon" onerror="this.style.display='none'; this.parentElement.innerHTML += 'M';">
-                                            {% elif type == "Dragon" %}
-                                            <img src="{{ url_for('static', filename='energy/dragon.png') }}" alt="Dragon" class="energy-icon" onerror="this.style.display='none'; this.parentElement.innerHTML += 'R';">
-                                            {% elif type == "Colorless" %}
-                                            <img src="{{ url_for('static', filename='energy/colorless.png') }}" alt="Colorless" class="energy-icon" onerror="this.style.display='none'; this.parentElement.innerHTML += 'C';">
-                                            {% endif %}
+                                            <div class="dropdown deck-actions-dropdown">
+                                                <button class="btn dropdown-toggle" type="button" id="deckActions_{{ deck.filename | replace('.json', '') }}" data-bs-toggle="dropdown" aria-expanded="false" title="Deck Actions">
+                                                    <i class="bi bi-three-dots-vertical"></i>
+                                                </button>
+                                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="deckActions_{{ deck.filename | replace('.json', '') }}">
+                                                    <li><a class="dropdown-item" href="{{ url_for('decks.list_decks') }}?edit={{ deck.filename }}">
+                                                        <i class="bi bi-pencil-square me-2"></i>Edit
+                                                    </a></li>
+                                                    <li>
+                                                       <a class="dropdown-item deck-action-copy"
+                                                        href="{{ url_for('decks.list_decks', copy_from=deck.filename) }}"
+                                                        data-deck-id="{{ deck.filename }}"
+                                                        data-deck-name="{{ deck.name }}">
+                                                            <i class="bi bi-files me-2"></i>Make a copy
+                                                        </a>
+                                                    </li>
+                                                    <li><a class="dropdown-item" href="{{ url_for('battle.battle') }}">
+                                                        <i class="bi bi-joystick me-2"></i>Load into Battle Sim
+                                                    </a></li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li><a class="dropdown-item text-danger deck-action-delete" href="#" data-deck-id="{{ deck.filename }}" data-deck-name="{{ deck.name }}">
+                                                        <i class="bi bi-trash me-2"></i>Delete
+                                                    </a></li>
+                                                </ul>
+                                            </div>
                                         </div>
-                                        {% endfor %}
-                                    </div>
-                                    {% if deck.resolved_cover_cards and deck.resolved_cover_cards|length > 0 %}
-                                        <div class="deck-cover-cards-area {% if deck.resolved_cover_cards|length == 3 %}has-three-cards{% endif %}">
-                                            {% for cover in deck.resolved_cover_cards %}
-                                                <div class="cover-card-image-wrapper">
-                                                    {% if cover.display_image_path %}
-                                                        <img src="{{ cover.display_image_path }}" alt="{{ cover.name }}" title="{{ cover.name }}">
-                                                    {% else %}
-                                                        {# Fallback if a card object exists but no image path #}
-                                                        <div class="deck-cover-placeholder bg-light" style="width:100%; height:100%;">
-                                                            <i class="bi bi-question-square" style="font-size: 1.5rem;"></i>
-                                                        </div>
-                                                    {% endif %}
-                                                </div>
+
+                                        <div class="d-flex mb-2">
+                                            {% for type in deck.types %}
+                                            <div class="energy-icon-wrapper" data-type="{{ type }}">
+                                                {% if type == "Grass" %}
+                                                <img src="{{ url_for('static', filename='energy/grass.png') }}" alt="Grass" class="energy-icon" onerror="this.style.display='none'; this.parentElement.innerHTML += 'G';">
+                                                {% elif type == "Fire" %}
+                                                <img src="{{ url_for('static', filename='energy/fire.png') }}" alt="Fire" class="energy-icon" onerror="this.style.display='none'; this.parentElement.innerHTML += 'F';">
+                                                {% elif type == "Water" %}
+                                                <img src="{{ url_for('static', filename='energy/water.png') }}" alt="Water" class="energy-icon" onerror="this.style.display='none'; this.parentElement.innerHTML += 'W';">
+                                                {% elif type == "Lightning" %}
+                                                <img src="{{ url_for('static', filename='energy/electric.png') }}" alt="Electric" class="energy-icon" onerror="this.style.display='none'; this.parentElement.innerHTML += 'L';">
+                                                {% elif type == "Psychic" %}
+                                                <img src="{{ url_for('static', filename='energy/psychic.png') }}" alt="Psychic" class="energy-icon" onerror="this.style.display='none'; this.parentElement.innerHTML += 'P';">
+                                                {% elif type == "Fighting" %}
+                                                <img src="{{ url_for('static', filename='energy/fighting.png') }}" alt="Fighting" class="energy-icon" onerror="this.style.display='none'; this.parentElement.innerHTML += 'F';">
+                                                {% elif type == "Darkness" %}
+                                                <img src="{{ url_for('static', filename='energy/dark.png') }}" alt="Darkness" class="energy-icon" onerror="this.style.display='none'; this.parentElement.innerHTML += 'D';">
+                                                {% elif type == "Metal" %}
+                                                <img src="{{ url_for('static', filename='energy/metal.png') }}" alt="Metal" class="energy-icon" onerror="this.style.display='none'; this.parentElement.innerHTML += 'M';">
+                                                {% elif type == "Dragon" %}
+                                                <img src="{{ url_for('static', filename='energy/dragon.png') }}" alt="Dragon" class="energy-icon" onerror="this.style.display='none'; this.parentElement.innerHTML += 'R';">
+                                                {% elif type == "Colorless" %}
+                                                <img src="{{ url_for('static', filename='energy/colorless.png') }}" alt="Colorless" class="energy-icon" onerror="this.style.display='none'; this.parentElement.innerHTML += 'C';">
+                                                {% endif %}
+                                            </div>
                                             {% endfor %}
                                         </div>
-                                    {% else %}
-                                        {# Fallback if no cover cards are selected/resolved #}
-                                        <div class="deck-cover-placeholder mb-2 text-center bg-light">
-                                            <i class="bi bi-card-image" style="font-size: 2rem;"></i>
-                                        </div>
-                                    {% endif %}
-                                    
-                                    <h5 class="card-title">{{ deck.name }}</h5>
-                                    <p class="card-text">
-                                        <span class="badge bg-primary">{{ deck.card_count }}/20 cards</span>
-                                        {% if deck.win_rate is not none %}
-                                        <span class="badge bg-success">{{ deck.win_rate }}% win rate</span>
+                                        {% if deck.resolved_cover_cards and deck.resolved_cover_cards|length > 0 %}
+                                            <div class="deck-cover-cards-area {% if deck.resolved_cover_cards|length == 3 %}has-three-cards{% endif %}">
+                                                {% for cover in deck.resolved_cover_cards %}
+                                                    <div class="cover-card-image-wrapper">
+                                                        {% if cover.display_image_path %}
+                                                            <img src="{{ cover.display_image_path }}" alt="{{ cover.name }}" title="{{ cover.name }}">
+                                                        {% endif %}
+                                                    </div>
+                                                {% endfor %}
+                                                {# NEW: DECK NOT USABLE OVERLAY #}
+                                                {% if deck.card_count < 20 %}
+                                                    <div class="deck-not-full-overlay">
+                                                        DECK NOT USABLE
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            <h5 class="card-title">{{ deck.name }}</h5>
                                         {% endif %}
-                                    </p>
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
+                            {% endfor %}
                         </div>
-                        {% endfor %}
+                        {% else %}
+                        <div class="alert alert-info">
+                            <p>You don't have any decks yet. <a href="{{ url_for('decks.list_decks') }}">Create your first deck!</a></p>
+                        </div>
+                        {% endif %}
                     </div>
-                    {% else %}
-                    <div class="alert alert-info">
-                        <p>You don't have any decks yet. <a href="{{ url_for('decks.list_decks') }}">Create your first deck!</a></p>
-                    </div>
-                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
-</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Using event delegation on the body for dynamically handling clicks on dropdown items
     document.body.addEventListener('click', function(event) {
-        
+
         // Handle "Delete" action
         const deleteLink = event.target.closest('.deck-action-delete');
         if (deleteLink) {
@@ -295,23 +388,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const deckId = deleteLink.dataset.deckId;
             const deckName = deleteLink.dataset.deckName;
-            
+
             if (confirm(`Are you sure you want to delete the deck "${deckName}"? This action cannot be undone.`)) {
-                // Construct the delete URL using the Jinja url_for for the base, then append the deckId (filename)
-                // Note: Jinja's url_for runs on the server. We need the base URL.
-                // A common way is to have a data attribute on a static element or use a JavaScript variable.
-                // For simplicity here, if your delete route is always /delete_deck, we can construct it.
-                // However, using url_for output in JS is tricky for dynamic parts.
-                // A safer approach if url_for is complex or might change:
-                // window.location.href = `/delete_deck?filename=${encodeURIComponent(deckId)}`;
-                // Assuming your url_for('decks.delete_deck') resolves to something like '/delete_deck_route_path'
-                // The previous way of replacing was problematic. Let's use a robust way to construct URL.
-                
-                // Create a temporary anchor to resolve the base URL for decks.delete_deck
                 const tempAnchorForDelete = document.createElement('a');
-                tempAnchorForDelete.href = "{{ url_for('decks.delete_deck') }}"; // Gets base path, e.g., /delete_deck_route
-                
-                // Construct the final URL with the query parameter
+                tempAnchorForDelete.href = "{{ url_for('decks.delete_deck') }}";
                 const deleteUrl = `${tempAnchorForDelete.pathname}?filename=${encodeURIComponent(deckId)}`;
                 window.location.href = deleteUrl;
             }
@@ -320,30 +400,20 @@ document.addEventListener('DOMContentLoaded', function() {
         // Handle "Make a copy" action
         const copyLink = event.target.closest('.deck-action-copy');
         if (copyLink) {
-            // The link's href is already set to:
-            // So, if no JavaScript confirmation or special handling is needed *before* navigating,
-            // we can just let the link do its job.
-            // If you want a confirmation for "Make a copy":
-            event.preventDefault(); // Stop the link from navigating immediately
+            event.preventDefault();
             const deckNameForCopy = copyLink.dataset.deckName;
             if (confirm(`Create a copy of "${deckNameForCopy}"? You will be taken to the deck builder to edit the new copy.`)) {
-                window.location.href = copyLink.href; // Proceed with the original link's destination
+                window.location.href = copyLink.href;
             }
         }
 
         // Handle "Load into Battle Simulator" action
         const battleSimLink = event.target.closest('a[href="{{ url_for('battle.battle') }}"]');
-        if (battleSimLink && event.target.closest('.dropdown-menu')) { // Ensure it's from our dropdown
-            // The link's href is "{{ url_for('battle.battle') }}"
-            // For now, this just navigates to the battle simulator page.
-            // No extra JavaScript needed here unless you want to pass data via localStorage, etc.
-            // console.log('Load into Battle Sim clicked for deck (deckId not passed in this version).');
+        if (battleSimLink && event.target.closest('.dropdown-menu')) {
+            // No extra JS needed for direct navigation.
         }
 
     }); // End of document.body event listener
-
-    // The "Edit" link in the dropdown directly goes to its URL,
-    // so no specific JavaScript is needed for it here unless you want to add confirmations.
 });
 </script>
 {% endblock %}
