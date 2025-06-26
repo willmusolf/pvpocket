@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+
+{% block title %}{{ user_info.username }}'s Profile & Settings{% endblock %}
+
+{% block extra_css %}
+<style>
+    .profile-page-card {
+        background-color: var(--card-bg);
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
+        border-radius: .5rem;
+        margin-bottom: 1.5rem;
+        padding: 1.5rem;
+    }
+    [data-theme="dark"] .profile-page-card {}
+    .stat-item { margin-bottom: 0.5rem; }
+    .form-text {
+        font-size: 0.875em;
+        color: var(--text-color-muted, #6c757d);
+    }
+    [data-theme="dark"] .form-text {
+        color: var(--text-color-muted-dark, #adb5bd);
+    }
+    [data-theme="dark"] .text-muted {
+        color: var(--text-color-muted-dark, #adb5bd) !important;
+    }
+    .form-control.is-invalid ~ .invalid-feedback {
+        display: block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+
+            <div class="profile-header text-center mb-4">
+                <h1>{{ user_info.username }}</h1>
+                <p class="lead text-muted">{{ user_info.email }}</p>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="profile-page-card">
+                <h4 class="mb-3">My Stats</h4>
+                <div class="stat-item"><strong>Decks Created:</strong> {{ decks|length }}</div>
+                <div class="stat-item"><strong>Battles Recorded:</strong> {{ battles|length }}</div>
+                <div class="stat-item"><strong>Joined:</strong>
+                    {% if user_info.created_at %}
+                        {{ user_info.created_at.strftime('%Y-%m-%d') }} {# Formats as YYYY-MM-DD #}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="profile-page-card" id="settingsCard"> {# Added ID for scrolling #}
+                <h4 class="mb-3">Settings</h4>
+                <hr class="my-3">
+                <h5 id="changeUsernameAnchor">Change Username</h5> {# Anchor point #}
+                <form method="POST" action="{{ url_for('auth.user_profile_and_settings') }}" id="changeUsernameFormProfile" novalidate>
+                    <div class="mb-3">
+                        <label for="new_username_profile" class="form-label visually-hidden">New Username</label>
+                        <input type="text"
+                               class="form-control {% if username_change_error %}is-invalid{% endif %}"
+                               id="new_username_profile" name="new_username"
+                               value="{{ request.form.get('new_username', '') }}"
+                               required minlength="3" maxlength="20" pattern="^[a-zA-Z0-9_]+$"
+                               autocomplete="off"
+                               aria-describedby="usernameProfileErrorFeedback usernameProfileHelp">
+
+                        <div id="usernameProfileErrorFeedback" class="invalid-feedback" style="display: {% if username_change_error %}block{% else %}none{% endif %};">
+                            {% if username_change_error %}{{ username_change_error }}{% endif %}
+                        </div>
+                        <div id="usernameProfileHelp" class="form-text" style="display: {% if username_change_error %}none{% else %}block{% endif %};">
+                            Must be 3-20 characters. Letters, numbers, and underscores only. No spaces.
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Update Username</button>
+                </form>
+
+                <hr class="my-4">
+                <h5>Appearance</h5>
+                <div class="mb-3">
+                    <label class="form-check-label me-2" for="darkModeToggle">Dark Mode:</label>
+                    <div class="form-check form-switch d-inline-block align-middle">
+                        <input class="form-check-input" type="checkbox" id="darkModeToggle">
+                    </div>
+                </div>
+                <hr class="my-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <a href="{{ url_for('auth.logout') }}" class="btn btn-warning" id="logoutConfirmBtnProfilePage">
+                        <i class="bi bi-box-arrow-right me-1"></i>Log Out
+                    </a>
+                    <button type="button" class="btn btn-danger" id="deleteAccountBtnProfilePage">
+                        Delete My Account
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="deleteAccountFormProfilePage" method="POST" action="{{ url_for('auth.delete_account') }}" style="display: none;">
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const usernameInputProfile = document.getElementById('new_username_profile');
+    const usernameErrorFeedbackProfile = document.getElementById('usernameProfileErrorFeedback');
+    const usernameHelpProfile = document.getElementById('usernameProfileHelp');
+    const changeUsernameFormProfile = document.getElementById('changeUsernameFormProfile');
+    const changeUsernameAnchor = document.getElementById('changeUsernameAnchor'); // For scrolling
+
+    // --- Input Sanitization (prevents typing spaces/invalid chars) ---
+    if (usernameInputProfile) {
+        usernameInputProfile.addEventListener('input', function() {
+            const originalValue = this.value;
+            // Replace any character that is NOT a letter, number, or underscore
+            const sanitizedValue = originalValue.replace(/[^a-zA-Z0-9_]/g, '');
+            if (originalValue !== sanitizedValue) {
+                this.value = sanitizedValue;
+            }
+        });
+    }
+
+    // --- Helper functions for error display ---
+    function displayErrorProfile(message) {
+        if (usernameInputProfile && usernameErrorFeedbackProfile && usernameHelpProfile) {
+            usernameInputProfile.classList.add('is-invalid');
+            usernameErrorFeedbackProfile.textContent = message;
+            usernameErrorFeedbackProfile.style.display = 'block';
+            usernameHelpProfile.style.display = 'none';
+        }
+    }
+
+    function clearErrorProfile() {
+        if (usernameInputProfile && usernameErrorFeedbackProfile && usernameHelpProfile) {
+            usernameInputProfile.classList.remove('is-invalid');
+            usernameErrorFeedbackProfile.textContent = '';
+            usernameErrorFeedbackProfile.style.display = 'none';
+            usernameHelpProfile.style.display = 'block';
+        }
+    }
+
+    // --- Handle Server-Rendered Errors on Page Load & Scroll ---
+    if (usernameErrorFeedbackProfile && usernameInputProfile) {
+        const initialServerErrorMsgText = usernameErrorFeedbackProfile.textContent.trim();
+        if (initialServerErrorMsgText !== '' && usernameErrorFeedbackProfile.style.display === 'block') {
+            // This means Jinja rendered an error. Ensure styles are applied by JS too.
+            usernameInputProfile.classList.add('is-invalid'); // Ensure border is red
+            usernameHelpProfile.style.display = 'none';     // Hide help text
+
+            // Scroll to the form if a server error for username is shown
+            if (changeUsernameAnchor) {
+                changeUsernameAnchor.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        } else {
+            // No server error rendered for this field, ensure clean state
+            usernameErrorFeedbackProfile.style.display = 'none';
+            usernameHelpProfile.style.display = 'block';
+        }
+    }
+
+    // --- Form Submission Client-Side Validation ---
+    if (changeUsernameFormProfile && usernameInputProfile) {
+        const minLengthProfile = parseInt(usernameInputProfile.getAttribute('minlength'), 10);
+        const maxLengthProfile = parseInt(usernameInputProfile.getAttribute('maxlength'), 10);
+        const finalValidationPatternProfile = /^[a-zA-Z0-9_]+$/;
+
+        changeUsernameFormProfile.addEventListener('submit', function(event) {
+            const value = usernameInputProfile.value; // Current value at submit time
+            let clientErrorMessage = '';
+            let isClientValid = true;
+
+            // Perform all client-side checks
+            if (value.length === 0 && usernameInputProfile.hasAttribute('required')) {
+                clientErrorMessage = 'New username cannot be empty.';
+                isClientValid = false;
+            } else if (value.length > 0 && !finalValidationPatternProfile.test(value)) {
+                // This re-checks the pattern; stripping on input is a UX enhancement.
+                clientErrorMessage = 'Can only contain letters, numbers, and underscores (_). No spaces.';
+                isClientValid = false;
+            } else if (value.length > 0 && value.length < minLengthProfile) {
+                clientErrorMessage = `Must be at least ${minLengthProfile} characters long.`;
+                isClientValid = false;
+            } else if (value.length > maxLengthProfile) {
+                clientErrorMessage = `Must be no more than ${maxLengthProfile} characters long.`;
+                isClientValid = false;
+            }
+
+            if (!isClientValid) {
+                event.preventDefault(); // Stop form submission
+                displayErrorProfile(clientErrorMessage);
+                if (changeUsernameAnchor) { // Scroll to form on client error too
+                    changeUsernameAnchor.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            } else {
+                // If client-side is valid, clear any previous *client-side* error visuals.
+                // The form will submit. If the server finds an error (e.g., "username taken"),
+                // the page will reload, and the server-rendered error will be displayed by Jinja
+                // and handled by the DOMContentLoaded logic above.
+                clearErrorProfile();
+            }
+        });
+    }
+
+    // --- Delete Account Confirmation ---
+    const deleteAccountBtnProfilePage = document.getElementById('deleteAccountBtnProfilePage');
+    const deleteAccountFormProfilePage = document.getElementById('deleteAccountFormProfilePage');
+    if (deleteAccountBtnProfilePage && deleteAccountFormProfilePage) {
+        deleteAccountBtnProfilePage.addEventListener('click', function() {
+            const firstConfirm = window.confirm("Are you absolutely sure you want to delete your account?\nThis action is permanent and cannot be undone.\nAll your decks, stats, and user data will be erased.");
+            if (firstConfirm) {
+                const secondConfirm = window.confirm("LAST WARNING: This will permanently delete your account and all associated data. There is NO recovery. Proceed?");
+                if (secondConfirm) {
+                    deleteAccountFormProfilePage.submit();
+                }
+            }
+        });
+    }
+
+    // --- Dark Mode Toggle ---
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    if (darkModeToggle) {
+        const currentTheme = localStorage.getItem('theme');
+        if (currentTheme === 'dark') {
+            darkModeToggle.checked = true;
+        }
+        darkModeToggle.addEventListener('change', function() {
+            if (this.checked) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+                localStorage.setItem('theme', 'light');
+            }
+        });
+    }
+
+    // --- Logout Confirmation ---
+    const logoutConfirmBtnProfilePage = document.getElementById('logoutConfirmBtnProfilePage');
+    if (logoutConfirmBtnProfilePage) {
+        logoutConfirmBtnProfilePage.addEventListener('click', function(event) {
+            const userConfirmedLogout = window.confirm("Are you sure you want to log out?");
+            if (!userConfirmedLogout) {
+                event.preventDefault();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

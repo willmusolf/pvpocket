@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Login or Sign Up - Pokémon TCG Pocket{% endblock %}
+
+{% block content %}
+<div class="container py-5 login-prompt-page-container">
+    <div class="card login-card">
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0">Access Your Account</h3>
+        </div>
+        <div class="card-body text-center">
+            <p>Please sign in with your Google account to continue.</p>
+            <p>
+                {% set next_url = request.args.get('next') %}
+                <a href="{{ url_for('google.login', next=next_url) }}" class="btn btn-danger btn-lg">
+                    <i class="fab fa-google"></i> Sign in with Google
+                </a>
+            </p>
+            <hr>
+            <p class="text-muted small">
+                By signing in, you agree to our terms of service and privacy policy.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* --- General Styling --- */
+    .btn-danger {
+        background-color: #DB4437;
+        border-color: #DB4437;
+    }
+
+    .btn-danger:hover {
+        background-color: #C33D2E;
+        border-color: #B03226;
+    }
+
+    .fa-google {
+        margin-right: 0.5em;
+    }
+
+    /* --- Simplified & Smooth Resizing Logic --- */
+
+    /* 1. The container now just provides padding on the sides */
+    .login-prompt-page-container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    /* 2. The card itself handles its own width and centering */
+    .login-card {
+        width: 100%;          /* Occupy the full available width */
+        max-width: 500px;     /* But don't get bigger than this */
+        margin-left: auto;    /* These two lines center the card horizontally */
+        margin-right: auto;
+        transition: all 0.2s ease-in-out; /* Optional: Smooths other potential changes */
+    }
+
+    /* Dark mode text visibility fixes */
+    @media (prefers-color-scheme: dark) {
+        /* Login prompt terms text */
+        .text-muted {
+            color: #adb5bd !important;
+        }
+        
+        /* General body text */
+        body {
+            color: #e9ecef;
+        }
+        
+        /* Card body text */
+        .card-body p {
+            color: #e9ecef;
+        }
+        
+        /* Ensure all text is visible in dark mode */
+        .card-body {
+            color: #e9ecef;
+        }
+    }
+</style>
+{% endblock %}
