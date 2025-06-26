@@ -635,9 +635,6 @@ def get_drive_service():
     return build("drive", "v3", credentials=creds)
 
 
-# In scraper.py, replace the entire run_high_res_image_migration function with this final, definitive version.
-
-
 def run_high_res_image_migration(db_client, bucket_client):
     """
     Scrapes high-resolution images from Google Drive and uploads them to a
@@ -652,6 +649,12 @@ def run_high_res_image_migration(db_client, bucket_client):
     if not set_code_to_folder_map:
         print("❌ Image Scrape Aborted: Could not generate the set map from Firestore.")
         return
+
+    # --- START: MANUAL PATCH FOR PROMO SET ---
+    # This manually adds the mapping for your "Promo A" folder.
+    print("  -> Applying manual patch for 'Promo A' set...")
+    set_code_to_folder_map["P-A"] = "promo-a"
+    # --- END: MANUAL PATCH FOR PROMO SET ---
 
     try:
         drive_service = get_drive_service()
@@ -678,6 +681,7 @@ def run_high_res_image_migration(db_client, bucket_client):
             )
             print(f"\nProcessing Drive folder: '{drive_folder_name}'...")
 
+            # The folder name is lowercased and hyphenated for matching
             firebase_folder_name_to_find = drive_folder_name.lower().replace(" ", "-")
             corresponding_set_code = next(
                 (
@@ -725,8 +729,13 @@ def run_high_res_image_migration(db_client, bucket_client):
                 f"  -> Found {len(files_in_drive_folder)} files in Drive. Checking against {len(blobs_in_set)} in Storage."
             )
 
+            # This regex now works for 'P-A' -> 'p-a-1.png'
+            filename_prefix_to_match = corresponding_set_code.lower()
+            if corresponding_set_code == "P-A":
+                filename_prefix_to_match = "promo-a"
+
             dynamic_filename_regex = re.compile(
-                f"^{re.escape(corresponding_set_code.lower())}-(\\d+)\\..+",
+                f"^{re.escape(filename_prefix_to_match)}-(\\d+)\\..+",
                 re.IGNORECASE,
             )
 
