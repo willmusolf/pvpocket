@@ -5,6 +5,11 @@ import re
 import os
 from urllib.parse import urlparse
 from typing import Optional, List, Dict, Any
+from dotenv import load_dotenv
+load_dotenv()
+
+import firebase_admin
+from firebase_admin import credentials, firestore, storage
 
 import firebase_admin
 from firebase_admin import credentials, firestore, storage
@@ -25,7 +30,6 @@ GOOGLE_DRIVE_FOLDER_ID = "1-JIeAcBXoRn1r_SFgoqO8ZG2KPp2ss9U"
 GDRIVE_CREDENTIALS_PATH = "credentials.json"
 STORAGE_BASE_PATH = "high_res_cards"
 
-FIREBASE_ADMIN_SDK_JSON_PATH = os.environ.get("FIREBASE_ADMIN_SDK_JSON_PATH")
 FIREBASE_STORAGE_BUCKET = "pvpocket-dd286.firebasestorage.app"
 
 SCRAPE_ONLY_NEW_CARDS = True
@@ -865,15 +869,4 @@ def main():
 
 
 if __name__ == "__main__":
-    from dotenv import load_dotenv
-
-    load_dotenv()
-    if not os.path.exists(FIREBASE_ADMIN_SDK_JSON_PATH):
-        print(
-            f"CRITICAL ERROR: Firebase Admin SDK JSON key file not found at {FIREBASE_ADMIN_SDK_JSON_PATH}"
-        )
-        print(
-            "Please set the FIREBASE_ADMIN_SDK_JSON_PATH environment variable or update the script."
-        )
-        exit()
     main()
