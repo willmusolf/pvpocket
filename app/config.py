@@ -8,6 +8,9 @@ class Config:
     GOOGLE_OAUTH_CLIENT_ID = os.environ.get("GOOGLE_OAUTH_CLIENT_ID")
     GOOGLE_OAUTH_CLIENT_SECRET = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET")
 
+    GCP_PROJECT_ID = os.environ.get("GCP_PROJECT_ID")
+    FIREBASE_SECRET_NAME = os.environ.get("FIREBASE_SECRET_NAME")
+
     PERMANENT_SESSION_LIFETIME = timedelta(days=7)
 
     BASE_DIR = os.path.abspath(os.path.dirname(__file__))

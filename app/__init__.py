@@ -8,6 +8,9 @@ import time
 from datetime import datetime
 import secrets
 import threading
+import json
+from google.cloud import secretmanager
+from google.api_core.exceptions import NotFound, PermissionDenied
 
 from flask_login import (
     current_user,
@@ -92,28 +95,53 @@ def create_app(config_name="default"):
 
     profanity.load_censor_words()
 
-    try:
-        cred_path = os.environ.get("FIREBASE_ADMIN_SDK_JSON_PATH")
-        if cred_path and os.path.exists(cred_path):
-            if not firebase_admin._apps:
+    if not firebase_admin._apps:
+        try:
+            # Production/Staging Logic: Fetch credentials from Secret Manager
+            project_id = app.config.get("GCP_PROJECT_ID")
+            secret_name = app.config.get("FIREBASE_SECRET_NAME")
+
+            if project_id and secret_name:
                 print(
-                    "Initializing Firebase Admin SDK with local key file.", flush=True
+                    "Attempting to initialize Firebase from Google Secret Manager...",
+                    flush=True,
                 )
-                cred = credentials.Certificate(cred_path)
+                client = secretmanager.SecretManagerServiceClient()
+                name = f"projects/{project_id}/secrets/{secret_name}/versions/latest"
+                response = client.access_secret_version(request={"name": name})
+
+                secret_payload = response.payload.data.decode("UTF-8")
+                cred_dict = json.loads(secret_payload)
+                cred = credentials.Certificate(cred_dict)
                 firebase_admin.initialize_app(cred)
-        else:
-            if not firebase_admin._apps:
                 print(
-                    "Local key file not found. Attempting to initialize Firebase with Application Default Credentials.",
+                    "Firebase initialized successfully from Secret Manager.", flush=True
+                )
+            else:
+                print(
+                    "Secret Manager config not found. Falling back to Application Default Credentials.",
                     flush=True,
                 )
                 firebase_admin.initialize_app()
-        app.config["FIRESTORE_DB"] = firestore.client()
-        print("Firebase Admin SDK initialized successfully.", flush=True)
+                print(
+                    "Firebase initialized successfully with Application Default Credentials.",
+                    flush=True,
+                )
 
-    except Exception as e:
-        print(f"ERROR: Failed to initialize Firebase Admin SDK: {e}", flush=True)
-        app.config["FIRESTORE_DB"] = None
+        except (NotFound, PermissionDenied):
+            print(
+                "ERROR: Could not access secret in Secret Manager. Check name and permissions.",
+                flush=True,
+            )
+            print("Falling back to Application Default Credentials.", flush=True)
+            firebase_admin.initialize_app()
+        except Exception as e:
+            print(
+                f"CRITICAL ERROR: Failed to initialize Firebase Admin SDK: {e}",
+                flush=True,
+            )
+
+    app.config["FIRESTORE_DB"] = firestore.client()
 
     login_manager.init_app(app)
 

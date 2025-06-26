@@ -1,7 +1,8 @@
 import os
-from app import create_app
 from dotenv import load_dotenv
+
 load_dotenv()
+from app import create_app
 
 config_name = os.getenv("FLASK_CONFIG") or "development"
 print(f"Starting app with configuration: {config_name}")

@@ -16,6 +16,10 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 
+import json
+from google.cloud import secretmanager
+from google.api_core.exceptions import NotFound, PermissionDenied
+
 
 GOOGLE_DRIVE_FOLDER_ID = "1-JIeAcBXoRn1r_SFgoqO8ZG2KPp2ss9U"
 GDRIVE_CREDENTIALS_PATH = "credentials.json"
@@ -28,19 +32,52 @@ SCRAPE_ONLY_NEW_CARDS = True
 
 current_global_card_id_counter = 0
 
-try:
-    cred = credentials.Certificate(FIREBASE_ADMIN_SDK_JSON_PATH)
-    if not firebase_admin._apps:
-        firebase_admin.initialize_app(cred, {"storageBucket": FIREBASE_STORAGE_BUCKET})
-    print("Firebase Admin SDK initialized for scraper.")
-except Exception as e:
-    print(f"CRITICAL Error initializing Firebase Admin SDK for scraper: {e}")
-    print("Ensure FIREBASE_ADMIN_SDK_JSON_PATH is correct and the file is accessible.")
-    print(f"Attempted path: {FIREBASE_ADMIN_SDK_JSON_PATH}")
-    exit()
+if not firebase_admin._apps:
+    try:
+        project_id = os.environ.get("GCP_PROJECT_ID")
+        secret_name = os.environ.get("FIREBASE_SECRET_NAME")
+
+        if project_id and secret_name:
+            print(
+                "Scraper: Initializing Firebase from Google Secret Manager...",
+                flush=True,
+            )
+            client = secretmanager.SecretManagerServiceClient()
+            name = f"projects/{project_id}/secrets/{secret_name}/versions/latest"
+            response = client.access_secret_version(request={"name": name})
+
+            secret_payload = response.payload.data.decode("UTF-8")
+            cred_dict = json.loads(secret_payload)
+            cred = credentials.Certificate(cred_dict)
+            firebase_admin.initialize_app(
+                cred, {"storageBucket": FIREBASE_STORAGE_BUCKET}
+            )
+            print(
+                "Scraper: Firebase initialized successfully from Secret Manager.",
+                flush=True,
+            )
+        else:
+            print(
+                "Scraper: Secret Manager config not found. Falling back to Application Default Credentials.",
+                flush=True,
+            )
+            firebase_admin.initialize_app(
+                options={"storageBucket": FIREBASE_STORAGE_BUCKET}
+            )
+            print(
+                "Scraper: Firebase initialized successfully with Application Default Credentials.",
+                flush=True,
+            )
+
+    except Exception as e:
+        print(
+            f"CRITICAL ERROR: Failed to initialize Firebase Admin SDK for scraper: {e}",
+            flush=True,
+        )
+        exit()
 
 db_firestore = firestore.client()
-bucket_storage = storage.bucket(FIREBASE_STORAGE_BUCKET)
+bucket_storage = storage.bucket()
 
 
 def sanitize_for_firestore_id(text: str) -> str:
