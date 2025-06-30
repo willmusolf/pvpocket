@@ -279,4 +279,15 @@ def create_app(config_name="default"):
 
     app.before_request(check_username_requirement)
 
+    @app.after_request
+    def add_cache_control_headers(response):
+        """
+        Ensures that browser responses are not cached, so users always
+        get the most up-to-date version of the page.
+        """
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        return response
+
     return app

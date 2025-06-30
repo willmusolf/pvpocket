@@ -1,3 +1,17 @@
+{% macro account_dropdown_items(current_path) %}
+    {# This macro generates the account dropdown list items. #}
+    {# It's defined once and used in two places to prevent inconsistencies. #}
+    {% if session.get('user_id') is not none %}
+        <li><h6 class="dropdown-header">{{ session.get('username', '') }}</h6></li>
+        <li><a class="dropdown-item" href="{{ url_for('auth.user_profile_and_settings') }}">Profile/Settings</a></li>
+        <li><hr class="dropdown-divider"></li>
+        {# ADDITION: Use a class here for the logout script to find #}
+        <li><a class="dropdown-item user-logout-link" href="{{ url_for('auth.logout') }}">Logout</a></li>
+    {% else %}
+        <li><a class="dropdown-item" href="{{ url_for('auth.login_prompt_page', next=current_path) }}">Log In / Sign Up</a></li>
+    {% endif %}
+{% endmacro %}
+
 <nav class="navbar navbar-expand-md p-4 border-bottom" id="mainNavbar">
     <div class="container-fluid">
         <a class="navbar-brand" href="{{ url_for('main.index') }}">PvPocket</a>
@@ -9,14 +23,8 @@
                     <i class="fas fa-user-circle"></i>
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarUserDropdownMobile">
-                    {% if session.get('user_id') is not none %}
-                    <li><h6 class="dropdown-header">{{ session.get('username', '') }}</h6></li>
-                    <li><a class="dropdown-item" href="{{ url_for('auth.user_profile_and_settings') }}">Profile/Settings</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" id="user-logout-link-mobile" href="{{ url_for('auth.logout') }}">Logout</a></li>
-                    {% else %}
-                    <li><a class="dropdown-item" href="{{ url_for('auth.login_prompt_page', next=request.full_path) }}">Log In / Sign Up</a></li>
-                    {% endif %}
+                    {# CHANGE: Call the macro to generate the items #}
+                    {{ account_dropdown_items(request.full_path) }}
                 </ul>
             </div>
 
@@ -47,14 +55,8 @@
                         <i class="fas fa-user-circle"></i>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                        {% if session.get('user_id') is not none %}
-                        <li><h6 class="dropdown-header">{{ session.get('username', '') }}</h6></li>
-                        <li><a class="dropdown-item" href="{{ url_for('auth.user_profile_and_settings') }}">Profile/Settings</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" id="user-logout-link" href="{{ url_for('auth.logout') }}">Logout</a></li>
-                        {% else %}
-                        <li><a class="dropdown-item" href="{{ url_for('auth.login_prompt_page', next=request.full_path) }}">Log In / Sign Up</a></li>
-                        {% endif %}
+                        {# CHANGE: Call the same macro here #}
+                        {{ account_dropdown_items(request.full_path) }}
                     </ul>
                 </li>
             </ul>

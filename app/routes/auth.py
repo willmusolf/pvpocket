@@ -555,17 +555,25 @@ def user_profile_and_settings():
                 }
                 user_doc_ref.update(update_data)
 
-                # Update session and current_user proxy object for immediate reflection
-                session["username"] = new_username_form
-                if hasattr(flask_login_current_user, "username"):
-                    flask_login_current_user.username = new_username_form
-                if hasattr(
-                    flask_login_current_user, "data"
-                ):  # Make sure to update the 'data' proxy too
-                    flask_login_current_user.data["username"] = new_username_form
-                    flask_login_current_user.data["username_lowercase"] = (
-                        new_username_form.lower()
+                fresh_user_snapshot = user_doc_ref.get()
+                if fresh_user_snapshot.exists:
+                    fresh_user_data = fresh_user_snapshot.to_dict()
+                    updated_user_object = User(
+                        user_id=user_id_str, data=fresh_user_data
                     )
+                    login_user(updated_user_object, remember=True)
+                    # Explicitly update our custom session variable after the re-login
+                    session["username"] = new_username_form
+                else:
+                    # This is an edge case, but good to handle. If the user doc was
+                    # deleted mid-operation, log them out.
+                    logout_user()
+                    session.clear()
+                    flash(
+                        "Could not find your user account after update. You have been logged out.",
+                        "error",
+                    )
+                    return redirect(url_for("auth.login_prompt_page"))
 
                 session["display_toast_once"] = {
                     "message": f"Username successfully changed to '{new_username_form}'.",

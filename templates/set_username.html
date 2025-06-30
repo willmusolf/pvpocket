@@ -24,7 +24,7 @@
                                     value="{{ current_username_value or '' }}"
                                     required
                                     minlength="3"
-                                    maxlength="20"
+                                    maxlength="12"
                                     pattern="^[a-zA-Z0-9_]+$"
                                     autocomplete="off"
                                     autofocus
@@ -37,7 +37,7 @@
                             </div>
 
                             <div id="usernameHelp" class="form-text" style="display: {% if username_error %}none{% else %}block{% endif %};">
-                                Must be 3-20 characters long. Can only contain letters, numbers, and underscores. No spaces.
+                                Must be 3-12 characters long. Can only contain letters, numbers, and underscores. No spaces.
                             </div>
                         </div>
                         <button type="submit" class="btn btn-primary w-100" id="submitBtn">Set Username and Continue</button>

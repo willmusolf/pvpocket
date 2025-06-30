@@ -75,7 +75,7 @@
                                class="form-control {% if username_change_error %}is-invalid{% endif %}"
                                id="new_username_profile" name="new_username"
                                value="{{ request.form.get('new_username', '') }}"
-                               required minlength="3" maxlength="20" pattern="^[a-zA-Z0-9_]+$"
+                               required minlength="3" maxlength="12" pattern="^[a-zA-Z0-9_]+$"
                                autocomplete="off"
                                aria-describedby="usernameProfileErrorFeedback usernameProfileHelp">
 
@@ -83,7 +83,7 @@
                             {% if username_change_error %}{{ username_change_error }}{% endif %}
                         </div>
                         <div id="usernameProfileHelp" class="form-text" style="display: {% if username_change_error %}none{% else %}block{% endif %};">
-                            Must be 3-20 characters. Letters, numbers, and underscores only. No spaces.
+                            Must be 3-12 characters. Letters, numbers, and underscores only. No spaces.
                         </div>
                     </div>
                     <button type="submit" class="btn btn-primary">Update Username</button>
