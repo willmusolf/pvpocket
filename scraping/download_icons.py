@@ -16,8 +16,6 @@ WEBPAGE_URL = (
     "https://thedigitalcrowns.com/all-icons-and-how-to-get-them-pokemon-tcg-pocket/"
 )
 
-# Your Firebase Storage Bucket Name
-# As inferred from your previous Flask app config (e.g., pvpocket-dd286.appspot.com)
 FIREBASE_STORAGE_BUCKET_NAME = "pvpocket-dd286.firebasestorage.app"
 
 # The folder within your Firebase Storage bucket where icons will be uploaded

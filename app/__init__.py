@@ -1,7 +1,7 @@
 from flask import Flask, session, current_app, request, jsonify, g
 from .config import config
 import firebase_admin
-from firebase_admin import credentials, firestore
+from firebase_admin import credentials, firestore, storage
 import os
 import pickle
 import time
@@ -90,63 +90,90 @@ def create_app(config_name="default"):
         raise ValueError(
             "FATAL ERROR: SECRET_KEY is not set. Please set it in your .env file."
         )
-    else:
-        print("SECRET_KEY loaded successfully from environment.", flush=True)
 
     profanity.load_censor_words()
 
     if not firebase_admin._apps:
         try:
+            bucket_name = "pvpocket-dd286.firebasestorage.app"
+
             project_id = app.config.get("GCP_PROJECT_ID")
             secret_name = app.config.get("FIREBASE_SECRET_NAME")
 
             if project_id and secret_name:
-                print(
-                    "Attempting to initialize Firebase from Google Secret Manager...",
-                    flush=True,
-                )
                 client = secretmanager.SecretManagerServiceClient()
                 name = f"projects/{project_id}/secrets/{secret_name}/versions/latest"
                 response = client.access_secret_version(request={"name": name})
-
                 secret_payload = response.payload.data.decode("UTF-8")
                 cred_dict = json.loads(secret_payload)
                 cred = credentials.Certificate(cred_dict)
-                firebase_admin.initialize_app(cred)
-                print(
-                    "Firebase initialized successfully from Secret Manager.", flush=True
-                )
+                firebase_admin.initialize_app(cred, {"storageBucket": bucket_name})
             else:
-                print(
-                    "Secret Manager config not found. Falling back to Application Default Credentials.",
-                    flush=True,
-                )
-                firebase_admin.initialize_app()
-                print(
-                    "Firebase initialized successfully with Application Default Credentials.",
-                    flush=True,
-                )
-
-        except (NotFound, PermissionDenied):
-            print(
-                "ERROR: Could not access secret in Secret Manager. Check name and permissions.",
-                flush=True,
-            )
-            print("Falling back to Application Default Credentials.", flush=True)
-            firebase_admin.initialize_app()
+                firebase_admin.initialize_app(options={"storageBucket": bucket_name})
         except Exception as e:
             print(
                 f"CRITICAL ERROR: Failed to initialize Firebase Admin SDK: {e}",
                 flush=True,
             )
+            firebase_admin.initialize_app()
 
     app.config["FIRESTORE_DB"] = firestore.client()
-
     login_manager.init_app(app)
 
+    print("\n--- ENTERING PROFILE ICON LOADING BLOCK ---\n", flush=True)
+    try:
+        bucket = storage.bucket()
+        print("--- Successfully accessed storage bucket.", flush=True)
+
+        blobs = list(bucket.list_blobs(prefix="profile_icons/"))
+        print(
+            f"--- Found {len(blobs)} total items (blobs) in the profile_icons/ path.",
+            flush=True,
+        )
+
+        icon_filenames = [
+            blob.name.split("/")[-1]
+            for blob in blobs
+            if blob.name.split("/")[-1] and not blob.name.endswith("/")
+        ]
+        print(
+            f"--- Filtered down to {len(icon_filenames)} actual icon filenames.",
+            flush=True,
+        )
+
+        # The default icon is now "default.png"
+        DEFAULT_PROFILE_ICON = "default.png"
+        if DEFAULT_PROFILE_ICON in icon_filenames:
+            icon_filenames.remove(DEFAULT_PROFILE_ICON)
+
+        base_url = "https://firebasestorage.googleapis.com/v0/b/pvpocket-dd286.firebasestorage.app/o/profile_icons%2F"
+        media_suffix = "?alt=media"
+
+        all_icon_urls = {
+            icon: f"{base_url}{icon}{media_suffix}"
+            for icon in icon_filenames + [DEFAULT_PROFILE_ICON]
+        }
+
+        app.config["PROFILE_ICON_FILENAMES"] = sorted(icon_filenames)
+        app.config["PROFILE_ICON_URLS"] = all_icon_urls
+        app.config["DEFAULT_PROFILE_ICON_URL"] = all_icon_urls.get(
+            DEFAULT_PROFILE_ICON, ""
+        )
+
+        print(
+            f"--- PROFILE ICON LOADING COMPLETE. {len(app.config['PROFILE_ICON_FILENAMES'])} icons are configured. ---\n",
+            flush=True,
+        )
+
+    except Exception as e:
+        print(f"\n--- CRITICAL ERROR in profile icon loading: {e} ---\n", flush=True)
+        app.config["PROFILE_ICON_FILENAMES"] = []
+        app.config["PROFILE_ICON_URLS"] = {}
+        app.config["DEFAULT_PROFILE_ICON_URL"] = ""
+
+    # ... (The rest of the function is unchanged)
     card_collection = None
     db_client = app.config.get("FIRESTORE_DB")
-
     try:
         cache_is_valid = False
         if os.path.exists(CARD_CACHE_PATH):
@@ -154,39 +181,20 @@ def create_app(config_name="default"):
             if (time.time() - file_mod_time) < CACHE_DURATION_SECONDS:
                 with open(CARD_CACHE_PATH, "rb") as f:
                     card_collection = pickle.load(f)
-                print(
-                    f"Loaded {len(card_collection)} cards from local cache file.",
-                    flush=True,
-                )
                 cache_is_valid = True
-
         if not cache_is_valid and db_client:
-            print(
-                "Local cache missing or expired. Loading card collection from Firestore...",
-                flush=True,
-            )
             card_collection = CardCollection()
             card_collection.load_from_firestore(db_client)
-            print(
-                f"Loaded {len(card_collection)} cards from Firestore. Saving to cache.",
-                flush=True,
-            )
             with open(CARD_CACHE_PATH, "wb") as f:
                 pickle.dump(card_collection, f)
         elif not card_collection:
-            print(
-                "WARNING: Firestore client not available and no local cache. Card collection will be empty.",
-                flush=True,
-            )
             card_collection = CardCollection()
-
     except Exception as e:
         print(f"CRITICAL: Error loading card collection: {e}", flush=True)
         card_collection = CardCollection()
 
     app.config["card_collection"] = card_collection
 
-    google_bp = None
     if app.config.get("GOOGLE_OAUTH_CLIENT_ID") and app.config.get(
         "GOOGLE_OAUTH_CLIENT_SECRET"
     ):
@@ -200,17 +208,7 @@ def create_app(config_name="default"):
             ],
         )
         app.register_blueprint(google_bp, url_prefix="/login")
-        from .routes.auth import google_authorized as google_auth_handler_function
-
         oauth_authorized.connect(google_auth_handler_function, sender=google_bp)
-        print(
-            f"Signal oauth_authorized connected for sender '{google_bp.name}'.",
-            flush=True,
-        )
-    else:
-        print(
-            "WARNING: Google OAuth credentials not configured. Google Sign-In disabled."
-        )
 
     app.config["ENERGY_ICON_URLS"] = {
         "Grass": "https://firebasestorage.googleapis.com/v0/b/pvpocket-dd286.firebasestorage.app/o/energy_icons%2Fgrass.png?alt=media&token=4d91420b-c0f1-47e6-9d4b-c9599f9a4d34",
@@ -225,46 +223,15 @@ def create_app(config_name="default"):
         "Colorless": "https://firebasestorage.googleapis.com/v0/b/pvpocket-dd286.firebasestorage.app/o/energy_icons%2Fcolorless.png?alt=media&token=ffbd920d-85e9-4a92-b9a3-54494ff69060",
     }
 
-    PROFILE_ICONS = [
-        "_1.png",
-        "_2.png",
-        "_3.png",
-        "_4.png",
-        "_5.png",
-        "_6.png",
-        "_7.png",
-        "_8.png",
-        "_9.png",
-        "_10.png",
-        "_11.png",
-        "_12.png",
-    ]
-    DEFAULT_PROFILE_ICON = "_default.png"
-
-    base_url = "https://firebasestorage.googleapis.com/v0/b/pvpocket-dd286.appspot.com/o/profile_icons%2F"
-    media_suffix = "?alt=media"
-
-    app.config["PROFILE_ICON_URLS"] = {
-        icon: f"{base_url}{icon}{media_suffix}" for icon in PROFILE_ICONS
-    }
-    app.config["DEFAULT_PROFILE_ICON_URL"] = (
-        f"{base_url}{DEFAULT_PROFILE_ICON}{media_suffix}"
-    )
-    app.config["PROFILE_ICON_FILENAMES"] = PROFILE_ICONS
-
     @app.context_processor
     def inject_user_profile_icon():
         if current_user.is_authenticated:
             user_data = getattr(current_user, "data", {})
             icon_filename = user_data.get("profile_icon")
-
             icon_urls = current_app.config.get("PROFILE_ICON_URLS", {})
             default_url = current_app.config.get("DEFAULT_PROFILE_ICON_URL", "")
-
             profile_icon_url = icon_urls.get(icon_filename, default_url)
-
             return dict(current_user_profile_icon_url=profile_icon_url)
-
         return dict(
             current_user_profile_icon_url=current_app.config.get(
                 "DEFAULT_PROFILE_ICON_URL", ""
@@ -276,18 +243,12 @@ def create_app(config_name="default"):
         provided_key = request.headers.get("X-Refresh-Key")
         if not provided_key or provided_key != current_app.config["REFRESH_SECRET_KEY"]:
             return jsonify({"error": "Unauthorized"}), 401
-
         if cache_lock.acquire(blocking=False):
             try:
-                print(
-                    "Refresh request received. Forcing reload from Firestore...",
-                    flush=True,
-                )
                 new_collection = _load_cards_from_firestore_and_cache()
                 if new_collection:
                     current_app.config["card_collection"] = new_collection
                     message = f"Successfully reloaded {len(new_collection)} cards."
-                    print(message, flush=True)
                     return jsonify({"status": "success", "message": message}), 200
                 else:
                     return (
