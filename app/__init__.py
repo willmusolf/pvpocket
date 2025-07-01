@@ -1,4 +1,4 @@
-from flask import Flask, session, current_app, request, jsonify
+from flask import Flask, session, current_app, request, jsonify, g
 from .config import config
 import firebase_admin
 from firebase_admin import credentials, firestore
@@ -97,7 +97,6 @@ def create_app(config_name="default"):
 
     if not firebase_admin._apps:
         try:
-            # Production/Staging Logic: Fetch credentials from Secret Manager
             project_id = app.config.get("GCP_PROJECT_ID")
             secret_name = app.config.get("FIREBASE_SECRET_NAME")
 
@@ -145,7 +144,6 @@ def create_app(config_name="default"):
 
     login_manager.init_app(app)
 
-    # --- Cached Card Collection Loading Logic ---
     card_collection = None
     db_client = app.config.get("FIRESTORE_DB")
 
@@ -227,14 +225,58 @@ def create_app(config_name="default"):
         "Colorless": "https://firebasestorage.googleapis.com/v0/b/pvpocket-dd286.firebasestorage.app/o/energy_icons%2Fcolorless.png?alt=media&token=ffbd920d-85e9-4a92-b9a3-54494ff69060",
     }
 
+    PROFILE_ICONS = [
+        "_1.png",
+        "_2.png",
+        "_3.png",
+        "_4.png",
+        "_5.png",
+        "_6.png",
+        "_7.png",
+        "_8.png",
+        "_9.png",
+        "_10.png",
+        "_11.png",
+        "_12.png",
+    ]
+    DEFAULT_PROFILE_ICON = "_default.png"
+
+    base_url = "https://firebasestorage.googleapis.com/v0/b/pvpocket-dd286.appspot.com/o/profile_icons%2F"
+    media_suffix = "?alt=media"
+
+    app.config["PROFILE_ICON_URLS"] = {
+        icon: f"{base_url}{icon}{media_suffix}" for icon in PROFILE_ICONS
+    }
+    app.config["DEFAULT_PROFILE_ICON_URL"] = (
+        f"{base_url}{DEFAULT_PROFILE_ICON}{media_suffix}"
+    )
+    app.config["PROFILE_ICON_FILENAMES"] = PROFILE_ICONS
+
+    @app.context_processor
+    def inject_user_profile_icon():
+        if current_user.is_authenticated:
+            user_data = getattr(current_user, "data", {})
+            icon_filename = user_data.get("profile_icon")
+
+            icon_urls = current_app.config.get("PROFILE_ICON_URLS", {})
+            default_url = current_app.config.get("DEFAULT_PROFILE_ICON_URL", "")
+
+            profile_icon_url = icon_urls.get(icon_filename, default_url)
+
+            return dict(current_user_profile_icon_url=profile_icon_url)
+
+        return dict(
+            current_user_profile_icon_url=current_app.config.get(
+                "DEFAULT_PROFILE_ICON_URL", ""
+            )
+        )
+
     @app.route("/api/refresh-cards", methods=["POST"])
     def refresh_cards_cache():
-        # 1. Security Check
         provided_key = request.headers.get("X-Refresh-Key")
         if not provided_key or provided_key != current_app.config["REFRESH_SECRET_KEY"]:
             return jsonify({"error": "Unauthorized"}), 401
 
-        # 2. Acquire Lock and Refresh
         if cache_lock.acquire(blocking=False):
             try:
                 print(
@@ -281,10 +323,6 @@ def create_app(config_name="default"):
 
     @app.after_request
     def add_cache_control_headers(response):
-        """
-        Ensures that browser responses are not cached, so users always
-        get the most up-to-date version of the page.
-        """
         response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"

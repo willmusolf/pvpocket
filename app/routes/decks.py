@@ -228,9 +228,8 @@ def get_all_cards():
         return jsonify({"error": "Failed to process card data.", "success": False}), 500
 
 
-@decks_bp.route(
-    "/api/decks/<string:deck_id>", methods=["GET"]
-)  # Changed 'filename' to 'deck_id'
+@decks_bp.route("/api/decks/<string:deck_id>", methods=["GET"])
+@login_required
 def get_deck(deck_id: str):  # Changed 'filename' to 'deck_id'
     """API endpoint to get a specific deck by its Firestore ID."""
     db = get_db()  # Use your helper to get the Firestore client
@@ -251,6 +250,23 @@ def get_deck(deck_id: str):  # Changed 'filename' to 'deck_id'
 
         if not deck_doc.exists:
             return jsonify({"success": False, "error": "Deck not found"}), 404
+        
+        deck_data = deck_doc.to_dict()
+        current_user_id = str(flask_login_current_user.id)
+        
+        is_owner = deck_data.get("owner_id") == current_user_id
+        is_public = deck_data.get("is_public", False) is True
+
+        if not (is_owner or is_public):
+            current_app.logger.warning(
+                f"User {current_user_id} attempt to access private deck {deck_id} owned by {deck_data.get('owner_id')}."
+            )
+            return (
+                jsonify(
+                    {"success": False, "error": "You do not have permission to view this deck."}
+                ),
+                403, 
+            )
 
         # Use the new method from your Deck class to load from a Firestore document
         deck_obj = Deck.from_firestore_doc(deck_doc, card_collection)

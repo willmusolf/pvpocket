@@ -176,15 +176,17 @@ def google_authorized(blueprint, token):
         resp.raise_for_status()  # Raises an exception for bad status codes (4xx or 5xx)
         google_user_info = resp.json()
     except Exception as e:
-        msg = f"Failed to fetch user info from Google. Error: {str(e)}"
+        msg = "Failed to fetch user info from Google. See logs for detailed error."
         session["display_toast_once"] = {"message": msg, "type": "error"}
         print(f"[AUTH_FIRESTORE] {msg}", flush=True)
         return redirect(url_for("main.index"))  # Or auth.login_prompt_page
 
-    print(f"[AUTH_FIRESTORE] Google user info fetched: {google_user_info}", flush=True)
-
     google_id = str(google_user_info.get("sub"))
     email = google_user_info.get("email")
+    print(
+        f"[AUTH_FIRESTORE] User info fetched for Google ID: {google_id}, Email presence: {email is not None}",
+        flush=True,
+    )
 
     if not email:
         session["display_toast_once"] = {
@@ -255,7 +257,8 @@ def google_authorized(blueprint, token):
             "username_lowercase": "",  # For case-insensitive unique checks
             "created_at": firestore.SERVER_TIMESTAMP,  # Use Firestore server-side timestamp
             "deck_ids": [],  # Initialize as empty array for deck IDs
-            "username_set": False,  # Flag to indicate username needs to be set
+            "username_set": False,
+            "profile_icon": "",
         }
         try:
             users_collection_ref.document(user_app_id).set(user_data_for_login)
@@ -354,7 +357,7 @@ def google_authorized(blueprint, token):
 def profanity_check(text_to_check: str) -> bool:
     if profanity.contains_profanity(text_to_check):
         return True
-    
+
     potential_words = re.findall(r"[a-zA-Z]+", text_to_check)
 
     text_from_parts = " ".join(potential_words)
@@ -411,10 +414,10 @@ def set_username_page():
         next_url_on_success = url_for("main.index")
 
     username_error = None
-    current_username_attempt = request.form.get("new_username", "")
-
     if request.method == "POST":
         new_username = request.form.get("new_username", "").strip()
+        selected_icon = request.form.get("profile_icon")
+
         if not (3 <= len(new_username) <= 20):
             username_error = "Username must be 3-20 characters long."
         elif not re.match(r"^[a-zA-Z0-9_]+$", new_username):
@@ -425,6 +428,10 @@ def set_username_page():
             username_error = "That username is already taken. Please choose another."
         elif profanity_check(new_username):
             username_error = "This username is not allowed due to its content."
+        elif not selected_icon or selected_icon not in current_app.config.get(
+            "PROFILE_ICON_FILENAMES", []
+        ):
+            username_error = "Please select a valid profile icon."
 
         if username_error:
             return render_template(
@@ -433,6 +440,8 @@ def set_username_page():
                 next_url=next_url_on_success,
                 username_error=username_error,
                 current_username_value=new_username,
+                profile_icons=current_app.config["PROFILE_ICON_FILENAMES"],
+                profile_icon_urls=current_app.config["PROFILE_ICON_URLS"],
             )
         else:
             try:
@@ -440,6 +449,7 @@ def set_username_page():
                     "username": new_username,
                     "username_lowercase": new_username.lower(),
                     "username_set": True,
+                    "profile_icon": selected_icon,
                 }
                 user_doc_ref.update(update_data)
 
@@ -468,6 +478,8 @@ def set_username_page():
                     next_url=next_url_on_success,
                     username_error=username_error,
                     current_username_value=new_username,
+                    profile_icons=current_app.config["PROFILE_ICON_FILENAMES"],
+                    profile_icon_urls=current_app.config["PROFILE_ICON_URLS"],
                 )
 
     return render_template(
@@ -476,6 +488,8 @@ def set_username_page():
         next_url=next_url_on_success,
         username_error=None,
         current_username_value="",
+        profile_icons=current_app.config["PROFILE_ICON_FILENAMES"],
+        profile_icon_urls=current_app.config["PROFILE_ICON_URLS"],
     )
 
 
@@ -494,6 +508,7 @@ def logout():
         return redirect(origin_url)
     return redirect(url_for("main.index"))
 
+
 @auth_bp.route("/user/profile", methods=["GET", "POST"])
 @login_required
 def user_profile_and_settings():
@@ -503,112 +518,118 @@ def user_profile_and_settings():
             "message": "Database service unavailable.",
             "type": "error",
         }
-        # You might want to redirect to a more generic error page or main.index
         return redirect(url_for("main.index"))
 
     user_id_str = str(flask_login_current_user.id)
     user_doc_ref = db.collection("users").document(user_id_str)
 
+    username_change_error = None
+    if request.method == "POST":
+        if "update_profile_icon" in request.form:
+            new_icon = request.form.get("profile_icon")
+            if new_icon and new_icon in current_app.config.get(
+                "PROFILE_ICON_FILENAMES", []
+            ):
+                try:
+                    user_doc_ref.update({"profile_icon": new_icon})
+                    session["display_toast_once"] = {
+                        "message": "Profile icon updated successfully.",
+                        "type": "success",
+                    }
+                    if hasattr(flask_login_current_user, "data"):
+                        flask_login_current_user.data["profile_icon"] = new_icon
+                    return redirect(url_for("auth.user_profile_and_settings"))
+                except Exception as e:
+                    current_app.logger.error(
+                        f"Error updating profile icon for {user_id_str}: {e}"
+                    )
+                    flash("Error updating profile icon. Please try again.", "danger")
+            else:
+                flash("Invalid profile icon selected.", "danger")
+
+        elif "new_username" in request.form:
+            new_username_form = request.form.get("new_username", "").strip()
+
+            user_snapshot_for_check = user_doc_ref.get()
+            if not user_snapshot_for_check.exists:
+                logout_user()
+                return redirect(url_for("main.index"))
+            user_data_for_check = user_snapshot_for_check.to_dict()
+
+            if not new_username_form:
+                username_change_error = "New username cannot be empty."
+            elif len(new_username_form) < 3 or len(new_username_form) > 20:
+                username_change_error = "Username must be 3-20 characters long."
+            elif not re.match(r"^[a-zA-Z0-9_]+$", new_username_form):
+                username_change_error = "Username can only contain letters, numbers, and underscores (_). No spaces."
+            elif new_username_form.lower() == user_data_for_check.get(
+                "username_lowercase", ""
+            ):
+                username_change_error = "This is your current username. No change made."
+            elif not is_username_globally_unique(
+                new_username_form, current_user_id_to_ignore=user_id_str
+            ):
+                username_change_error = (
+                    "That username is already taken. Please choose another."
+                )
+            elif profanity.contains_profanity(new_username_form):
+                username_change_error = "This username contains inappropriate language."
+
+            if not username_change_error:
+                try:
+                    update_data = {
+                        "username": new_username_form,
+                        "username_lowercase": new_username_form.lower(),
+                    }
+                    user_doc_ref.update(update_data)
+                    fresh_user_snapshot = user_doc_ref.get()
+                    if fresh_user_snapshot.exists:
+                        fresh_user_data = fresh_user_snapshot.to_dict()
+                        updated_user_object = User(
+                            user_id=user_id_str, data=fresh_user_data
+                        )
+                        login_user(updated_user_object, remember=True)
+                        session["username"] = new_username_form
+                    else:
+                        logout_user()
+                        session.clear()
+                        flash(
+                            "Could not find your user account after update. You have been logged out.",
+                            "error",
+                        )
+                        return redirect(url_for("auth.login_prompt_page"))
+
+                    session["display_toast_once"] = {
+                        "message": f"Username successfully changed to '{new_username_form}'.",
+                        "type": "success",
+                    }
+                    return redirect(url_for("auth.user_profile_and_settings"))
+                except Exception as e_update:
+                    current_app.logger.error(
+                        f"Error updating profile username for {user_id_str}: {e_update}",
+                        exc_info=True,
+                    )
+                    username_change_error = "A server error occurred while saving username. Please try again."
+
     user_record_snapshot = user_doc_ref.get()
     if not user_record_snapshot.exists:
-        # This case should ideally be rare if @login_required works and load_user is robust
         current_app.logger.warning(
             f"User document not found for logged-in user ID: {user_id_str}. Logging out."
         )
-        logout_user()  # From flask_login
+        logout_user()
         session.clear()
         flash("Your session was invalid. Please log in again.", "warning")
         return redirect(url_for("auth.login_prompt_page"))
 
     user_record_data = user_record_snapshot.to_dict()
-
-    username_change_error = None
-    if request.method == "POST":
-        # --- Username Change Logic (remains the same as your existing code) ---
-        new_username_form = request.form.get("new_username", "").strip()
-        if not new_username_form:
-            username_change_error = "New username cannot be empty."
-        elif len(new_username_form) < 3 or len(new_username_form) > 20:
-            username_change_error = "Username must be 3-20 characters long."
-        elif not re.match(r"^[a-zA-Z0-9_]+$", new_username_form):
-            username_change_error = "Username can only contain letters, numbers, and underscores (_). No spaces."
-        elif new_username_form.lower() == user_record_data.get(
-            "username_lowercase", ""
-        ):  # Compare with lowercase
-            username_change_error = "This is your current username. No change made."
-        elif not is_username_globally_unique(  # is_username_globally_unique should be in your auth.py
-            new_username_form, current_user_id_to_ignore=user_id_str
-        ):
-            username_change_error = (
-                "That username is already taken. Please choose another."
-            )
-        elif profanity.contains_profanity(
-            new_username_form
-        ):  # Assuming profanity checker is available
-            username_change_error = "This username contains inappropriate language."
-
-        if not username_change_error:
-            try:
-                update_data = {
-                    "username": new_username_form,
-                    "username_lowercase": new_username_form.lower(),
-                }
-                user_doc_ref.update(update_data)
-
-                fresh_user_snapshot = user_doc_ref.get()
-                if fresh_user_snapshot.exists:
-                    fresh_user_data = fresh_user_snapshot.to_dict()
-                    updated_user_object = User(
-                        user_id=user_id_str, data=fresh_user_data
-                    )
-                    login_user(updated_user_object, remember=True)
-                    # Explicitly update our custom session variable after the re-login
-                    session["username"] = new_username_form
-                else:
-                    # This is an edge case, but good to handle. If the user doc was
-                    # deleted mid-operation, log them out.
-                    logout_user()
-                    session.clear()
-                    flash(
-                        "Could not find your user account after update. You have been logged out.",
-                        "error",
-                    )
-                    return redirect(url_for("auth.login_prompt_page"))
-
-                session["display_toast_once"] = {
-                    "message": f"Username successfully changed to '{new_username_form}'.",
-                    "type": "success",
-                }
-                # Important: Re-fetch user_record_data if you need to pass the absolute latest to the template
-                # after an update on the same request, or rely on the proxy update.
-                # For this redirect, it's fine. If not redirecting, fetch fresh.
-                return redirect(url_for("auth.user_profile_and_settings"))
-            except Exception as e_update:
-                current_app.logger.error(
-                    f"Error updating profile username for {user_id_str}: {e_update}",
-                    exc_info=True,
-                )
-                username_change_error = (
-                    "A server error occurred while saving username. Please try again."
-                )
-        # If error (validation or save), fall through to render template with username_change_error
-
-    # --- Load deck information for display (e.g., count) ---
-    # 'user_record_data' already contains the 'deck_ids' array from Firestore.
     user_deck_ids = user_record_data.get("deck_ids", [])
-
-    # For {{ decks|length }} in profile.html, we can pass this list of IDs.
-    # If profile.html were to list deck names, you'd fetch details for each ID here.
-    # For now, just passing the list of IDs is enough for the count.
-
-    # --- Placeholder for battles (remains as is until battle history is refactored) ---
-    user_battles = []  # Replace with actual battle fetching logic when ready
+    user_battles = []
 
     return render_template(
         "profile.html",
-        user_info=user_record_data,  # Contains 'created_at' as a datetime object
-        decks=user_deck_ids,  # Pass the list of deck IDs; {{ decks|length }} will give the count
-        battles=user_battles,  # Pass loaded battle data
+        user_info=user_record_data,
+        decks=user_deck_ids,
+        battles=user_battles,
         username_change_error=username_change_error,
     )
 
