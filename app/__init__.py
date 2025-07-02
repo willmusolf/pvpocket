@@ -14,7 +14,7 @@ from google.api_core.exceptions import NotFound, PermissionDenied
 
 from flask_login import (
     current_user,
-) 
+)
 from flask_dance.contrib.google import make_google_blueprint
 
 from .models import (
@@ -50,10 +50,6 @@ cache_lock = threading.Lock()
 
 
 def _load_cards_from_firestore_and_cache():
-    """
-    Helper function to load cards from Firestore and update the cache file.
-    This is the new "single source of truth" for loading data.
-    """
     print("Attempting to load card collection from Firestore...", flush=True)
     db_client = current_app.config.get("FIRESTORE_DB")
     if not db_client:
@@ -96,7 +92,6 @@ def create_app(config_name="default"):
     if not firebase_admin._apps:
         try:
             bucket_name = "pvpocket-dd286.firebasestorage.app"
-
             project_id = app.config.get("GCP_PROJECT_ID")
             secret_name = app.config.get("FIREBASE_SECRET_NAME")
 
@@ -120,28 +115,15 @@ def create_app(config_name="default"):
     app.config["FIRESTORE_DB"] = firestore.client()
     login_manager.init_app(app)
 
-    print("\n--- ENTERING PROFILE ICON LOADING BLOCK ---\n", flush=True)
     try:
         bucket = storage.bucket()
-        print("--- Successfully accessed storage bucket.", flush=True)
-
         blobs = list(bucket.list_blobs(prefix="profile_icons/"))
-        print(
-            f"--- Found {len(blobs)} total items (blobs) in the profile_icons/ path.",
-            flush=True,
-        )
-
         icon_filenames = [
             blob.name.split("/")[-1]
             for blob in blobs
             if blob.name.split("/")[-1] and not blob.name.endswith("/")
         ]
-        print(
-            f"--- Filtered down to {len(icon_filenames)} actual icon filenames.",
-            flush=True,
-        )
 
-        # The default icon is now "default.png"
         DEFAULT_PROFILE_ICON = "default.png"
         if DEFAULT_PROFILE_ICON in icon_filenames:
             icon_filenames.remove(DEFAULT_PROFILE_ICON)
@@ -160,18 +142,12 @@ def create_app(config_name="default"):
             DEFAULT_PROFILE_ICON, ""
         )
 
-        print(
-            f"--- PROFILE ICON LOADING COMPLETE. {len(app.config['PROFILE_ICON_FILENAMES'])} icons are configured. ---\n",
-            flush=True,
-        )
-
     except Exception as e:
-        print(f"\n--- CRITICAL ERROR in profile icon loading: {e} ---\n", flush=True)
+        print(f"CRITICAL ERROR in profile icon loading: {e}", flush=True)
         app.config["PROFILE_ICON_FILENAMES"] = []
         app.config["PROFILE_ICON_URLS"] = {}
         app.config["DEFAULT_PROFILE_ICON_URL"] = ""
 
-    # ... (The rest of the function is unchanged)
     card_collection = None
     db_client = app.config.get("FIRESTORE_DB")
     try:
