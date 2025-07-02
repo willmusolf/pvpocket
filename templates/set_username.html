@@ -89,6 +89,24 @@
         object-fit: cover;
         border: 4px solid var(--border-color);
     }
+    [data-theme="dark"] .icon-selector-container {
+        background-color: #212529; /* A dark background */
+        border-color: #495057;   /* A slightly lighter border */
+        scrollbar-color: #495057 #212529; /* Dark scrollbar for Firefox */
+    }
+
+    /* Dark mode scrollbar for Chrome, Safari, etc. */
+    [data-theme="dark"] .icon-selector-container::-webkit-scrollbar-track {
+        background: #212529;
+    }
+
+    [data-theme="dark"] .icon-selector-container::-webkit-scrollbar-thumb {
+        background: #495057;
+    }
+
+    [data-theme="dark"] .icon-selector-container::-webkit-scrollbar-thumb:hover {
+        background: #6c757d;
+    }
 </style>
 {% endblock %}
 
