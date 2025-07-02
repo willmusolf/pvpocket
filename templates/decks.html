@@ -1286,6 +1286,8 @@
     let deckSaved = false;
     let cardObserver = null; // Manages loading for visible images
     let progressiveLoadTimeout = null; // Manages the background loading of off-screen images
+    let highResImageCache = new Set();
+    let highResLoadTimeout = null;
 
     let currentSortType = 'set'; 
     let currentSortDirection = 'asc'; 
@@ -2167,9 +2169,9 @@
             if (!isScrolling) {
                 // First check if the target itself is an image
                 if (e.target.tagName === 'IMG') {
-                    // Check if the image is within a card container in either section
-                    if (e.target.closest(".card-item") || e.target.closest(".card-slot-container.filled")) {
-                        showCardZoom(e.target.src, e);
+                    const cardElement = e.target.closest(".card-item") || e.target.closest(".card-slot-container.filled");
+                    if (cardElement) {
+                        showCardZoom(e.target, e); // Pass the hovered <img> element
                         return;
                     }
                 }
@@ -2188,134 +2190,116 @@
         });
     }
 
-    function showCardZoom(imgSrc, event) {
+    function showCardZoom(hoveredImgElement, event) {
+        const cardElement = hoveredImgElement.closest('.card-item') || hoveredImgElement.closest('.card-slot-container.filled');
+        if (!cardElement) return;
+
+        const highResSrc = cardElement.dataset.highResSrc;
+        const lowResSrc = hoveredImgElement.src;
+
         const zoomContainer = document.getElementById('card-zoom-container');
-        if (!zoomContainer) {
-            console.error("Zoom container not found!");
-            return;
+        if (!zoomContainer) return;
+
+        let zoomImg = zoomContainer.querySelector('img');
+        if (!zoomImg) {
+            zoomImg = document.createElement('img');
+            zoomContainer.appendChild(zoomImg);
         }
 
-        let img = zoomContainer.querySelector('img');
-        if (!img) {
-            img = document.createElement('img');
-            zoomContainer.appendChild(img);
+        // Always clear any pending high-res download from a previous hover.
+        clearTimeout(highResLoadTimeout);
+        zoomContainer.dataset.intendedSrc = highResSrc;
+
+        if (highResImageCache.has(highResSrc)) {
+            // If cached, show high-res instantly.
+            zoomImg.src = highResSrc;
+        } else {
+            // If not cached, show low-res instantly.
+            zoomImg.src = lowResSrc;
+            
+            // Schedule the high-res download to start after a delay.
+            highResLoadTimeout = setTimeout(() => {
+                const highResImage = new Image();
+                highResImage.src = highResSrc;
+                highResImage.onload = () => {
+                    highResImageCache.add(highResSrc);
+                    if (zoomContainer.style.display === 'block' && zoomContainer.dataset.intendedSrc === highResSrc) {
+                        zoomImg.src = highResSrc;
+                    }
+                };
+                highResImage.onerror = () => {
+                    console.error("High-res image failed to load:", highResSrc);
+                };
+            }, 400); 
         }
-        img.src = imgSrc; // Set src to get natural dimensions if needed, though CSS will cap it
 
-        // Determine which card element was hovered (either in collection or in current deck)
-        const cardElement = event.target.closest('.card-item') || event.target.closest('.card-slot-container.filled');
-
-        if (!cardElement) {
-            hideCardZoom(); // If not a valid card target, hide zoom
-            return;
-        }
-
+        // Positioning logic remains the same...
         const cardRect = cardElement.getBoundingClientRect();
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
-
-        // Determine the max dimensions the zoom card can take based on CSS and viewport
-        // These values are based on your CSS:
-        // .card-zoom-container img { max-height: 90vh; max-width: 340px; }
-        // @media (max-width: 800px) { .card-zoom-container img { max-width: 260px; } }
-        const isSmallScreen = window.innerWidth <= 800; // Your CSS breakpoint for stacked layout
+        const isSmallScreen = window.innerWidth <= 800;
         const cssZoomMaxWidth = isSmallScreen ? 260 : 340;
-        const cssZoomMaxHeight = viewportHeight * 0.90; // 90vh
-
-        // For placement calculations, we need an effective width and height of the zoom image.
-        // We'll use the CSS max-width as the primary constraint for horizontal placement logic.
-        // The actual height will depend on the image's aspect ratio and the max-height constraint.
-        // For simplicity in this logic, we'll work primarily with calculatedZoomWidth.
-        // A typical Pokemon card aspect ratio is roughly 63mm / 88mm (~0.716 width to height).
-        // So height is roughly width / 0.716.
+        const cssZoomMaxHeight = viewportHeight * 0.90;
         let calculatedZoomWidth = cssZoomMaxWidth;
-        let calculatedZoomHeight = cssZoomMaxWidth / (63 / 88); // Approximate height based on width and aspect ratio
-
-        // Adjust if calculated height exceeds CSS max height
+        let calculatedZoomHeight = cssZoomMaxWidth / (63 / 88);
         if (calculatedZoomHeight > cssZoomMaxHeight) {
             calculatedZoomHeight = cssZoomMaxHeight;
-            calculatedZoomWidth = calculatedZoomHeight * (63 / 88); // Recalculate width based on height constraint
+            calculatedZoomWidth = calculatedZoomHeight * (63 / 88);
         }
-        // Ensure calculatedZoomWidth doesn't exceed cssZoomMaxWidth if height was the limiting factor
         calculatedZoomWidth = Math.min(calculatedZoomWidth, cssZoomMaxWidth);
-
-
         const cardCenterX = cardRect.left + cardRect.width / 2;
         const cardCenterY = cardRect.top + cardRect.height / 2;
-        const margin = 15; // Preferred margin from screen edges and original card
-
+        const margin = 15;
         let zoomLeft, zoomTop;
-
         if (isSmallScreen) {
-            // --- Small Screen Logic (Stacked Layout) ---
-            // Try to place on the "other side" of the card.
             const spaceRightAvailable = viewportWidth - cardRect.right - margin;
             const spaceLeftAvailable = cardRect.left - margin;
-
-            // Prefer the side with more space, or if one side clearly has enough space.
-            if (cardCenterX < viewportWidth / 2) { // Card is more on the left half of the screen
-                // Try to place zoom on the right
+            if (cardCenterX < viewportWidth / 2) {
                 if (spaceRightAvailable >= calculatedZoomWidth) {
                     zoomLeft = cardRect.right + margin;
-                } else if (spaceLeftAvailable >= calculatedZoomWidth) { // Not enough space right, try left
+                } else if (spaceLeftAvailable >= calculatedZoomWidth) {
                     zoomLeft = cardRect.left - calculatedZoomWidth - margin;
-                } else { // Neither side fits well, center it (this might overlap, but it's a fallback)
+                } else {
                     zoomLeft = (viewportWidth - calculatedZoomWidth) / 2;
                 }
-            } else { // Card is more on the right half of the screen (or centered)
-                // Try to place zoom on the left
+            } else {
                 if (spaceLeftAvailable >= calculatedZoomWidth) {
                     zoomLeft = cardRect.left - calculatedZoomWidth - margin;
-                } else if (spaceRightAvailable >= calculatedZoomWidth) { // Not enough space left, try right
+                } else if (spaceRightAvailable >= calculatedZoomWidth) {
                     zoomLeft = cardRect.right + margin;
-                } else { // Neither side fits well, center it
+                } else {
                     zoomLeft = (viewportWidth - calculatedZoomWidth) / 2;
                 }
             }
         } else {
-            // --- Larger Screens Logic (Side-by-Side Layout - your existing refined logic) ---
-            const isInDeck = cardElement.closest('.current-deck-wrapper') !== null; // Check based on wrapper
-
-            if (isInDeck) { // Card is in "Current Deck" section (usually on the right)
-                // Try to place zoom to the LEFT of the card
+            const isInDeck = cardElement.closest('.current-deck-wrapper') !== null;
+            if (isInDeck) {
                 zoomLeft = cardRect.left - calculatedZoomWidth - margin;
-                if (zoomLeft < margin) { // Not enough space on left, try right
+                if (zoomLeft < margin) {
                     zoomLeft = cardRect.right + margin;
-                    // If still off-screen (e.g. deck section is too wide), center as fallback
                     if (zoomLeft + calculatedZoomWidth > viewportWidth - margin) {
                         zoomLeft = (viewportWidth - calculatedZoomWidth) / 2;
                     }
                 }
-            } else { // Card is in "Add Cards" collection (usually on the left)
-                // Try to place zoom to the RIGHT of the card
+            } else {
                 zoomLeft = cardRect.right + margin;
-                if (zoomLeft + calculatedZoomWidth > viewportWidth - margin) { // Not enough space on right, try left
+                if (zoomLeft + calculatedZoomWidth > viewportWidth - margin) {
                     zoomLeft = cardRect.left - calculatedZoomWidth - margin;
-                    // If still off-screen, center as fallback
                     if (zoomLeft < margin) {
                         zoomLeft = (viewportWidth - calculatedZoomWidth) / 2;
                     }
                 }
             }
         }
-
-        // Final clamping for zoomLeft to ensure it's within viewport bounds
-        zoomLeft = Math.max(margin, zoomLeft); // Ensure at least `margin` from left
-        zoomLeft = Math.min(zoomLeft, viewportWidth - calculatedZoomWidth - margin); // Ensure at least `margin` from right
-
-        // --- Vertical Positioning (Common for both layouts) ---
-        // Attempt to vertically center the zoom card with the hovered card's center
+        zoomLeft = Math.max(margin, zoomLeft);
+        zoomLeft = Math.min(zoomLeft, viewportWidth - calculatedZoomWidth - margin);
         zoomTop = cardCenterY - (calculatedZoomHeight / 2);
-
-        // Clamp vertical position to keep it within the viewport
         if (zoomTop < margin) {
             zoomTop = margin;
         } else if (zoomTop + calculatedZoomHeight > viewportHeight - margin) {
             zoomTop = viewportHeight - calculatedZoomHeight - margin;
         }
-        zoomTop = Math.max(margin, zoomTop); // Ensure at least `margin` from top, especially if card is tall
-
-        // Apply positions
+        zoomTop = Math.max(margin, zoomTop);
         zoomContainer.style.top = zoomTop + 'px';
         zoomContainer.style.left = zoomLeft + 'px';
         zoomContainer.style.display = 'block';
@@ -2325,6 +2309,9 @@
         const zoomContainer = document.getElementById('card-zoom-container');
         if (zoomContainer) {
             zoomContainer.style.display = 'none';
+            zoomContainer.dataset.intendedSrc = '';
+            // Cancel any pending high-res download.
+            clearTimeout(highResLoadTimeout);
         }
     }
 
@@ -2594,6 +2581,8 @@
                 colDiv.className = 'col-4 col-sm-4 col-md-4 col-lg-3 col-xl-2 mb-3 card-item';
                 colDiv.dataset.cardId = card.id;
                 colDiv.dataset.cardName = card.name;
+                const highResPath = card.display_image_path.replace('/cards/', '/high_res_cards/');
+                colDiv.dataset.highResSrc = highResPath;
                 const cardContainer = document.createElement('div');
                 // Add 'is-loading' class by default to apply placeholder styles
                 cardContainer.className = 'position-relative clickable-card is-loading';
@@ -2869,8 +2858,10 @@
 
             if (cardInSlot) { // Check if there's a card for this slot
                 cardContainer.classList.add('filled');
-                // Use the unique ID of the specific card instance in this slot
-                cardContainer.dataset.cardId = cardInSlot.id; 
+                cardContainer.dataset.cardId = cardInSlot.id;
+
+                const highResPath = cardInSlot.display_image_path.replace('/cards/', '/high_res_cards/');
+                cardContainer.dataset.highResSrc = highResPath;
 
                 const img = document.createElement('img');
                 // Use the display_image_path of the specific card instance
