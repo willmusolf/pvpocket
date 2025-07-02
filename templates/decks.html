@@ -3139,17 +3139,28 @@
                 return (a, b) => a.name.localeCompare(b.name) * directionMultiplier;
 
             case 'rarity':
-            return (a, b) => {
-                const rankA = getRank(a.rarity, rarityOrder);
-                const rankB = getRank(b.rarity, rarityOrder);
-                if (rankA !== rankB) {
-                    return (rankA - rankB) * directionMultiplier;
-                }
-                // Secondary sort: by global integer card ID (ascending) if rarities are the same
-                const idA = a.id || 0; 
-                const idB = b.id || 0;
-                return idA - idB; 
-            };
+                return (a, b) => {
+                    const rankA = getRank(a.rarity, rarityOrder);
+                    const rankB = getRank(b.rarity, rarityOrder);
+                    if (rankA !== rankB) {
+                        return (rankA - rankB) * directionMultiplier;
+                    }
+
+                    // Secondary sort: Set (newness), respecting primary sort direction.
+                    const indexA = orderedSetNamesForSort.indexOf(a.set_name);
+                    const indexB = orderedSetNamesForSort.indexOf(b.set_name);
+                    const effectiveIndexA = indexA === -1 ? Infinity : indexA;
+                    const effectiveIndexB = indexB === -1 ? Infinity : indexB;
+
+                    if (effectiveIndexA !== effectiveIndexB) {
+                        return (effectiveIndexA - effectiveIndexB) * directionMultiplier;
+                    }
+
+                    // Tertiary sort: by global integer card ID (ascending) for stability.
+                    const idA = a.id || 0;
+                    const idB = b.id || 0;
+                    return idA - idB;
+                };
 
             case 'set':
                 return (a, b) => {

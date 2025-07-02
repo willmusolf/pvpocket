@@ -180,25 +180,31 @@
 
                 <hr class="my-4">
                 <h5 id="changeUsernameAnchor">Change Username</h5>
-                <form method="POST" action="{{ url_for('auth.user_profile_and_settings') }}" id="changeUsernameFormProfile" novalidate>
-                    <div class="mb-3">
-                        <label for="new_username_profile" class="form-label visually-hidden">New Username</label>
-                        <input type="text"
-                                class="form-control {% if username_change_error %}is-invalid{% endif %}"
-                                id="new_username_profile" name="new_username"
-                                value="{{ request.form.get('new_username', '') }}"
-                                required minlength="3" maxlength="20" pattern="^[a-zA-Z0-9_]+$"
-                                autocomplete="off"
-                                aria-describedby="usernameProfileErrorFeedback usernameProfileHelp">
-                        <div id="usernameProfileErrorFeedback" class="invalid-feedback" style="display: {% if username_change_error %}block{% else %}none{% endif %};">
-                            {% if username_change_error %}{{ username_change_error }}{% endif %}
+
+                {% if user_info.get("username_change_count", 0) >= 1 %}
+                    <p class="text-muted">You have already changed your username the maximum number of times.</p>
+                {% else %}
+                    <form method="POST" action="{{ url_for('auth.user_profile_and_settings') }}" id="changeUsernameFormProfile" novalidate>
+                        <div class="mb-3">
+                            <label for="new_username_profile" class="form-label visually-hidden">New Username</label>
+                            <input type="text"
+                                    class="form-control {% if username_change_error %}is-invalid{% endif %}"
+                                    id="new_username_profile" name="new_username"
+                                    value="{{ request.form.get('new_username', '') }}"
+                                    required minlength="3" maxlength="20" pattern="^[a-zA-Z0-9_]+$"
+                                    autocomplete="off"
+                                    aria-describedby="usernameProfileErrorFeedback usernameProfileHelp">
+
+                            <div id="usernameProfileErrorFeedback" class="invalid-feedback" style="display: {% if username_change_error %}block{% else %}none{% endif %};">
+                                {% if username_change_error %}{{ username_change_error }}{% endif %}
+                            </div>
+                            <div id="usernameProfileHelp" class="form-text" style="display: {% if username_change_error %}none{% else %}block{% endif %};">
+                                You can only change your username once. This action is permanent.
+                            </div>
                         </div>
-                        <div id="usernameProfileHelp" class="form-text" style="display: {% if username_change_error %}none{% else %}block{% endif %};">
-                            Must be 3-20 characters. Letters, numbers, and underscores only.
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Update Username</button>
-                </form>
+                        <button type="submit" class="btn btn-primary">Update Username</button>
+                    </form>
+                {% endif %}
 
                 <hr class="my-4">
                 <h5>Appearance</h5>

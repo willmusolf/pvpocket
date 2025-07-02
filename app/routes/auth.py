@@ -259,6 +259,7 @@ def google_authorized(blueprint, token):
             "deck_ids": [],  # Initialize as empty array for deck IDs
             "username_set": False,
             "profile_icon": "",
+            "username_change_count": 0,
         }
         try:
             users_collection_ref.document(user_app_id).set(user_data_for_login)
@@ -556,6 +557,9 @@ def user_profile_and_settings():
                 return redirect(url_for("main.index"))
             user_data_for_check = user_snapshot_for_check.to_dict()
 
+            if user_data_for_check.get("username_change_count", 0) >= 1:
+                username_change_error = "You have already changed your username once and cannot change it again."
+
             if not new_username_form:
                 username_change_error = "New username cannot be empty."
             elif len(new_username_form) < 3 or len(new_username_form) > 20:
@@ -580,6 +584,9 @@ def user_profile_and_settings():
                     update_data = {
                         "username": new_username_form,
                         "username_lowercase": new_username_form.lower(),
+                        "username_change_count": firestore.Increment(
+                            1
+                        ),  # Increments the value on the server
                     }
                     user_doc_ref.update(update_data)
                     fresh_user_snapshot = user_doc_ref.get()
@@ -732,7 +739,7 @@ def delete_account():
         session.clear()  # Clear all session data
         session["display_toast_once"] = {  # Set flash message for after redirect
             "message": "Your account and all associated data have been successfully deleted.",
-            "type": "success",
+            "type": "default",
         }
         return redirect(url_for("main.index"))
 
