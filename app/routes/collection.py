@@ -69,65 +69,62 @@ def get_user_decks_api():
         if not user_deck_ids:
             return jsonify({"decks": []})
 
-        # Reverting to the original one-by-one fetch logic for guaranteed stability.
-        # We can investigate a batch query optimization later.
+        # Use a single batch request to fetch all deck documents at once.
+        deck_refs = [
+            db.collection("decks").document(deck_id)
+            for deck_id in user_deck_ids
+            if deck_id
+        ]
+        deck_docs = db.get_all(deck_refs)
+
         user_decks_details = []
         card_collection_obj = current_app.config.get("card_collection")
         meta_stats = current_app.config.get("meta_stats", {})
 
-        for deck_id_str in user_deck_ids:
-            if not deck_id_str:
-                continue  # Skip any empty strings in the array
+        for deck_doc in deck_docs:
+            if not deck_doc.exists:
+                continue
 
-            deck_doc_ref = db.collection("decks").document(deck_id_str)
-            deck_doc = deck_doc_ref.get()
+            deck_data = deck_doc.to_dict()
+            deck_id_str = deck_doc.id
 
-            if deck_doc.exists:
-                deck_data = deck_doc.to_dict()
+            win_rate = None
+            deck_name = deck_data.get("name", f"Deck {deck_id_str[:8]}...")
+            if deck_name and meta_stats.get("decks", {}).get(deck_name):
+                stats = meta_stats["decks"][deck_name]
+                if stats.get("total_battles", 0) > 0:
+                    win_rate = (stats.get("wins", 0) / stats["total_battles"]) * 100
 
-                win_rate = None
-                deck_name = deck_data.get("name", f"Deck {deck_id_str[:8]}...")
-                if deck_name and meta_stats.get("decks", {}).get(deck_name):
-                    stats = meta_stats["decks"][deck_name]
-                    if stats.get("total_battles", 0) > 0:
-                        win_rate = (stats.get("wins", 0) / stats["total_battles"]) * 100
-
-                resolved_cover_cards = []
-                cover_card_ids_from_db = deck_data.get("cover_card_ids", [])
-                if card_collection_obj and isinstance(cover_card_ids_from_db, list):
-                    for c_id_str in cover_card_ids_from_db:
-                        if c_id_str:
-                            try:
-                                card_obj = card_collection_obj.get_card_by_id(
-                                    int(c_id_str)
+            resolved_cover_cards = []
+            cover_card_ids_from_db = deck_data.get("cover_card_ids", [])
+            if card_collection_obj and isinstance(cover_card_ids_from_db, list):
+                for c_id_str in cover_card_ids_from_db:
+                    if c_id_str:
+                        try:
+                            card_obj = card_collection_obj.get_card_by_id(int(c_id_str))
+                            if card_obj:
+                                resolved_cover_cards.append(
+                                    {
+                                        "name": getattr(card_obj, "name", "N/A"),
+                                        "display_image_path": getattr(
+                                            card_obj, "display_image_path", None
+                                        ),
+                                    }
                                 )
-                                if card_obj:
-                                    resolved_cover_cards.append(
-                                        {
-                                            "name": getattr(card_obj, "name", "N/A"),
-                                            "display_image_path": getattr(
-                                                card_obj, "display_image_path", None
-                                            ),
-                                        }
-                                    )
-                            except (ValueError, TypeError):
-                                pass
+                        except (ValueError, TypeError):
+                            pass
 
-                user_decks_details.append(
-                    {
-                        "name": deck_name,
-                        "deck_id": deck_id_str,
-                        "types": deck_data.get("deck_types", []),
-                        "card_count": len(deck_data.get("card_ids", [])),
-                        "win_rate": (
-                            round(win_rate, 1) if win_rate is not None else None
-                        ),
-                        "resolved_cover_cards": resolved_cover_cards,
-                        "updated_at": deck_data.get(
-                            "updated_at"
-                        ),  # Add this for sorting
-                    }
-                )
+            user_decks_details.append(
+                {
+                    "name": deck_name,
+                    "deck_id": deck_id_str,
+                    "types": deck_data.get("deck_types", []),
+                    "card_count": len(deck_data.get("card_ids", [])),
+                    "win_rate": (round(win_rate, 1) if win_rate is not None else None),
+                    "resolved_cover_cards": resolved_cover_cards,
+                    "updated_at": deck_data.get("updated_at"),
+                }
+            )
 
         default_time = datetime.min.replace(tzinfo=timezone.utc)
         user_decks_details.sort(
