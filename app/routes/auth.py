@@ -396,17 +396,6 @@ def set_username_page():
     if user_record_data.get("username_set"):
         return redirect(url_for("main.index"))
 
-    if (
-        request.method == "GET"
-        and request.args.get("next")
-        and request.args.get("next") != url_for("main.index")
-        and request.args.get("next") != url_for("auth.set_username_page")
-    ):
-        session["display_toast_once"] = {
-            "message": "You must set username before leaving page.",
-            "type": "warning",
-        }
-
     title = "Set Your Username"
     next_url_on_success = request.form.get(
         "next_url", request.args.get("next", url_for("main.index"))

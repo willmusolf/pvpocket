@@ -4,11 +4,12 @@
 
 {% block extra_css %}
 <style>
+    /* --- Styles from previous step --- */
     .icon-selector-container {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
         gap: 1rem;
-        max-height: 220px; /* Changed from 180px */
+        max-height: 220px;
         overflow-y: auto;
         padding: 1rem;
         border: 1px solid var(--border-color, #dee2e6);
@@ -18,94 +19,27 @@
         scrollbar-width: thin;
         scrollbar-color: #a0a0a0 #f1f1f1;
     }
+    .icon-selector-container::-webkit-scrollbar { width: 8px; }
+    .icon-selector-container::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+    .icon-selector-container::-webkit-scrollbar-thumb { background: #a0a0a0; border-radius: 10px; }
+    .icon-selector-container::-webkit-scrollbar-thumb:hover { background: #707070; }
+    .icon-option { cursor: pointer; display: flex; justify-content: center; align-items: center; }
+    .icon-option input[type="radio"] { display: none; }
+    .icon-option img { width: 64px; height: 64px; border-radius: 50%; border: 3px solid transparent; transition: transform 0.2s, border-color 0.2s; }
+    .icon-option img:hover { transform: scale(1.1); }
+    .icon-option input[type="radio"]:checked + img { border-color: var(--bs-primary); transform: scale(1.1); }
+    .profile-page-card { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: .5rem; margin-bottom: 1.5rem; padding: 1.5rem; }
+    .profile-header { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; margin-bottom: 2rem; }
+    .profile-header img { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 4px solid var(--border-color); }
+    [data-theme="dark"] .icon-selector-container { background-color: #212529; border-color: #495057; scrollbar-color: #495057 #212529; }
+    [data-theme="dark"] .icon-selector-container::-webkit-scrollbar-track { background: #212529; }
+    [data-theme="dark"] .icon-selector-container::-webkit-scrollbar-thumb { background: #495057; }
+    [data-theme="dark"] .icon-selector-container::-webkit-scrollbar-thumb:hover { background: #6c757d; }
 
-    /* Target the scrollbar itself in Webkit browsers */
-    .icon-selector-container::-webkit-scrollbar {
-        width: 8px;
-    }
-
-    /* The "track" or background of the scrollbar */
-    .icon-selector-container::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 10px;
-    }
-
-    /* The draggable "thumb" or handle of the scrollbar */
-    .icon-selector-container::-webkit-scrollbar-thumb {
-        background: #a0a0a0;
-        border-radius: 10px;
-    }
-
-    /* Change thumb color on hover for better UX */
-    .icon-selector-container::-webkit-scrollbar-thumb:hover {
-        background: #707070;
-    }
-    
-    /* --- End of scrollbar styles --- */
-
-    .icon-option {
-        cursor: pointer;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-    .icon-option input[type="radio"] {
-        display: none;
-    }
-    .icon-option img {
-        width: 64px;
-        height: 64px;
-        border-radius: 50%;
-        border: 3px solid transparent;
-        transition: transform 0.2s, border-color 0.2s;
-    }
-    .icon-option img:hover {
-        transform: scale(1.1);
-    }
-    .icon-option input[type="radio"]:checked + img {
-        border-color: var(--bs-primary);
-        transform: scale(1.1);
-    }
-
-    /* Styles for the main profile page elements */
-    .profile-page-card {
-        background-color: var(--card-bg);
-        border: 1px solid var(--border-color);
-        border-radius: .5rem;
-        margin-bottom: 1.5rem;
-        padding: 1.5rem;
-    }
-    .profile-header {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 0.5rem;
-        margin-bottom: 2rem;
-    }
-    .profile-header img {
-        width: 120px;
-        height: 120px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 4px solid var(--border-color);
-    }
-    [data-theme="dark"] .icon-selector-container {
-        background-color: #212529; /* A dark background */
-        border-color: #495057;   /* A slightly lighter border */
-        scrollbar-color: #495057 #212529; /* Dark scrollbar for Firefox */
-    }
-
-    /* Dark mode scrollbar for Chrome, Safari, etc. */
-    [data-theme="dark"] .icon-selector-container::-webkit-scrollbar-track {
-        background: #212529;
-    }
-
-    [data-theme="dark"] .icon-selector-container::-webkit-scrollbar-thumb {
-        background: #495057;
-    }
-
-    [data-theme="dark"] .icon-selector-container::-webkit-scrollbar-thumb:hover {
-        background: #6c757d;
+    /* --- NEW CSS FOR TOAST --- */
+    /* Ensures the toast container appears above other fixed elements like a navbar */
+    .toast-container {
+        z-index: 1100; /* Higher than Bootstrap's default navbar z-index of 1030 */
     }
 </style>
 {% endblock %}
@@ -156,4 +90,47 @@
         </div>
     </div>
 </div>
+{% endblock %}
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Select all link elements on the page
+        const allLinks = document.querySelectorAll('a');
+
+        allLinks.forEach(link => {
+            // --- NEW: Special handling for Bootstrap dropdowns ---
+            // Check if the link is intended to be a dropdown toggle
+            if (link.hasAttribute('data-bs-toggle') && link.getAttribute('data-bs-toggle') === 'dropdown') {
+                // Add the .disabled class for Bootstrap's visual styling
+                link.classList.add('disabled');
+                
+                // Remove the attribute that makes the dropdown functional
+                link.removeAttribute('data-bs-toggle');
+                
+                // Set aria-disabled for better accessibility
+                link.setAttribute('aria-disabled', 'true');
+            }
+            
+            // This existing part prevents the link from trying to navigate anywhere
+            link.removeAttribute('href');
+
+            // Apply consistent visual styling to all disabled links
+            link.style.cursor = 'default';
+            link.style.opacity = '0.65';
+
+            // Attach the universal click listener that shows the toast notification
+            link.addEventListener('click', function(event) {
+                event.preventDefault(); // Stop the default link action
+                event.stopPropagation(); // Stop the event from bubbling up to other listeners
+
+                if (window.showGlobalToast) {
+                    window.showGlobalToast('Please set your username and icon to continue.', 'warning');
+                } else {
+                    // Fallback in case the main toast function isn't available
+                    alert('Please set your username and icon to continue.');
+                }
+            });
+        });
+    });
+</script>
 {% endblock %}
