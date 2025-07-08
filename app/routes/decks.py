@@ -17,7 +17,7 @@ from typing import Optional  # For type hinting in helper function
 
 decks_bp = Blueprint('decks', __name__)
 
-MAX_DECKS_PER_USER = 100
+MAX_DECKS_PER_USER = 200
 
 
 def get_db() -> firestore.client:

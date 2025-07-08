@@ -19,7 +19,6 @@
 
     /* Make the search bar column flexible */
     .filter-bar .col-md-7 {
-        flex: 1 1 300px; /* It will grow and shrink. Base width of 300px. */
         min-width: 320px; /* It won't shrink smaller than this before wrapping */
     }
 
@@ -330,6 +329,46 @@
         }
     }
 
+@media (max-width: 767.98px) {
+    /* Make the whole filter bar more compact */
+    .filter-bar {
+        padding-top: 0.75rem;
+        padding-bottom: 0.75rem;
+    }
+
+    /* Stack the controls and set a single, controlled gap */
+    .filter-bar .row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    /* THE FIX: Forcefully remove any default vertical margin on the components */
+    .filter-bar .input-group,
+    .filter-bar .energy-icons {
+        margin-top: 0;
+        margin-bottom: 0;
+    }
+
+    /* Keep the other necessary mobile layout rules */
+    .filter-bar .col-md-7,
+    .filter-bar .col-md-5 {
+        width: 100%;
+        min-width: 0;
+    }
+    /* Make the icons even smaller to guarantee they fit on one row */
+    .filter-bar .energy-icon-wrapper {
+        width: 24px;
+        height: 24px;
+    }
+
+    /* Adjust the gap and ensure they are spaced out */
+    .filter-bar .energy-icons {
+        display: flex;
+        justify-content: space-between;
+        gap: 4px;
+    }
+}
+
     </style>
 
     <div class="collection-main-content">
@@ -349,7 +388,7 @@
                                 <div class="col-md-7 col-lg-8">
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="bi bi-search"></i></span>
-                                        <input type="text" id="deck-search-input" class="form-control" placeholder="Search by deck or Pokémon name..." autocomplete="off">
+                                        <input type="text" id="deck-search-input" class="form-control" placeholder="Search decks..." autocomplete="off">
                                     </div>
                                 </div>
                                 <div class="col-md-5 col-lg-4">
