@@ -5,85 +5,33 @@ import re
 import os
 from urllib.parse import urlparse
 from typing import Optional, List, Dict, Any
-from dotenv import load_dotenv
-load_dotenv()
-
-import firebase_admin
-from firebase_admin import credentials, firestore, storage
-
-import firebase_admin
-from firebase_admin import credentials, firestore, storage
-
 import io
+import google.auth
+
+# GCP and Firebase libraries will be initialized in the main job runner
+from firebase_admin import firestore, storage
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 
-import json
-from google.cloud import secretmanager
-from google.api_core.exceptions import NotFound, PermissionDenied
+# Import the post-processor to chain it after the scrape
+from .post_processor import main_post_process
 
 
+# --- Configuration ---
+# These constants remain as they are specific to the scraper's logic
 GOOGLE_DRIVE_FOLDER_ID = "1-JIeAcBXoRn1r_SFgoqO8ZG2KPp2ss9U"
-GDRIVE_CREDENTIALS_PATH = "credentials.json"
+GDRIVE_CREDENTIALS_PATH = (
+    "credentials.json"  # Ensure this file is in your project root or accessible
+)
 STORAGE_BASE_PATH = "high_res_cards"
-
-FIREBASE_STORAGE_BUCKET = "pvpocket-dd286.firebasestorage.app"
-
 SCRAPE_ONLY_NEW_CARDS = True
 
-current_global_card_id_counter = 0
 
-if not firebase_admin._apps:
-    try:
-        project_id = os.environ.get("GCP_PROJECT_ID")
-        secret_name = os.environ.get("FIREBASE_SECRET_NAME")
-
-        if project_id and secret_name:
-            print(
-                "Scraper: Initializing Firebase from Google Secret Manager...",
-                flush=True,
-            )
-            client = secretmanager.SecretManagerServiceClient()
-            name = f"projects/{project_id}/secrets/{secret_name}/versions/latest"
-            response = client.access_secret_version(request={"name": name})
-
-            secret_payload = response.payload.data.decode("UTF-8")
-            cred_dict = json.loads(secret_payload)
-            cred = credentials.Certificate(cred_dict)
-            firebase_admin.initialize_app(
-                cred, {"storageBucket": FIREBASE_STORAGE_BUCKET}
-            )
-            print(
-                "Scraper: Firebase initialized successfully from Secret Manager.",
-                flush=True,
-            )
-        else:
-            print(
-                "Scraper: Secret Manager config not found. Falling back to Application Default Credentials.",
-                flush=True,
-            )
-            firebase_admin.initialize_app(
-                options={"storageBucket": FIREBASE_STORAGE_BUCKET}
-            )
-            print(
-                "Scraper: Firebase initialized successfully with Application Default Credentials.",
-                flush=True,
-            )
-
-    except Exception as e:
-        print(
-            f"CRITICAL ERROR: Failed to initialize Firebase Admin SDK for scraper: {e}",
-            flush=True,
-        )
-        exit()
-
-db_firestore = firestore.client()
-bucket_storage = storage.bucket()
-
-
+# --- Helper Functions (Sanitize, Clean Text, etc.) ---
+# These functions are used by the scraper and remain unchanged.
 def sanitize_for_firestore_id(text: str) -> str:
     if not text:
         return "unknown"
@@ -123,6 +71,9 @@ def clean_rules_text(text: Optional[str]) -> Optional[str]:
     return final_text if final_text else None
 
 
+# --- Core Scraping and Data Handling Functions ---
+
+
 def upload_image_to_firebase_storage(
     image_url_source: str,
     set_code: str,
@@ -132,6 +83,7 @@ def upload_image_to_firebase_storage(
     if not image_url_source:
         return None
     try:
+        bucket_storage = storage.bucket()
         folder_base_name = re.sub(
             r"\s*\([A-Za-z0-9\-]+\)\s*$", "", original_set_name_from_scrape
         ).strip()
@@ -190,18 +142,6 @@ def upload_image_to_firebase_storage(
         return None
 
 
-def initialize_firebase_scrape_session():
-    if not SCRAPE_ONLY_NEW_CARDS:
-        print("WARNING: SCRAPE_ONLY_NEW_CARDS is False.")
-        print(
-            "This script will add new cards and update existing ones if found by their path."
-        )
-    else:
-        print(
-            "Scraping only new cards (will not update existing cards if found by their path)."
-        )
-
-
 def get_current_max_card_id(db: firestore.client) -> int:
     print("Determining current maximum global card ID from Firestore...")
     max_id_found = 0
@@ -232,9 +172,10 @@ def get_current_max_card_id(db: firestore.client) -> int:
         return 0
 
 
-def save_card_to_firestore(card_data_dict: Dict[str, Any]) -> bool:
-    global current_global_card_id_counter
-
+def save_card_to_firestore(
+    card_data_dict: Dict[str, Any], id_counter: int
+) -> tuple[bool, int]:
+    db_firestore = firestore.client()
     if (
         not card_data_dict
         or not card_data_dict.get("set_code")
@@ -243,7 +184,7 @@ def save_card_to_firestore(card_data_dict: Dict[str, Any]) -> bool:
         or not card_data_dict.get("set_name")
     ):
         print(f"Error: Insufficient data. Card data: {card_data_dict}")
-        return False
+        return False, id_counter
 
     set_name_original = card_data_dict["set_name"]
     card_name_original = card_data_dict["name"]
@@ -270,7 +211,7 @@ def save_card_to_firestore(card_data_dict: Dict[str, Any]) -> bool:
         existing_card_doc_snapshot = card_specific_ref.get()
 
         if SCRAPE_ONLY_NEW_CARDS and existing_card_doc_snapshot.exists:
-            return False
+            return False, id_counter
 
         if not existing_card_doc_snapshot.exists or not SCRAPE_ONLY_NEW_CARDS:
             if original_image_url and raw_set_name_for_image_path:
@@ -286,8 +227,8 @@ def save_card_to_firestore(card_data_dict: Dict[str, Any]) -> bool:
         card_data_dict.pop("raw_set_name_for_image_path", None)
 
         if not existing_card_doc_snapshot.exists:
-            current_global_card_id_counter += 1
-            assigned_id = current_global_card_id_counter
+            id_counter += 1
+            assigned_id = id_counter
             card_data_dict["id"] = assigned_id
 
             set_doc_data = {"set_name": set_name_original, "set_code": set_code}
@@ -296,7 +237,7 @@ def save_card_to_firestore(card_data_dict: Dict[str, Any]) -> bool:
             print(
                 f"CREATED: {card_name_original} ({set_code} {card_number_str_val}) ID: {assigned_id}"
             )
-            return True
+            return True, id_counter
         else:
             if "id" in card_data_dict:
                 del card_data_dict["id"]
@@ -304,13 +245,13 @@ def save_card_to_firestore(card_data_dict: Dict[str, Any]) -> bool:
             set_doc_ref.set(set_doc_data, merge=True)
             card_specific_ref.set(card_data_dict, merge=True)
             print(f"UPDATED: {card_name_original} ({set_code} {card_number_str_val})")
-            return True
+            return True, id_counter
     except Exception as e:
         print(f"Error saving/updating {full_card_path}: {e}")
-        return False
+        return False, id_counter
 
 
-def get_card_sets():
+def get_card_sets() -> list:
     url = "https://pocket.limitlesstcg.com/cards"
     try:
         response = requests.get(url, timeout=10)
@@ -336,7 +277,7 @@ def get_card_sets():
     return sets
 
 
-def get_cards_from_set(set_code):
+def get_cards_from_set(set_code: str) -> list:
     url = f"https://pocket.limitlesstcg.com/cards/{set_code}"
     try:
         response = requests.get(url, timeout=10)
@@ -474,7 +415,7 @@ def scrape_card_details(
         card_data["flavor_text"] = (
             clean_rules_text(flavor_el.get_text()) if flavor_el else None
         )
-        
+
         img_el = soup.select_one(".card-image img")
         image_url = img_el["src"] if img_el and img_el.has_attr("src") else ""
         card_data["original_image_url"] = image_url
@@ -574,13 +515,7 @@ def scrape_card_details(
 
 
 def generate_set_map_from_firestore(db_client):
-    """
-    Generates the set_code-to-folder_name map by reading the list of sets
-    directly from the main 'cards' collection in Firestore.
-    """
-    print(
-        "Attempting to automatically generate set map from Firestore 'cards' collection..."
-    )
+    print("Generating set map from Firestore 'cards' collection...")
     if not db_client:
         return None
     final_set_map = {}
@@ -604,12 +539,9 @@ def generate_set_map_from_firestore(db_client):
                 )
                 safe_folder_name = safe_folder_name.replace(f"-{set_code.lower()}", "")
                 final_set_map[set_code] = safe_folder_name
-        if final_set_map:
-            print(
-                f"✅ Successfully generated map for {len(final_set_map)} sets from Firestore."
-            )
-        else:
-            print("⚠️ Could not find any sets in Firestore 'cards' collection.")
+        print(
+            f"✅ Successfully generated map for {len(final_set_map)} sets from Firestore."
+        )
         return final_set_map
     except Exception as e:
         print(f"❌ Error reading from Firestore to generate set map: {e}")
@@ -617,265 +549,217 @@ def generate_set_map_from_firestore(db_client):
 
 
 def get_drive_service():
-    """Authenticates with Google Drive and returns a service object."""
+    """Authenticates with Google Drive using the application's default service account."""
+    print("Authenticating to Google Drive using Service Account...")
     SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
-    creds = None
-    if os.path.exists("token.json"):
-        creds = Credentials.from_authorized_user_file("token.json", SCOPES)
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                GDRIVE_CREDENTIALS_PATH, SCOPES
-            )
-            creds = flow.run_local_server(port=0)
-        with open("token.json", "w") as token:
-            token.write(creds.to_json())
+
+    creds, _ = google.auth.default(scopes=SCOPES)
     return build("drive", "v3", credentials=creds)
 
 
-def run_high_res_image_migration(db_client, bucket_client):
+# --- Main Logic Functions for Jobs ---
+
+
+def run_set_scrape_and_post_process():
     """
-    Scrapes high-resolution images from Google Drive and uploads them to a
-    dedicated 'high_res_cards' folder in Firebase Storage.
-
-    It matches Drive files to sets using folder names and to cards using a
-    'SETCODE-NUMBER.ext' filename format. Skips folders that already appear
-    to be fully scraped.
+    Main job for scraping new sets from LimitlessTCG, saving them,
+    and then running the post-processor to apply special rules.
     """
-    print("\n--- Starting High-Resolution Image Scrape ---")
-    set_code_to_folder_map = generate_set_map_from_firestore(db_client)
-    if not set_code_to_folder_map:
-        print("❌ Image Scrape Aborted: Could not generate the set map from Firestore.")
-        return
+    db = firestore.client()
 
-    # --- START: MANUAL PATCH FOR PROMO SET ---
-    # This manually adds the mapping for your "Promo A" folder.
-    print("  -> Applying manual patch for 'Promo A' set...")
-    set_code_to_folder_map["P-A"] = "promo-a"
-    # --- END: MANUAL PATCH FOR PROMO SET ---
+    print("--- Starting Set Scrape & Post-Process Job ---")
+    if SCRAPE_ONLY_NEW_CARDS:
+        print("Scraping only new cards (will not update existing cards).")
+    else:
+        print("WARNING: Will add new cards and update existing ones.")
 
-    try:
-        drive_service = get_drive_service()
-        print("✅ Google Drive service initialized.")
-    except Exception as e:
-        print(f"❌ CRITICAL Error initializing Google Drive service: {e}")
-        return
-
-    try:
-        print(f"Fetching folders from Google Drive root '{GOOGLE_DRIVE_FOLDER_ID}'...")
-        query = f"'{GOOGLE_DRIVE_FOLDER_ID}' in parents and trashed=false and mimeType = 'application/vnd.google-apps.folder'"
-        drive_folders = (
-            drive_service.files()
-            .list(q=query, pageSize=1000, fields="files(id, name)")
-            .execute()
-            .get("files", [])
-        )
-
-        total_uploaded, total_warnings, total_failures = 0, 0, 0
-
-        for drive_folder in drive_folders:
-            drive_folder_name, folder_id = drive_folder.get("name"), drive_folder.get(
-                "id"
-            )
-            print(f"\nProcessing Drive folder: '{drive_folder_name}'...")
-
-            # The folder name is lowercased and hyphenated for matching
-            firebase_folder_name_to_find = drive_folder_name.lower().replace(" ", "-")
-            corresponding_set_code = next(
-                (
-                    code
-                    for code, name in set_code_to_folder_map.items()
-                    if name in firebase_folder_name_to_find
-                ),
-                None,
-            )
-
-            if not corresponding_set_code:
-                print(
-                    f"  ⚠️ Warning: No matching set for Drive folder '{drive_folder_name}'. Skipping."
-                )
-                total_warnings += 1
-                continue
-
-            # High-speed check: Compare file count in Drive vs. Storage to skip full sets
-            firebase_set_folder_path = (
-                f"{STORAGE_BASE_PATH}/{set_code_to_folder_map[corresponding_set_code]}/"
-            )
-            blobs_in_set = list(
-                bucket_client.list_blobs(prefix=firebase_set_folder_path)
-            )
-            files_in_drive_folder = (
-                drive_service.files()
-                .list(
-                    q=f"'{folder_id}' in parents and trashed=false",
-                    pageSize=1000,
-                    fields="files(id, name)",
-                )
-                .execute()
-                .get("files", [])
-            )
-
-            if files_in_drive_folder and len(blobs_in_set) >= len(
-                files_in_drive_folder
-            ):
-                print(
-                    f"  ✅ Set '{corresponding_set_code}' appears complete ({len(blobs_in_set)} images exist). Skipping folder."
-                )
-                continue
-
-            print(
-                f"  -> Found {len(files_in_drive_folder)} files in Drive. Checking against {len(blobs_in_set)} in Storage."
-            )
-
-            # This regex now works for 'P-A' -> 'p-a-1.png'
-            filename_prefix_to_match = corresponding_set_code.lower()
-            if corresponding_set_code == "P-A":
-                filename_prefix_to_match = "promo-a"
-
-            dynamic_filename_regex = re.compile(
-                f"^{re.escape(filename_prefix_to_match)}-(\\d+)\\..+",
-                re.IGNORECASE,
-            )
-
-            for file_item in files_in_drive_folder:
-                file_name, file_id = file_item.get("name"), file_item.get("id")
-                match = dynamic_filename_regex.match(file_name)
-
-                if not match:
-                    total_warnings += 1
-                    continue
-
-                card_number_str = str(int(match.group(1)))
-                destination_blob_name = f"{STORAGE_BASE_PATH}/{set_code_to_folder_map[corresponding_set_code]}/{card_number_str}"
-                blob = bucket_client.blob(destination_blob_name)
-
-                if blob.exists():
-                    continue
-
-                try:
-                    request = drive_service.files().get_media(fileId=file_id)
-                    file_content = io.BytesIO()
-                    downloader = MediaIoBaseDownload(file_content, request)
-                    done = False
-                    while not done:
-                        _, done = downloader.next_chunk()
-
-                    file_content.seek(0)
-                    blob.upload_from_file(file_content, content_type="image/png")
-                    blob.make_public()
-                    total_uploaded += 1
-                    print(f"    -> Uploaded '{file_name}'")
-
-                except Exception as e:
-                    print(f"    -> ❌ FAILED to process/upload '{file_name}': {e}")
-                    total_failures += 1
-
-        print("\n" + "=" * 40)
-        print("      HIGH-RES IMAGE SCRAPE SUMMARY")
-        print("=" * 40)
-        print(f"✅ New Images Uploaded: {total_uploaded}")
-        print(f"⚠️ Warnings/Skipped:    {total_warnings}")
-        print(f"❌ Upload Failures:       {total_failures}")
-        print("=" * 40)
-
-    except Exception as e:
-        print(f"\n❌ An unexpected error occurred during the image scrape: {e}")
-
-
-def main():
-    global current_global_card_id_counter
-    initialize_firebase_scrape_session()
-
-    current_global_card_id_counter = get_current_max_card_id(db_firestore)
+    current_global_card_id_counter = get_current_max_card_id(db)
     print(f"Starting global card ID counter at: {current_global_card_id_counter}")
 
     card_sets = get_card_sets()
-    total_processed_cards = 0
     total_saved_or_updated_cards = 0
 
     for set_name_from_list, set_code in card_sets:
         print(f"\nProcessing Set: {set_name_from_list} ({set_code})")
-
         cards_in_current_set_numbers = get_cards_from_set(set_code)
 
         if not cards_in_current_set_numbers:
-            print(f"No cards found for set {set_code} on website. Skipping.")
+            print(f"No cards found for set {set_code}. Skipping.")
             continue
 
-        # --- START: Corrected High-Speed Set Check ---
-
+        # High-speed set check
         website_card_count = len(cards_in_current_set_numbers)
         firestore_card_count = 0
-
         try:
-            # New, more reliable method: Query for the set by its unique set_code.
             query_ref = (
-                db_firestore.collection("cards")
+                db.collection("cards")
                 .where("set_code", "==", set_code)
                 .limit(1)
                 .stream()
             )
-
-            # Get the first (and only) document from the query result
             set_document = next(query_ref, None)
-
             if set_document and set_document.exists:
                 firestore_card_count = set_document.to_dict().get("card_count", 0)
-
         except Exception as e:
             print(f"Warning: Could not query Firestore for set count check: {e}")
 
-        # Compare the counts. If they match, skip the entire set.
         if firestore_card_count > 0 and firestore_card_count >= website_card_count:
             print(
-                f"✅ Set is already complete ({firestore_card_count}/{website_card_count} cards). Skipping."
+                f"✅ Set is complete ({firestore_card_count}/{website_card_count} cards). Skipping."
             )
             continue
-        else:
-            print(
-                f"Set has {firestore_card_count}/{website_card_count} cards. Proceeding with scrape..."
-            )
 
-        # --- END: Corrected High-Speed Set Check ---
-
-        processed_in_set = 0
-        saved_or_updated_in_set = 0
+        print(
+            f"Set has {firestore_card_count}/{website_card_count} cards. Proceeding..."
+        )
 
         for i, card_num_str in enumerate(cards_in_current_set_numbers):
-            if i > 0:
-                time.sleep(0.1)
+            time.sleep(0.1)  # Be kind to the server
             card_details_dict = scrape_card_details(set_code, card_num_str)
 
             if card_details_dict:
-                if save_card_to_firestore(card_details_dict):
-                    saved_or_updated_in_set += 1
-            processed_in_set += 1
-
-        # This part of the loop remains unchanged
-        cleaned_set_name_for_print = re.sub(
-            r"\s*\([A-Za-z0-9\-]+\)\s*$", "", set_name_from_list
-        ).strip()
-        print(
-            f"Finished set {cleaned_set_name_for_print}. Processed: {processed_in_set}. Saved/Updated: {saved_or_updated_in_set}."
-        )
-        total_processed_cards += processed_in_set
-        total_saved_or_updated_cards += saved_or_updated_in_set
-        time.sleep(0.5)
+                saved, new_counter = save_card_to_firestore(
+                    card_details_dict, current_global_card_id_counter
+                )
+                if saved:
+                    total_saved_or_updated_cards += 1
+                    current_global_card_id_counter = new_counter
 
     print(
-        f"\nWEBSITE SCRAPING FINISHED. Total cards processed: {total_processed_cards}. Total cards saved/updated: {total_saved_or_updated_cards}"
+        f"\nWEBSITE SCRAPING FINISHED. Total cards saved/updated: {total_saved_or_updated_cards}"
     )
-    print(f"Final global card ID counter value: {current_global_card_id_counter}")
 
-    # This section for migrating images remains unchanged
-    print("\n\n========================================================")
-    print("NOW MIGRATING HIGH-RES IMAGES...")
+    # After scraping, immediately run the post-processor
+    print("\n========================================================")
+    print("RUNNING POST-PROCESSING...")
     print("========================================================")
-    run_high_res_image_migration(db_firestore, bucket_storage)
-    print("\nAll scraping and migration tasks are complete.")
+    main_post_process()
 
 
-if __name__ == "__main__":
-    main()
+def run_image_migration():
+    """
+    Main job for migrating high-resolution images from Google Drive
+    to Firebase Storage.
+    """
+    print("\n--- Starting High-Resolution Image Migration Job ---")
+    db_client = firestore.client()
+    bucket_client = storage.bucket()
+    set_code_to_folder_map = generate_set_map_from_firestore(db_client)
+    if not set_code_to_folder_map:
+        print("❌ Image Scrape Aborted: Could not generate set map from Firestore.")
+        return
+
+    # Manual patch for promo set
+    set_code_to_folder_map["P-A"] = "promo-a"
+
+    try:
+        drive_service = get_drive_service()
+    except Exception as e:
+        print(f"❌ CRITICAL Error initializing Google Drive service: {e}")
+        return
+
+    print(f"Fetching folders from Google Drive root '{GOOGLE_DRIVE_FOLDER_ID}'...")
+    query = f"'{GOOGLE_DRIVE_FOLDER_ID}' in parents and trashed=false and mimeType = 'application/vnd.google-apps.folder'"
+    drive_folders = (
+        drive_service.files()
+        .list(q=query, pageSize=1000, fields="files(id, name)")
+        .execute()
+        .get("files", [])
+    )
+
+    total_uploaded, total_warnings, total_failures = 0, 0, 0
+
+    for drive_folder in drive_folders:
+        drive_folder_name, folder_id = drive_folder.get("name"), drive_folder.get("id")
+        print(f"\nProcessing Drive folder: '{drive_folder_name}'...")
+
+        firebase_folder_name_to_find = drive_folder_name.lower().replace(" ", "-")
+        corresponding_set_code = next(
+            (
+                code
+                for code, name in set_code_to_folder_map.items()
+                if name in firebase_folder_name_to_find
+            ),
+            None,
+        )
+
+        if not corresponding_set_code:
+            print(
+                f"  ⚠️ Warning: No matching set for Drive folder '{drive_folder_name}'. Skipping."
+            )
+            total_warnings += 1
+            continue
+
+        firebase_set_folder_path = (
+            f"{STORAGE_BASE_PATH}/{set_code_to_folder_map[corresponding_set_code]}/"
+        )
+        blobs_in_set = list(bucket_client.list_blobs(prefix=firebase_set_folder_path))
+        files_in_drive_folder = (
+            drive_service.files()
+            .list(
+                q=f"'{folder_id}' in parents and trashed=false",
+                pageSize=1000,
+                fields="files(id, name)",
+            )
+            .execute()
+            .get("files", [])
+        )
+
+        if files_in_drive_folder and len(blobs_in_set) >= len(files_in_drive_folder):
+            print(
+                f"  ✅ Set '{corresponding_set_code}' appears complete ({len(blobs_in_set)} images exist). Skipping folder."
+            )
+            continue
+
+        print(
+            f"  -> Found {len(files_in_drive_folder)} files in Drive. Checking against {len(blobs_in_set)} in Storage."
+        )
+
+        filename_prefix_to_match = corresponding_set_code.lower()
+        if corresponding_set_code == "P-A":
+            filename_prefix_to_match = "promo-a"
+
+        dynamic_filename_regex = re.compile(
+            f"^{re.escape(filename_prefix_to_match)}-(\\d+)\\..+", re.IGNORECASE
+        )
+
+        for file_item in files_in_drive_folder:
+            file_name, file_id = file_item.get("name"), file_item.get("id")
+            match = dynamic_filename_regex.match(file_name)
+
+            if not match:
+                total_warnings += 1
+                continue
+
+            card_number_str = str(int(match.group(1)))
+            destination_blob_name = f"{STORAGE_BASE_PATH}/{set_code_to_folder_map[corresponding_set_code]}/{card_number_str}"
+            blob = bucket_client.blob(destination_blob_name)
+
+            if blob.exists():
+                continue
+
+            try:
+                request = drive_service.files().get_media(fileId=file_id)
+                file_content = io.BytesIO()
+                downloader = MediaIoBaseDownload(file_content, request)
+                done = False
+                while not done:
+                    _, done = downloader.next_chunk()
+
+                file_content.seek(0)
+                blob.upload_from_file(file_content, content_type="image/png")
+                blob.make_public()
+                total_uploaded += 1
+                print(f"    -> Uploaded '{file_name}'")
+
+            except Exception as e:
+                print(f"    -> ❌ FAILED to process/upload '{file_name}': {e}")
+                total_failures += 1
+
+    print("\n" + "=" * 40)
+    print("      HIGH-RES IMAGE SCRAPE SUMMARY")
+    print("=" * 40)
+    print(f"✅ New Images Uploaded: {total_uploaded}")
+    print(f"⚠️ Warnings/Skipped:    {total_warnings}")
+    print(f"❌ Upload Failures:       {total_failures}")
+    print("=" * 40)

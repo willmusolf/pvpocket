@@ -27,12 +27,14 @@ var/
 venv/
 ENV/
 env/
+Dockerfile
 
 # Database
 *.db
 *.sqlite3
 pokemon_cards.db
 card_collection.pkl
+scraping/
 
 # OS specific files
 .DS_Store
@@ -55,6 +57,8 @@ app.yaml
 app-test.yaml
 credentials.json
 token.json
+main.py
+shared_utils.py
 
 # IDE specific files
 .idea/

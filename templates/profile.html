@@ -11,13 +11,11 @@
         margin-bottom: 1.5rem;
         padding: 1.5rem;
     }
-    /* Container for the main profile icon and its hover effect */
     .profile-icon-wrapper {
         position: relative;
         width: 120px;
         height: 120px;
-        margin: 0 auto; /* Center the wrapper */
-        cursor: pointer;
+        margin: 0 auto;
     }
     .profile-header-icon {
         width: 120px;
@@ -27,7 +25,6 @@
         border: 4px solid var(--border-color);
         display: block;
     }
-    /* The "edit" overlay that appears on hover */
     .profile-icon-wrapper .edit-overlay {
         position: absolute;
         top: 0;
@@ -43,13 +40,20 @@
         font-size: 1.2rem;
         opacity: 0;
         transition: opacity 0.2s ease-in-out;
-        pointer-events: none; /* Allows clicks to pass through if not visible */
+        pointer-events: none;
     }
-    /* Show the overlay on hover */
-    .profile-icon-wrapper:hover .edit-overlay {
-        opacity: 1;
-        pointer-events: auto; /* Make it clickable when visible */
+    
+    /* CHANGE: This block applies the hover effect ONLY to screens 768px and wider */
+    @media (min-width: 768px) {
+        .profile-icon-wrapper {
+            cursor: pointer;
+        }
+        .profile-icon-wrapper:hover .edit-overlay {
+            opacity: 1;
+            pointer-events: auto;
+        }
     }
+    
     .profile-header {
         display: flex;
         flex-direction: column;
@@ -57,11 +61,9 @@
         gap: 0.5rem;
         margin-bottom: 2rem;
     }
-    /* Fix for email visibility in dark mode */
     [data-theme="dark"] .text-muted {
         color: var(--bs-gray-500) !important;
     }
-    /* Scrollable icon container styles */
     .icon-selector-container {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
@@ -80,6 +82,14 @@
     .icon-selector-container::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
     .icon-selector-container::-webkit-scrollbar-thumb { background: #a0a0a0; border-radius: 10px; }
     .icon-selector-container::-webkit-scrollbar-thumb:hover { background: #707070; }
+    [data-theme="dark"] .icon-selector-container {
+        background-color: #212529;
+        border-color: #495057;
+        scrollbar-color: #495057 #212529;
+    }
+    [data-theme="dark"] .icon-selector-container::-webkit-scrollbar-track { background: #212529; }
+    [data-theme="dark"] .icon-selector-container::-webkit-scrollbar-thumb { background: #495057; }
+    [data-theme="dark"] .icon-selector-container::-webkit-scrollbar-thumb:hover { background: #6c757d; }
     .icon-option {
         cursor: pointer;
         display: flex;
@@ -98,24 +108,6 @@
     .icon-option input[type="radio"]:checked + img {
         border-color: var(--bs-primary);
         transform: scale(1.1);
-    }
-    [data-theme="dark"] .icon-selector-container {
-        background-color: #212529; /* A dark background */
-        border-color: #495057;   /* A slightly lighter border */
-        scrollbar-color: #495057 #212529; /* Dark scrollbar for Firefox */
-    }
-
-    /* Dark mode scrollbar for Chrome, Safari, etc. */
-    [data-theme="dark"] .icon-selector-container::-webkit-scrollbar-track {
-        background: #212529;
-    }
-
-    [data-theme="dark"] .icon-selector-container::-webkit-scrollbar-thumb {
-        background: #495057;
-    }
-
-    [data-theme="dark"] .icon-selector-container::-webkit-scrollbar-thumb:hover {
-        background: #6c757d;
     }
 </style>
 {% endblock %}
@@ -231,7 +223,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // New code for scrolling to the icon selection
+    // Scroll to icon selection if there's an error
     const profileIconScroller = document.getElementById('profileIconScroller');
     const changeIconAnchor = document.getElementById('changeIconAnchor');
     if (profileIconScroller && changeIconAnchor) {
@@ -240,7 +232,18 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // --- The rest of your existing script ---
+    // New code for username change confirmation
+    const changeUsernameForm = document.getElementById('changeUsernameFormProfile');
+    if (changeUsernameForm) {
+        changeUsernameForm.addEventListener('submit', function(event) {
+            const confirmed = window.confirm("Are you sure you want to change your username? This can only be done once.");
+            if (!confirmed) {
+                event.preventDefault();
+            }
+        });
+    }
+
+    // Existing code for delete account, dark mode, etc.
     const deleteAccountBtn = document.getElementById('deleteAccountBtnProfilePage');
     if (deleteAccountBtn) {
         deleteAccountBtn.addEventListener('click', function() {
@@ -268,7 +271,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     const usernameErrorFeedbackProfile = document.getElementById('usernameProfileErrorFeedback');
     if (usernameErrorFeedbackProfile && usernameErrorFeedbackProfile.textContent.trim()) {
-        document.getElementById('changeUsernameAnchor').scrollIntoView({ behavior: 'smooth', block: 'center' });
+         document.getElementById('changeUsernameAnchor').scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 });
 </script>
