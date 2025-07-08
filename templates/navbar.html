@@ -22,8 +22,7 @@
                 <a class="nav-link dropdown-toggle" href="#" id="navbarUserDropdownMobile" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <img src="{{ current_user_profile_icon_url }}" alt="Profile" class="rounded-circle" style="width: 39px; height: 39px; object-fit: cover;">
                 </a>
-                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarUserDropdownMobile">
-                    {# CHANGE: Call the macro to generate the items #}
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarUserDropdown">
                     {{ account_dropdown_items(request.full_path) }}
                 </ul>
             </div>

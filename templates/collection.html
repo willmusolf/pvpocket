@@ -505,14 +505,21 @@
         document.querySelectorAll('.filter-bar .energy-icon-wrapper').forEach(icon => {
             icon.addEventListener('click', () => {
                 const energyType = icon.dataset.type;
-                icon.classList.toggle('active');
+                const isCurrentlyActive = icon.classList.contains('active');
 
-                if (activeFilters.energyTypes.includes(energyType)) {
+                // If the icon is already active, always allow de-selecting it.
+                if (isCurrentlyActive) {
+                    icon.classList.remove('active');
                     activeFilters.energyTypes = activeFilters.energyTypes.filter(e => e !== energyType);
-                } else {
+                    applyFilters();
+                } 
+                // If it's not active, only allow selecting it if fewer than 3 are already selected.
+                else if (activeFilters.energyTypes.length < 3) {
+                    icon.classList.add('active');
                     activeFilters.energyTypes.push(energyType);
+                    applyFilters();
                 }
-                applyFilters();
+                // If 3 are already active and you click an inactive one, do nothing.
             });
         });
     }
