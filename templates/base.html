@@ -267,14 +267,15 @@
         });
     </script>
     <script>
-    window.IS_USER_AUTHENTICATED = {{ session.get('user_id') is not none | tojson }};
+    window.IS_USER_AUTHENTICATED = {{ current_user.is_authenticated | tojson }};
+    {% if current_user.is_authenticated %}
     window.CURRENT_USER_DATA = {
-        username: {{ session.get('username', '') | tojson }},
-        userId: {{ session.get('user_id', '') | tojson }}
+        username: {{ current_user.username | tojson }},
+        userId: {{ current_user.id | tojson }}
     };
-    if (!window.IS_USER_AUTHENTICATED) {
-        window.CURRENT_USER_DATA = null;
-    }
+    {% else %}
+    window.CURRENT_USER_DATA = null;
+    {% endif %}
 </script>
 {% block extra_js %}{% endblock %}
 
