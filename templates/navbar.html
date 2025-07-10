@@ -1,8 +1,8 @@
 {% macro account_dropdown_items(current_path) %}
     {# This macro generates the account dropdown list items. #}
     {# It's defined once and used in two places to prevent inconsistencies. #}
-    {% if session.get('user_id') is not none %}
-        <li><h6 class="dropdown-header">{{ session.get('username', '') }}</h6></li>
+    {% if current_user.is_authenticated %}
+        <li><h6 class="dropdown-header">{{ current_user.username }}</h6></li>
         <li><a class="dropdown-item" href="{{ url_for('auth.user_profile_and_settings') }}">Profile/Settings</a></li>
         <li><hr class="dropdown-divider"></li>
         {# ADDITION: Use a class here for the logout script to find #}
@@ -22,10 +22,10 @@
         <div class="d-flex align-items-center">
             
             <div class="nav-item dropdown d-md-none me-2">
-                <a class="nav-link dropdown-toggle" href="#" id="navbarUserDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarUserDropdownMobile" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <img src="{{ current_user_profile_icon_url }}" alt="Profile" class="rounded-circle" style="width: 39px; height: 39px; object-fit: cover;">
                 </a>
-                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarUserDropdown">
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarUserDropdownMobile">
                     {{ account_dropdown_items(request.full_path) }}
                 </ul>
             </div>
@@ -53,11 +53,10 @@
             
             <ul class="navbar-nav d-none d-md-block me-2">
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="navbarUserDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarUserDropdownDesktop" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <img src="{{ current_user_profile_icon_url }}" alt="Profile" class="rounded-circle" style="width: 39px; height: 39px; object-fit: cover;">
                     </a>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                        {# CHANGE: Call the same macro here #}
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarUserDropdownDesktop">
                         {{ account_dropdown_items(request.full_path) }}
                     </ul>
                 </li>

@@ -284,12 +284,6 @@ def google_authorized(blueprint, token):
         # For User class init: user_data_for_login is passed directly
         user_instance_to_login = User(user_id=user_app_id, data=user_data_for_login)
         login_user(user_instance_to_login, remember=True)
-        session["user_id"] = (
-            user_instance_to_login.id
-        )  # Your app-specific session tracking
-        session["username"] = (
-            user_instance_to_login.username
-        )  # This will be "" for new users
         print(
             f"[AUTH_FIRESTORE] User '{user_instance_to_login.username}' (ID: {user_app_id}) logged in with Flask-Login.",
             flush=True,
@@ -489,8 +483,6 @@ def logout():
 
     logout_user() 
 
-    session.pop("user_id", None)
-    session.pop("username", None)
     session.pop("google_oauth_token", None) 
 
     is_safe = is_safe_url(origin_url)
