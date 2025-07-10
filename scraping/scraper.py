@@ -16,8 +16,12 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 
-# Import the post-processor to chain it after the scrape
-from .post_processor import main_post_process
+try:
+    # This style works when run as part of the cloud job
+    from .post_processor import main_post_process
+except ImportError:
+    # This style works when run as a standalone script locally
+    from post_processor import main_post_process
 
 
 # --- Configuration ---
@@ -763,3 +767,42 @@ def run_image_migration():
     print(f"⚠️ Warnings/Skipped:    {total_warnings}")
     print(f"❌ Upload Failures:       {total_failures}")
     print("=" * 40)
+
+if __name__ == "__main__":
+    import sys
+    import os
+    from dotenv import load_dotenv
+
+    # Load environment variables from .env file
+    load_dotenv()
+
+    # This block of code only runs when you execute scraper.py directly
+    print("Running scraper.py as a standalone script...")
+
+    # This is a standard Python trick to allow the script to find the shared_utils.py file
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sys.path.append(project_root)
+
+    from shared_utils import initialize_firebase
+
+    # Check for a command-line argument
+    if len(sys.argv) < 2:
+        print("Usage: python3 scraping/scraper.py [sets|images]")
+        sys.exit(1)
+
+    choice = sys.argv[1]
+
+    print(f"Running scraper.py as a standalone script for: {choice}")
+
+    # Initialize Firebase before running any function
+    initialize_firebase()
+
+    if choice == "sets":
+        run_set_scrape_and_post_process()
+    elif choice == "images":
+        run_image_migration()
+    else:
+        print(f"Error: Invalid choice '{choice}'. Please use 'sets' or 'images'.")
+        sys.exit(1)
+
+    print("\nStandalone script finished.")

@@ -13,8 +13,11 @@
 {% endmacro %}
 
 <nav class="navbar navbar-expand-md p-4 border-bottom" id="mainNavbar">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="{{ url_for('main.index') }}">PvPocket</a>
+    <div class="container-fluid align-items-center">
+        <a class="navbar-brand d-flex align-items-center fs-4" href="{{ url_for('main.index') }}">
+            <img src="{{ url_for('static', filename='navbar-icon.png') }}" alt="PvPocket Logo" width="40" height="40" class="me-2">
+            PvPocket
+        </a>
 
         <div class="d-flex align-items-center">
             
