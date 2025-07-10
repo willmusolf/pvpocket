@@ -1,11 +1,9 @@
 {% macro account_dropdown_items(current_path) %}
-    {# This macro generates the account dropdown list items. #}
-    {# It's defined once and used in two places to prevent inconsistencies. #}
     {% if current_user.is_authenticated %}
         <li><h6 class="dropdown-header">{{ current_user.username }}</h6></li>
         <li><a class="dropdown-item" href="{{ url_for('auth.user_profile_and_settings') }}">Profile/Settings</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('friends.friends_page') }}">Friends</a></li> 
         <li><hr class="dropdown-divider"></li>
-        {# ADDITION: Use a class here for the logout script to find #}
         <li><a class="dropdown-item user-logout-link" href="{{ url_for('auth.logout') }}">Logout</a></li>
     {% else %}
         <li><a class="dropdown-item" href="{{ url_for('auth.login_prompt_page', next=current_path) }}">Log In / Sign Up</a></li>
@@ -23,7 +21,7 @@
             
             <div class="nav-item dropdown d-md-none me-2">
                 <a class="nav-link dropdown-toggle" href="#" id="navbarUserDropdownMobile" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    <img src="{{ current_user_profile_icon_url }}" alt="Profile" class="rounded-circle" style="width: 39px; height: 39px; object-fit: cover;">
+                    <img src="{{ current_user_profile_icon_url }}" alt="Profile" class="rounded-circle" style="width: 38px; height: 38px; object-fit: cover; background-color: var(--border-color);">
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarUserDropdownMobile">
                     {{ account_dropdown_items(request.full_path) }}
@@ -54,7 +52,7 @@
             <ul class="navbar-nav d-none d-md-block me-2">
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="navbarUserDropdownDesktop" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <img src="{{ current_user_profile_icon_url }}" alt="Profile" class="rounded-circle" style="width: 39px; height: 39px; object-fit: cover;">
+                        <img src="{{ current_user_profile_icon_url }}" alt="Profile" class="rounded-circle" style="width: 38px; height: 38px; object-fit: cover; background-color: var(--border-color);">
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarUserDropdownDesktop">
                         {{ account_dropdown_items(request.full_path) }}

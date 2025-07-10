@@ -1,0 +1,371 @@
+{% extends "base.html" %}
+
+{% block title %}Friends{% endblock %}
+
+{% block extra_css %}
+<style>
+    .friend-list-card {
+        background-color: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: .5rem;
+        margin-bottom: 1.5rem;
+        padding: 1.5rem;
+    }
+    .pending-requests-card {
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+    }
+    .add-friends-card {
+        padding-bottom: 0.75rem;
+    }
+    .user-entry {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.8rem 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .user-entry:last-child {
+        border-bottom: none;
+    }
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    .user-info img {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        object-fit: cover;
+        background-color: var(--border-color);
+    }
+    .user-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+    .friend-actions-dropdown .dropdown-toggle {
+        background-color: transparent;
+        border: none;
+        box-shadow: none;
+        padding: 0.3rem 0.5rem;
+        line-height: 1;
+        color: var(--bs-secondary-color, #6c757d);
+        transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
+    }
+    .friend-actions-dropdown .dropdown-toggle:hover,
+    .friend-actions-dropdown .dropdown-toggle:focus,
+    .friend-actions-dropdown .dropdown-toggle:active {
+        background-color: rgba(0, 0, 0, 0.075);
+        color: var(--bs-body-color, #212529);
+        box-shadow: none;
+        border: none;
+    }
+    .friend-actions-dropdown .dropdown-toggle::after {
+        display: none; 
+    }
+    .friend-actions-dropdown .dropdown-toggle i.bi-three-dots-vertical {
+        font-size: 1.3rem;
+        vertical-align: middle;
+    }
+    
+    /* New rule to fix dropdown layering */
+    .friend-actions-dropdown .dropdown-menu {
+        z-index: 100;
+    }
+
+    /* Column resizing transition */
+    .col-lg-7, .col-lg-5 {
+        transition: width 0.3s ease-in-out, flex 0.3s ease-in-out, max-width 0.3s ease-in-out;
+    }
+    
+    /* Standardized button heights */
+    .user-actions .btn {
+        height: 31px;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    /* Dark Mode Compatibility */
+    [data-theme="dark"] .friend-list-card {
+        color: #fff;
+    }
+    [data-theme="dark"] .text-muted {
+        color: var(--bs-gray-500) !important;
+    }
+    [data-theme="dark"] .dropdown-menu {
+        --bs-dropdown-bg: #343a40;
+        --bs-dropdown-link-color: #dee2e6;
+        --bs-dropdown-link-hover-color: #fff;
+        --bs-dropdown-link-hover-bg: #495057;
+        --bs-dropdown-divider-bg: #495057;
+    }
+    [data-theme="dark"] #search-input::placeholder {
+        color: var(--bs-gray-500);
+        opacity: 1;
+    }
+    [data-theme="dark"] .friend-actions-dropdown .dropdown-toggle {
+        color: var(--bs-gray-500, #adb5bd);
+    }
+    [data-theme="dark"] .friend-actions-dropdown .dropdown-toggle:hover,
+    [data-theme="dark"] .friend-actions-dropdown .dropdown-toggle:focus,
+    [data-theme="dark"] .friend-actions-dropdown .dropdown-toggle:active {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: var(--bs-light, #f8f9fa);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="mb-4">Friends</h1>
+
+    <div class="row">
+        <!-- Left Column: Friend Lists -->
+        <div class="col-lg-7">
+            <!-- Received Requests -->
+            <div class="friend-list-card pending-requests-card">
+                <h4>Pending Requests</h4>
+                <div id="received-requests-list">
+                    {% for user in received_requests %}
+                    <div class="user-entry" id="user-entry-{{ user.id }}">
+                        <div class="user-info">
+                            <img src="{{ config.PROFILE_ICON_URLS.get(user.profile_icon, config.DEFAULT_PROFILE_ICON_URL) }}" alt="{{ user.username }}">
+                            <span>{{ user.username }}</span>
+                        </div>
+                        <div class="user-actions">
+                            <button class="btn btn-success btn-sm" onclick="handleFriendAction('accept', '{{ user.id }}')">Accept</button>
+                            <button class="btn btn-secondary btn-sm" onclick="handleFriendAction('decline', '{{ user.id }}')">Decline</button>
+                        </div>
+                    </div>
+                    {% else %}
+                        <p class="text-muted mb-0">You have no pending requests.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Friends List -->
+            <div class="friend-list-card">
+                <h4>Your Friends (<span id="friends-count">{{ friends|length }}</span>)</h4>
+                <div id="friends-list">
+                    {% if friends %}
+                        {% for user in friends %}
+                        <div class="user-entry" id="user-entry-{{ user.id }}">
+                            <div class="user-info">
+                                <img src="{{ config.PROFILE_ICON_URLS.get(user.profile_icon, config.DEFAULT_PROFILE_ICON_URL) }}" alt="{{ user.username }}">
+                                <span>{{ user.username }}</span>
+                            </div>
+                            <div class="user-actions">
+                                <div class="dropdown friend-actions-dropdown">
+                                    <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Actions">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><a class="dropdown-item" href="#" onclick="handleFriendAction('view_decks', '{{ user.id }}')">View Decks</a></li>
+                                        <li><a class="dropdown-item" href="#" onclick="handleFriendAction('view_profile', '{{ user.id }}')">View Profile Card</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item text-danger" href="#" onclick="handleFriendAction('remove', '{{ user.id }}')">Remove Friend</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted mb-0">You haven't added any friends yet. Use the search to find people!</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Add Friends -->
+        <div class="col-lg-5">
+            <div class="friend-list-card add-friends-card">
+                <h4>Add Friends</h4>
+                <div class="input-group mb-3">
+                    <input type="text" id="search-input" class="form-control" placeholder="Search by username..." aria-label="Search by username">
+                    <button class="btn btn-primary" type="button" id="search-btn">Search</button>
+                </div>
+                <div id="search-results">
+                    <!-- Search results will be injected here by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const searchInput = document.getElementById('search-input');
+    const searchBtn = document.getElementById('search-btn');
+    const searchResultsContainer = document.getElementById('search-results');
+    const friendsListContainer = document.getElementById('friends-list');
+    const requestsListContainer = document.getElementById('received-requests-list');
+    const friendsCountSpan = document.getElementById('friends-count');
+    
+    const iconUrls = {{ config.PROFILE_ICON_URLS | tojson }};
+    const defaultIconUrl = '{{ config.DEFAULT_PROFILE_ICON_URL }}';
+
+    // --- NEW: Create sets to remember the state of all relationships ---
+    const friendIds = new Set();
+    {% for user in friends %}
+        friendIds.add('{{ user.id }}');
+    {% endfor %}
+
+    const sentRequestIds = new Set();
+    {% for user in sent_requests %}
+        sentRequestIds.add('{{ user.id }}');
+    {% endfor %}
+    
+    const receivedRequestIds = new Set();
+    {% for user in received_requests %}
+        receivedRequestIds.add('{{ user.id }}');
+    {% endfor %}
+
+
+    const performSearch = async () => {
+        const query = searchInput.value;
+        if (query.length < 3) {
+            searchResultsContainer.innerHTML = '<p class="text-muted mb-0">Enter at least 3 characters to search.</p>';
+            return;
+        }
+
+        const response = await fetch('{{ url_for("friends.search_users") }}', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ query: query })
+        });
+        const results = await response.json();
+
+        searchResultsContainer.innerHTML = '';
+        if (results.length > 0) {
+            results.forEach(user => {
+                const profileIconUrl = user.profile_icon ? iconUrls[user.profile_icon] : defaultIconUrl;
+                
+                // --- NEW: Expanded logic to render the correct button based on relationship status ---
+                let actionButtonHtml;
+                if (friendIds.has(user.id)) {
+                    actionButtonHtml = `<span class="text-muted fst-italic">Already friends</span>`;
+                } else if (receivedRequestIds.has(user.id)) {
+                    actionButtonHtml = `
+                        <button class="btn btn-success btn-sm" onclick="handleFriendAction('accept', '${user.id}', this)">Accept</button>
+                        <button class="btn btn-secondary btn-sm" onclick="handleFriendAction('decline', '${user.id}', this)">Decline</button>`;
+                } else if (sentRequestIds.has(user.id)) {
+                    actionButtonHtml = `<button class="btn btn-success btn-sm" disabled><i class="bi bi-check-lg"></i> Sent!</button>`;
+                } else {
+                    actionButtonHtml = `<button class="btn btn-primary btn-sm" onclick="handleFriendAction('add', '${user.id}', this)">Send Request</button>`;
+                }
+                
+                const userHtml = `
+                    <div class="user-entry" id="search-result-${user.id}">
+                        <div class="user-info">
+                            <img src="${profileIconUrl}" alt="${user.username}">
+                            <span>${user.username}</span>
+                        </div>
+                        <div class="user-actions">${actionButtonHtml}</div>
+                    </div>
+                `;
+                searchResultsContainer.insertAdjacentHTML('beforeend', userHtml);
+            });
+        } else {
+            searchResultsContainer.innerHTML = '<p class="text-muted mb-0">No users found.</p>';
+        }
+    };
+
+    searchBtn.addEventListener('click', performSearch);
+    searchInput.addEventListener('keyup', (event) => { if (event.key === 'Enter') performSearch(); });
+
+    const createFriendEntryHTML = (user) => {
+        const profileIconUrl = user.profile_icon ? iconUrls[user.profile_icon] : defaultIconUrl;
+        return `
+            <div class="user-entry" id="user-entry-${user.id}">
+                <div class="user-info">
+                    <img src="${profileIconUrl}" alt="${user.username}">
+                    <span>${user.username}</span>
+                </div>
+                <div class="user-actions">
+                    <div class="dropdown friend-actions-dropdown">
+                        <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Actions"><i class="bi bi-three-dots-vertical"></i></button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#" onclick="handleFriendAction('view_decks', '${user.id}')">View Decks</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="handleFriendAction('view_profile', '${user.id}')">View Profile Card</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="#" onclick="handleFriendAction('remove', '${user.id}')">Remove Friend</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>`;
+    };
+
+    window.handleFriendAction = async (action, userId, element) => {
+        // This function's logic remains largely the same, but we add state updates
+        if (element) element.disabled = true;
+
+        if (action === 'remove') {
+            if (!window.confirm("Are you sure you want to remove this friend?")) {
+                if (element) element.disabled = false; return;
+            }
+        }
+        
+        if (action === 'view_decks' || action === 'view_profile') {
+            alert('This feature is not yet implemented.'); return;
+        }
+
+        let url, body;
+        switch (action) {
+            case 'add': url = '{{ url_for("friends.send_friend_request") }}'; body = { recipient_id: userId }; break;
+            case 'accept': url = '{{ url_for("friends.accept_friend_request") }}'; body = { sender_id: userId }; break;
+            case 'decline': url = '{{ url_for("friends.decline_friend_request") }}'; body = { sender_id: userId }; break;
+            case 'remove': url = '{{ url_for("friends.remove_friend") }}'; body = { friend_id: userId }; break;
+            default: if (element) element.disabled = false; return;
+        }
+
+        const response = await fetch(url, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
+
+        if (response.ok) {
+            if (action === 'add' && element) {
+                sentRequestIds.add(userId);
+                element.innerHTML = '<i class="bi bi-check-lg"></i> Sent!';
+                element.classList.replace('btn-primary', 'btn-success');
+            } else if (action === 'remove') {
+                friendIds.delete(userId); // Update state
+                document.getElementById(`user-entry-${userId}`)?.remove();
+                friendsCountSpan.textContent = parseInt(friendsCountSpan.textContent) - 1;
+                if (friendsListContainer.children.length === 0) {
+                    friendsListContainer.innerHTML = '<p class="text-muted mb-0">You haven\'t added any friends yet. Use the search to find people!</p>';
+                }
+            } else if (action === 'accept') {
+                const requestEntry = document.getElementById(`user-entry-${userId}`);
+                const fullImgSrc = requestEntry.querySelector('.user-info img').src;
+                const decodedUrl = decodeURIComponent(fullImgSrc);
+                const filename = decodedUrl.substring(decodedUrl.lastIndexOf('/') + 1).split('?')[0];
+
+                const userInfo = { id: userId, username: requestEntry.querySelector('.user-info span').textContent, profile_icon: filename };
+                requestEntry.remove();
+                
+                const noFriendsMessage = friendsListContainer.querySelector('p');
+                if (noFriendsMessage) noFriendsMessage.remove();
+                friendsListContainer.insertAdjacentHTML('beforeend', createFriendEntryHTML(userInfo));
+                friendsCountSpan.textContent = parseInt(friendsCountSpan.textContent) + 1;
+                
+                // Update state
+                receivedRequestIds.delete(userId);
+                friendIds.add(userId);
+                
+                if(requestsListContainer.children.length === 0) {
+                    requestsListContainer.innerHTML = '<p class="text-muted mb-0">You have no pending requests.</p>';
+                }
+            } else if (action === 'decline') {
+                receivedRequestIds.delete(userId); // Update state
+                document.getElementById(`user-entry-${userId}`)?.remove();
+                if(requestsListContainer.children.length === 0) {
+                    requestsListContainer.innerHTML = '<p class="text-muted mb-0">You have no pending requests.</p>';
+                }
+            }
+        } else {
+            alert('An error occurred. Please try again.');
+            if (element) element.disabled = false;
+        }
+    };
+});
+</script>
+{%endblock%}
