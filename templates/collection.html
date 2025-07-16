@@ -17,15 +17,29 @@
         border-bottom: 1px solid var(--bs-border-color);
     }
 
-    /* Make the search bar column flexible */
-    .filter-bar .col-md-7 {
-        min-width: 320px; /* It won't shrink smaller than this before wrapping */
+    /* Single row layout with intelligent wrapping */
+    .filter-bar-content {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 1rem;
+        transition: all 0.2s ease-out;
     }
 
-    /* Make the energy icons column rigid */
-    .filter-bar .col-md-5 {
-        flex: 0 0 auto; /* It will not grow or shrink */
-        width: auto;
+    .search-section {
+        flex: 1 1 200px; /* Grow and shrink but never smaller than 200px */
+        min-width: 200px;
+        transition: flex-basis 0.2s ease-out, width 0.2s ease-out;
+    }
+
+    .dropdown-section {
+        flex: 0 0 auto; /* Don't grow or shrink */
+        transition: all 0.2s ease-out;
+    }
+
+    .energy-icons-section {
+        flex: 0 0 auto; /* Don't grow or shrink, wrap as a unit */
+        transition: all 0.2s ease-out;
     }
     
     .filter-bar .form-control::placeholder {
@@ -40,6 +54,9 @@
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
+        justify-content: flex-start;
+        padding: 0;
+        overflow: visible;
     }
 
     .filter-bar .energy-icon-wrapper {
@@ -48,7 +65,9 @@
         width: 32px;
         height: 32px;
         border-radius: 50%;
+        overflow: visible;
         transition: all 0.2s ease;
+        flex-shrink: 0;
     }
 
     .filter-bar .energy-icon-wrapper:not(.active) {
@@ -64,7 +83,7 @@
         opacity: 1;
         transform: scale(1.15);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-        z-index: 2;
+        z-index: 10;
     }
     /* End of Filter Bar Styles */
 
@@ -114,9 +133,17 @@
         top: 0.6rem;
         right: 0.6rem;
         display: flex; 
-        align-items: center; 
+        align-items: flex-end; 
         gap: 0.3rem;
-        z-index: 10; 
+        flex-direction: column;
+        max-width: 180px;
+    }
+    .deck-header-right-actions .d-flex {
+        flex-direction: row;
+        gap: 0.25rem !important;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        align-items: center;
     }
 
     .deck-header-right-actions .badge {
@@ -261,14 +288,7 @@
         display: none; 
     }
 
-    /* New rules for filter bar layout and exact search styling */
-    .filter-bar .row {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 0rem 1.5rem; /* Controls vertical and horizontal spacing */
-        --bs-gutter-x: 0;
-    }
+    /* Remove old Bootstrap row styling - no longer needed */
 
     /* Replicates the search icon container style from decks.html */
     .filter-bar .input-group-text {
@@ -329,45 +349,19 @@
         }
     }
 
-    @media (max-width: 767.98px) {
-        /* Make the whole filter bar more compact */
+    @media (max-width: 480px) {
+        /* Only essential mobile adjustments */
         .filter-bar {
-            padding-top: 0.75rem;
-            padding-bottom: 0.75rem;
+            padding: 1rem;
         }
-
-        /* Stack the controls and set a single, controlled gap */
-        .filter-bar .row {
-            flex-direction: column;
-            align-items: stretch;
-        }
-
-        /* THE FIX: Forcefully remove any default vertical margin on the components */
-        .filter-bar .input-group,
-        .filter-bar .energy-icons {
-            margin-top: 0;
-            margin-bottom: 0;
-        }
-
-        /* Keep the other necessary mobile layout rules */
-        .filter-bar .col-md-7,
-        .filter-bar .col-md-5 {
-            width: 100%;
-            min-width: 0;
-        }
-        /* Make the icons even smaller to guarantee they fit on one row */
-        .filter-bar .energy-icon-wrapper {
-            width: 24px;
-            height: 24px;
-        }
-
-        /* Adjust the gap and ensure they are spaced out */
-        .filter-bar .energy-icons {
-            display: flex;
-            justify-content: space-between;
-            gap: 4px;
+        
+        .filter-bar .dropdown button {
+            font-size: 0.875rem;
+            padding: 0.5rem 0.75rem;
+            min-width: 90px; /* Smaller dropdown only on very small screens */
         }
     }
+    
     @media (hover: none) {
         .deck-actions-dropdown .dropdown-toggle:hover,
         .deck-actions-dropdown .dropdown-toggle:active {
@@ -397,14 +391,26 @@
                 </div>
                 <div class="card-body position-relative">
                     <div class="filter-bar">
-                        <div class="row g-3 align-items-end">
-                            <div class="col-md-7 col-lg-8">
+                        <div class="filter-bar-content">
+                            <div class="search-section">
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="bi bi-search"></i></span>
                                     <input type="text" id="deck-search-input" class="form-control" placeholder="Search" autocomplete="off">
                                 </div>
                             </div>
-                            <div class="col-md-5 col-lg-4">
+                            <div class="dropdown-section">
+                                <div class="dropdown">
+                                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="privacyFilterDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="min-width: 100px; font-size: 0.875rem;">
+                                        All Decks
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="#" data-filter="all">All Decks</a></li>
+                                        <li><a class="dropdown-item" href="#" data-filter="public">Public Only</a></li>
+                                        <li><a class="dropdown-item" href="#" data-filter="private">Private Only</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="energy-icons-section">
                                 <div class="energy-icons">
                                     {% set deck_energy_selectable_types = [
                                         "Grass", "Fire", "Water", "Lightning",
@@ -434,7 +440,8 @@
     let allDecks = [];
     let activeFilters = {
         searchText: '',
-        energyTypes: []
+        energyTypes: [],
+        privacyFilter: 'all'
     };
 
     function escapeHTML(str) {
@@ -467,13 +474,21 @@
                 <div class="card h-100">
                     <div class="card-body" style="padding: 1rem;">
                         <div class="deck-header-right-actions">
-                            <span class="badge bg-primary">${escapeHTML(deck.card_count)}/20 cards</span>
+                            <div class="d-flex gap-2">
+                                <span class="badge bg-primary">${escapeHTML(deck.card_count)}/20 cards</span>
+                                ${deck.is_public ? '<span class="badge bg-success"><i class="bi bi-eye"></i> Public</span>' : ''}
+                            </div>
                             <div class="dropdown deck-actions-dropdown">
                                 <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Deck Actions"><i class="bi bi-three-dots-vertical"></i></button>
                                 <ul class="dropdown-menu dropdown-menu-end">
                                     <li><a class="dropdown-item" href="${deckEditUrl}"><i class="bi bi-pencil-square me-2"></i>Edit</a></li>
                                     <li><a class="dropdown-item" href="${deckCopyUrl}"><i class="bi bi-files me-2"></i>Make a copy</a></li>
                                     <li><a class="dropdown-item" href="${pageData.battle_sim_url}"><i class="bi bi-joystick me-2"></i>Load into Battle Sim</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item deck-action-privacy" href="#" data-deck-id="${escapeHTML(deck.deck_id)}" data-deck-name="${escapeHTML(deck.name)}" data-is-public="${deck.is_public || false}">
+                                        <i class="bi ${deck.is_public ? 'bi-eye-slash' : 'bi-eye'} me-2"></i>
+                                        ${deck.is_public ? 'Make Private' : 'Make Public'}
+                                    </a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item text-danger deck-action-delete" href="#" data-deck-id="${escapeHTML(deck.deck_id)}" data-deck-name="${escapeHTML(deck.name)}"><i class="bi bi-trash me-2"></i>Delete</a></li>
                                 </ul>
@@ -533,8 +548,16 @@
                 textMatch = deck.name.toLowerCase().includes(searchText) ||
                             coverNames.some(name => name.includes(searchText));
             }
+            
+            // Privacy filter
+            let privacyMatch = true;
+            if (activeFilters.privacyFilter === 'public') {
+                privacyMatch = deck.is_public === true;
+            } else if (activeFilters.privacyFilter === 'private') {
+                privacyMatch = deck.is_public !== true;
+            }
 
-            if (energyMatch && textMatch) {
+            if (energyMatch && textMatch && privacyMatch) {
                 deckElement.style.display = '';
                 visibleCount++;
             } else {
@@ -552,6 +575,21 @@
         document.getElementById('deck-search-input').addEventListener('input', (e) => {
             activeFilters.searchText = e.target.value;
             applyFilters();
+        });
+        
+        // Privacy filter dropdown
+        document.querySelectorAll('#privacyFilterDropdown + .dropdown-menu .dropdown-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                const filter = e.target.getAttribute('data-filter');
+                activeFilters.privacyFilter = filter;
+                
+                // Update dropdown button text
+                const dropdownButton = document.getElementById('privacyFilterDropdown');
+                dropdownButton.textContent = e.target.textContent;
+                
+                applyFilters();
+            });
         });
 
         document.querySelectorAll('.filter-bar .energy-icon-wrapper').forEach(icon => {
@@ -616,6 +654,8 @@
 
         document.body.addEventListener('click', function(event) {
             const deleteLink = event.target.closest('.deck-action-delete');
+            const privacyLink = event.target.closest('.deck-action-privacy');
+            
             if (deleteLink) {
                 event.preventDefault();
                 const { deckId, deckName } = deleteLink.dataset;
@@ -631,7 +671,78 @@
                         });
                 }
             }
+            
+            if (privacyLink) {
+                event.preventDefault();
+                const deckId = privacyLink.getAttribute('data-deck-id');
+                const deckName = privacyLink.getAttribute('data-deck-name');
+                const isPublic = privacyLink.getAttribute('data-is-public') === 'true';
+                
+                toggleDeckPrivacy(deckId, deckName, isPublic);
+            }
         });
+        
+        async function toggleDeckPrivacy(deckId, deckName, isCurrentlyPublic) {
+            const action = isCurrentlyPublic ? 'private' : 'public';
+            let description = '';
+            
+            if (!isCurrentlyPublic) {
+                description = prompt(`Making "${deckName}" public. Add an optional description (max 100 characters):`);
+                if (description === null) return; // User cancelled
+                
+                // Check length limit
+                if (description && description.length > 100) {
+                    alert('Description must be 100 characters or less.');
+                    return;
+                }
+                
+                // Basic profanity check (frontend validation)
+                if (description && description.trim()) {
+                    const profanityWords = ['damn', 'hell', 'shit', 'fuck', 'bitch', 'ass', 'bastard']; // Basic list
+                    const lowerDesc = description.toLowerCase();
+                    const hasProfanity = profanityWords.some(word => lowerDesc.includes(word));
+                    
+                    if (hasProfanity) {
+                        alert('Description contains inappropriate language. Please use appropriate language.');
+                        return;
+                    }
+                }
+            }
+            
+            if (confirm(`Make "${deckName}" ${action}?`)) {
+                try {
+                    const response = await fetch(`{{ url_for('friends.toggle_deck_privacy', deck_id='DECK_ID') }}`.replace('DECK_ID', deckId), {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({description: description})
+                    });
+                    
+                    const result = await response.json();
+                    if (result.success) {
+                        // Update the deck in our local data
+                        const deckIndex = allDecks.findIndex(d => d.deck_id === deckId);
+                        if (deckIndex !== -1) {
+                            allDecks[deckIndex].is_public = result.is_public;
+                        }
+                        // Re-render this specific deck
+                        const pageDataEl = document.getElementById('page-data');
+                        const pageData = JSON.parse(pageDataEl.textContent);
+                        const deckElement = document.getElementById(`deck-col-${deckId}`);
+                        if (deckElement && deckIndex !== -1) {
+                            const updatedDeck = allDecks[deckIndex];
+                            const newHTML = createDeckCardHTML(updatedDeck, pageData);
+                            deckElement.outerHTML = newHTML;
+                            initializeImageLazyLoader(); // Re-initialize for the new element
+                        }
+                        applyFilters(); // Reapply filters to reflect changes
+                    } else {
+                        alert(result.error || 'An error occurred');
+                    }
+                } catch (error) {
+                    alert('An error occurred while updating deck privacy');
+                }
+            }
+        }
     });
 </script>
 {% endblock %}

@@ -10,6 +10,10 @@ from flask import (
 )
 from flask_login import login_required, current_user as flask_login_current_user
 from firebase_admin import firestore
+from Deck import Deck
+from ..models import User
+import datetime
+from better_profanity import profanity
 
 friends_bp = Blueprint("friends", __name__, url_prefix="/friends")
 
@@ -134,13 +138,15 @@ def send_friend_request():
         )
         return jsonify({"error": "An unexpected error occurred."}), 500
 
-
 @friends_bp.route("/accept", methods=["POST"])
 @login_required
 def accept_friend_request():
     db = current_app.config.get("FIRESTORE_DB")
     current_user_id = flask_login_current_user.id
     sender_id = request.json.get("sender_id")
+
+    if not sender_id:
+        return jsonify({"error": "Invalid request. Sender ID missing."}), 400
 
     @firestore.transactional
     def accept_request_transaction(transaction, current_user_ref, sender_ref):
@@ -163,13 +169,27 @@ def accept_friend_request():
             {"friended_at": timestamp},
         )
 
-    transaction = db.transaction()
-    current_user_ref = db.collection("users").document(current_user_id)
-    sender_ref = db.collection("users").document(sender_id)
-    accept_request_transaction(transaction, current_user_ref, sender_ref)
+    try:
+        transaction = db.transaction()
+        current_user_ref = db.collection("users").document(current_user_id)
+        sender_ref = db.collection("users").document(sender_id)
+        accept_request_transaction(transaction, current_user_ref, sender_ref)
 
-    return jsonify({"success": True, "message": "Friend request accepted."})
+        # Get the new friend's data to return to the frontend
+        new_friend_data = _get_user_snapshot(sender_id)
+        if new_friend_data:
+            return jsonify({
+                "success": True, 
+                "message": "Friend request accepted.",
+                "friend": new_friend_data
+            })
+        else:
+            # This case is unlikely but handled for robustness
+            return jsonify({"success": True, "message": "Friend request accepted, but friend data could not be retrieved."})
 
+    except Exception as e:
+        current_app.logger.error(f"Error accepting friend request from {sender_id} for user {current_user_id}: {e}")
+        return jsonify({"error": "An unexpected error occurred."}), 500
 
 @friends_bp.route("/remove", methods=["POST"])
 @login_required
@@ -214,3 +234,138 @@ def decline_friend_request():
     decline_request_transaction(transaction, current_user_ref, sender_ref)
 
     return jsonify({"success": True, "message": "Friend request declined."})
+
+
+@friends_bp.route("/<user_id>/decks")
+@login_required
+def view_friend_decks(user_id):
+    """View a friend's public decks."""
+    db = current_app.config.get("FIRESTORE_DB")
+    current_user_id = flask_login_current_user.id
+    
+    # Check if user_id is a friend
+    friend_doc = db.collection("users").document(current_user_id).collection("friends").document(user_id).get()
+    if not friend_doc.exists:
+        flash("You can only view decks of your friends.", "error")
+        return redirect(url_for("friends.friends_page"))
+    
+    # Get friend's info
+    friend_info = _get_user_snapshot(user_id)
+    if not friend_info:
+        flash("Friend not found.", "error")
+        return redirect(url_for("friends.friends_page"))
+    
+    # Get friend's public decks
+    card_collection = current_app.config.get("card_collection")
+    # Simplified query to avoid index requirement - we'll sort in memory
+    decks_query = (
+        db.collection("decks")
+        .where("owner_id", "==", user_id)
+        .where("is_public", "==", True)
+    )
+    
+    friend_decks = []
+    for deck_doc in decks_query.stream():
+        try:
+            deck = Deck.from_firestore_doc(deck_doc, card_collection)
+            friend_decks.append(deck)
+        except Exception as e:
+            current_app.logger.error(f"Error loading deck {deck_doc.id}: {e}")
+    
+    # Sort by shared_at in memory (most recent first)
+    friend_decks.sort(key=lambda deck: deck.shared_at or deck.created_at or datetime.datetime.min, reverse=True)
+    
+    return render_template(
+        "friend_decks.html", 
+        friend=friend_info, 
+        decks=friend_decks
+    )
+
+
+@friends_bp.route("/<user_id>/profile")
+@login_required
+def view_friend_profile(user_id):
+    """View a friend's profile card."""
+    db = current_app.config.get("FIRESTORE_DB")
+    current_user_id = flask_login_current_user.id
+    
+    # Check if user_id is a friend
+    friend_doc = db.collection("users").document(current_user_id).collection("friends").document(user_id).get()
+    if not friend_doc.exists:
+        return jsonify({"error": "You can only view profiles of your friends."}), 403
+    
+    # Get friend's data
+    user_doc = db.collection("users").document(user_id).get()
+    if not user_doc.exists:
+        return jsonify({"error": "User not found."}), 404
+    
+    friend_user = User(user_id, user_doc.to_dict())
+    profile_data = friend_user.get_public_profile_data(is_friend=True)
+    
+    # Get friend's stats
+    decks_count = len(list(db.collection("decks").where("owner_id", "==", user_id).stream()))
+    public_decks_count = len(list(db.collection("decks").where("owner_id", "==", user_id).where("is_public", "==", True).stream()))
+    
+    profile_data.update({
+        "user_id": user_id,
+        "decks_count": decks_count,
+        "public_decks_count": public_decks_count,
+    })
+    
+    return jsonify(profile_data)
+
+
+@friends_bp.route("/deck/<deck_id>/toggle-privacy", methods=["POST"])
+@login_required
+def toggle_deck_privacy(deck_id):
+    """Toggle privacy of user's own deck."""
+    db = current_app.config.get("FIRESTORE_DB")
+    current_user_id = flask_login_current_user.id
+    card_collection = current_app.config.get("card_collection")
+    
+    # Get the deck
+    deck_doc = db.collection("decks").document(deck_id).get()
+    if not deck_doc.exists:
+        return jsonify({"error": "Deck not found."}), 404
+    
+    deck = Deck.from_firestore_doc(deck_doc, card_collection)
+    
+    # Check ownership
+    if deck.owner_id != current_user_id:
+        return jsonify({"error": "You can only modify your own decks."}), 403
+    
+    # Toggle privacy
+    description = request.json.get("description", "").strip()
+    
+    # Length check for description
+    if description and len(description) > 100:
+        return jsonify({"error": "Description must be 100 characters or less."}), 400
+    
+    # Profanity check for description
+    if description and profanity.contains_profanity(description):
+        return jsonify({"error": "Description contains inappropriate language. Please use appropriate language."}), 400
+    
+    old_privacy = deck.is_public
+    new_privacy = deck.toggle_privacy()
+    
+    if new_privacy and description:
+        deck.description = description
+    
+    # Save to Firestore - only update privacy-related fields to avoid changing updated_at
+    try:
+        update_data = {
+            "is_public": new_privacy,
+            "shared_at": deck.shared_at,
+            "description": deck.description
+        }
+        db.collection("decks").document(deck_id).update(update_data)
+        
+        action = "made public" if new_privacy else "made private"
+        return jsonify({
+            "success": True, 
+            "message": f"Deck {action} successfully.",
+            "is_public": new_privacy
+        })
+    except Exception as e:
+        current_app.logger.error(f"Error updating deck privacy: {e}")
+        return jsonify({"error": "Failed to update deck privacy."}), 500

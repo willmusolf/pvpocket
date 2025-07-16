@@ -14,6 +14,8 @@ from flask_login import (
 
 from firebase_admin import firestore  # For ArrayUnion and SERVER_TIMESTAMP
 from typing import Optional  # For type hinting in helper function
+import json
+import datetime
 
 decks_bp = Blueprint('decks', __name__)
 
@@ -951,3 +953,174 @@ def copy_deck(
             ),
             500,
         )
+
+
+@decks_bp.route("/deck/<deck_id>/export/<format>")
+@login_required
+def export_deck(deck_id, format):
+    """Export a deck in various formats (json, text)."""
+    db = get_db()
+    current_user_id = flask_login_current_user.id
+    card_collection = current_app.config.get("card_collection")
+    
+    # Get the deck
+    deck_doc = db.collection("decks").document(deck_id).get()
+    if not deck_doc.exists:
+        flash("Deck not found.", "error")
+        return redirect(url_for("decks.list_decks"))
+    
+    deck = Deck.from_firestore_doc(deck_doc, card_collection)
+    
+    # Check if user can view this deck (owner or public)
+    if deck.owner_id != current_user_id and not deck.is_public:
+        flash("You don't have permission to export this deck.", "error")
+        return redirect(url_for("decks.list_decks"))
+    
+    if format == "json":
+        # Export as JSON
+        export_data = {
+            "name": deck.name,
+            "description": deck.description,
+            "deck_types": deck.deck_types,
+            "created_at": deck.created_at.isoformat() if deck.created_at else None,
+            "is_public": deck.is_public,
+            "cards": []
+        }
+        
+        # Group cards by name and count
+        card_counts = {}
+        for card in deck.cards:
+            if card.name not in card_counts:
+                card_counts[card.name] = {
+                    "count": 0,
+                    "card_data": {
+                        "id": card.id,
+                        "name": card.name,
+                        "energy_type": card.energy_type,
+                        "card_type": card.card_type,
+                        "hp": card.hp,
+                        "rarity": card.rarity,
+                        "set_name": card.set_name
+                    }
+                }
+            card_counts[card.name]["count"] += 1
+        
+        for card_name, data in card_counts.items():
+            export_data["cards"].append({
+                "count": data["count"],
+                **data["card_data"]
+            })
+        
+        response = current_app.response_class(
+            json.dumps(export_data, indent=2),
+            mimetype="application/json"
+        )
+        response.headers["Content-Disposition"] = f"attachment; filename={deck.name}_deck.json"
+        return response
+    
+    elif format == "text":
+        # Export as plain text
+        lines = [
+            f"=== {deck.name} ===",
+            f"Types: {', '.join(deck.deck_types) if deck.deck_types else 'Unspecified'}",
+        ]
+        
+        if deck.description:
+            lines.append(f"Description: {deck.description}")
+        
+        lines.append("")
+        
+        # Group cards by type
+        pokemon = []
+        trainers = []
+        
+        for card in deck.cards:
+            if hasattr(card, 'is_pokemon') and card.is_pokemon:
+                pokemon.append(card)
+            elif hasattr(card, 'is_trainer') and card.is_trainer:
+                trainers.append(card)
+        
+        # Pokemon section
+        if pokemon:
+            lines.append("Pokemon:")
+            pokemon_counts = {}
+            for card in pokemon:
+                if card.name not in pokemon_counts:
+                    pokemon_counts[card.name] = 0
+                pokemon_counts[card.name] += 1
+            
+            for name, count in sorted(pokemon_counts.items()):
+                lines.append(f"  {count}x {name}")
+            lines.append("")
+        
+        # Trainers section
+        if trainers:
+            lines.append("Trainers:")
+            trainer_counts = {}
+            for card in trainers:
+                if card.name not in trainer_counts:
+                    trainer_counts[card.name] = 0
+                trainer_counts[card.name] += 1
+            
+            for name, count in sorted(trainer_counts.items()):
+                lines.append(f"  {count}x {name}")
+            lines.append("")
+        
+        lines.append(f"Total Cards: {len(deck.cards)}/20")
+        
+        if deck.created_at:
+            lines.append(f"Created: {deck.created_at.strftime('%Y-%m-%d')}")
+        
+        text_content = "\n".join(lines)
+        response = current_app.response_class(
+            text_content,
+            mimetype="text/plain"
+        )
+        response.headers["Content-Disposition"] = f"attachment; filename={deck.name}_deck.txt"
+        return response
+    
+    else:
+        flash("Invalid export format.", "error")
+        return redirect(url_for("decks.list_decks"))
+
+
+@decks_bp.route("/deck/<deck_id>/view")
+def view_public_deck(deck_id):
+    """Public deck viewing page (accessible without login if deck is public)."""
+    db = get_db()
+    card_collection = current_app.config.get("card_collection")
+    
+    # Get the deck
+    deck_doc = db.collection("decks").document(deck_id).get()
+    if not deck_doc.exists:
+        flash("Deck not found.", "error")
+        return redirect(url_for("main.index"))
+    
+    deck = Deck.from_firestore_doc(deck_doc, card_collection)
+    
+    # Check if deck is public or user is owner
+    is_owner = False
+    if flask_login_current_user.is_authenticated:
+        is_owner = deck.owner_id == flask_login_current_user.id
+    
+    if not deck.is_public and not is_owner:
+        flash("This deck is private.", "error")
+        return redirect(url_for("main.index"))
+    
+    # Get owner info
+    owner_info = None
+    if deck.owner_id:
+        owner_doc = db.collection("users").document(deck.owner_id).get()
+        if owner_doc.exists:
+            owner_data = owner_doc.to_dict()
+            owner_info = {
+                "username": owner_data.get("username", "Unknown"),
+                "profile_icon": owner_data.get("profile_icon", "")
+            }
+    
+    return render_template(
+        "public_deck_view.html",
+        deck=deck,
+        owner=owner_info,
+        is_owner=is_owner
+    )

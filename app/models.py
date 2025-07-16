@@ -17,6 +17,24 @@ class User(UserMixin):
         self.email = self.data.get("email", "")
         self.google_id = self.data.get("google_id", "")
         self.username_set = self.data.get("username_set", False)
+        
+        # Privacy settings
+        self.email_visible_to_friends = self.data.get("email_visible_to_friends", False)
+        self.profile_public = self.data.get("profile_public", True)
+
+    def get_public_profile_data(self, is_friend=False):
+        """Returns sanitized profile data for public viewing."""
+        profile_data = {
+            "username": self.username,
+            "profile_icon": self.data.get("profile_icon", ""),
+            "created_at": self.data.get("created_at"),
+        }
+        
+        # Only include email if user allows friends to see it and viewer is a friend
+        if is_friend and self.email_visible_to_friends:
+            profile_data["email"] = self.email
+            
+        return profile_data
 
 
 @login_manager.user_loader

@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}{{ friend.username }}'s Decks{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<style>
+    .energy-icon-wrapper {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        margin-right: 4px;
+        margin-bottom: 4px;
+        overflow: hidden;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .energy-icon {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+    
+    .card-body {
+        position: relative;
+    }
+
+    .deck-header-right-actions {
+        position: absolute;
+        top: 0.6rem;
+        right: 0.6rem;
+        display: flex; 
+        align-items: flex-end; 
+        gap: 0.3rem;
+        z-index: 10;
+        flex-direction: column;
+        max-width: 180px;
+    }
+    .deck-header-right-actions .d-flex {
+        flex-direction: row;
+        gap: 0.25rem !important;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        align-items: center;
+    }
+    .deck-header-right-actions .badge {
+        padding: 0.35em 0.55em;
+        font-size: 0.75rem;
+    }
+    
+    .deck-actions-dropdown .dropdown-toggle {
+        background-color: transparent;
+        border: none;
+        box-shadow: none;
+        padding: 0.3rem 0.5rem;
+        line-height: 1;
+        color: var(--bs-secondary-color, #6c757d);
+        transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
+        margin-top: 1.5px;
+    }
+    .deck-actions-dropdown .dropdown-toggle:hover,
+    .deck-actions-dropdown .dropdown-toggle:focus,
+    .deck-actions-dropdown .dropdown-toggle:active {
+        background-color: rgba(0, 0, 0, 0.075);
+        color: var(--bs-body-color, #212529);
+    }
+    .deck-actions-dropdown .dropdown-toggle::after { display: none; }
+    .deck-actions-dropdown .dropdown-toggle i.bi-three-dots-vertical { font-size: 1.3rem; vertical-align: middle; }
+    .deck-actions-dropdown .dropdown-menu { min-width: 170px; }
+    .deck-actions-dropdown .dropdown-item { cursor: pointer; display: flex; align-items: center; }
+    .deck-actions-dropdown .dropdown-item .bi { width: 1.5em; }
+    
+    .deck-cover-cards-area {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 110px; 
+        margin-bottom: 0.25rem;
+        border-radius: 5px; 
+        overflow: hidden; 
+        transition: all 0.15s ease-out;
+    }
+    .deck-cover-cards-area .cover-card-image-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 85px; width: 60px;   
+        min-height: 75px; min-width: 53px;  
+        transition: all 0.15s ease-out;
+    }
+    .deck-cover-cards-area .cover-card-image-wrapper:first-child { 
+        height: 125px; width: 90px;  
+        min-height: 110px; min-width: 78px;  
+    }
+    .deck-cover-cards-area .cover-card-image-wrapper img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        border-radius: 3px; 
+    }
+    
+    .card-title {
+        white-space: nowrap; 
+        overflow: hidden;    
+        text-overflow: ellipsis; 
+        max-width: 100%;     
+        display: block; 
+        margin-top: 0.5rem;
+        margin-bottom: 0rem;
+    }
+    
+    [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle { color: var(--bs-gray-500, #adb5bd); }
+    [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle:hover,
+    [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle:focus,
+    [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle:active {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: var(--bs-light, #f8f9fa);
+    }
+    [data-theme="dark"] .text-muted { color: #adb5bd !important; }
+    [data-theme="dark"] h1, [data-theme="dark"] h4 { color: #fff !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex align-items-center mb-4">
+        <img src="{{ config.PROFILE_ICON_URLS.get(friend.profile_icon, config.DEFAULT_PROFILE_ICON_URL) }}" 
+             alt="{{ friend.username }}" 
+             class="rounded-circle me-3" 
+             style="width: 48px; height: 48px; object-fit: cover;">
+        <div>
+            <h1 class="mb-0">{{ friend.username }}'s Public Decks</h1>
+            <p class="text-muted mb-0">{{ decks|length }} public deck{{ 's' if decks|length != 1 else '' }}</p>
+        </div>
+    </div>
+
+    {% if decks %}
+        <div class="row">
+            {% for deck in decks %}
+            <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4">
+                <div class="card h-100">
+                    <div class="card-body" style="padding: 1rem;">
+                        <div class="deck-header-right-actions">
+                            <div class="d-flex gap-2">
+                                <span class="badge bg-primary">{{ deck.cards|length }}/20 cards</span>
+                            </div>
+                            <div class="dropdown deck-actions-dropdown">
+                                <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Deck Actions">
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="{{ url_for('collection_bp.view_collection') }}?copy_from_friend_deck={{ deck.id }}">
+                                        <i class="bi bi-files me-2"></i>Make a copy
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('decks.export_deck', deck_id=deck.id, format='text') }}">
+                                        <i class="bi bi-download me-2"></i>Export as Text
+                                    </a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex mb-2">
+                            {% for deck_type in deck.deck_types %}
+                            <div class="energy-icon-wrapper">
+                                <img src="{{ config.ENERGY_ICON_URLS.get(deck_type) }}" alt="{{ deck_type }}" class="energy-icon">
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="deck-cover-cards-area">
+                            {% for card in deck.cards[:3] %}
+                            <div class="cover-card-image-wrapper">
+                                <img src="{{ card.firebase_image_url or '/static/placeholder.png' }}" alt="{{ card.name }}" title="{{ card.name }}">
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <h5 class="card-title mt-2">{{ deck.name }}</h5>
+                        
+                        {% if deck.description %}
+                        <p class="text-muted small mb-2">{{ deck.description }}</p>
+                        {% endif %}
+                        
+                        {% if deck.shared_at %}
+                        <p class="text-muted small mb-0">Shared {{ deck.shared_at.strftime('%m/%d/%Y') }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center py-5">
+            <h4 class="text-muted">No Public Decks</h4>
+            <p class="text-muted">{{ friend.username }} hasn't shared any public decks yet.</p>
+            <a href="{{ url_for('friends.friends_page') }}" class="btn btn-primary">Back to Friends</a>
+        </div>
+    {% endif %}
+
+    <div class="mt-4">
+        <a href="{{ url_for('friends.friends_page') }}" class="btn btn-secondary">← Back to Friends</a>
+    </div>
+</div>
+{% endblock %}

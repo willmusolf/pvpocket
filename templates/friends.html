@@ -189,7 +189,7 @@
                                         <i class="bi bi-three-dots-vertical"></i>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item" href="#" onclick="handleFriendAction('view_decks', '{{ user.id }}')">View Decks</a></li>
+                                        <li><a class="dropdown-item" href="#" onclick="handleFriendAction('view_decks', '{{ user.id }}')">View Public Decks</a></li>
                                         <li><a class="dropdown-item" href="#" onclick="handleFriendAction('view_profile', '{{ user.id }}')">View Profile Card</a></li>
                                         <li><hr class="dropdown-divider"></li>
                                         <li><a class="dropdown-item text-danger" href="#" onclick="handleFriendAction('remove', '{{ user.id }}')">Remove Friend</a></li>
@@ -317,7 +317,7 @@
                         <div class="dropdown friend-actions-dropdown">
                             <button class="btn dropdown-toggle no-hover-on-mobile" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Actions" data-bs-container="body"><i class="bi bi-three-dots-vertical"></i></button>
                             <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="#" onclick="handleFriendAction('view_decks', '${user.id}')">View Decks</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="handleFriendAction('view_decks', '${user.id}')">View Public Decks</a></li>
                                 <li><a class="dropdown-item" href="#" onclick="handleFriendAction('view_profile', '${user.id}')">View Profile Card</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item text-danger" href="#" onclick="handleFriendAction('remove', '${user.id}')">Remove Friend</a></li>
@@ -335,8 +335,15 @@
                 return;
             }
             
-            if (action === 'view_decks' || action === 'view_profile') {
-                alert('This feature is not yet implemented.');
+            if (action === 'view_decks') {
+                window.location.href = `{{ url_for('friends.view_friend_decks', user_id='USER_ID') }}`.replace('USER_ID', userId);
+                return;
+            }
+            
+            if (action === 'view_profile') {
+                await showProfileModal(userId);
+                // Re-enable button in case modal is closed without action
+                if (element) element.disabled = false; 
                 return;
             }
 
@@ -350,20 +357,138 @@
             }
 
             const response = await fetch(url, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
+            const data = await response.json();
 
             if (response.ok) {
+                const userEntry = document.getElementById(`user-entry-${userId}`);
+                const searchResultEntry = document.getElementById(`search-result-${userId}`);
+
                 if (action === 'add' && element) {
                     sentRequestIds.add(userId);
                     element.innerHTML = '<i class="bi bi-check-lg"></i> Sent!';
                     element.classList.replace('btn-primary', 'btn-success');
+                } else if (action === 'accept') {
+                    if (userEntry) userEntry.remove();
+                    if (searchResultEntry) searchResultEntry.parentElement.innerHTML = `<span class="text-muted fst-italic">Already friends</span>`;
+
+                    const newFriend = data.friend;
+                    if (newFriend) {
+                        const friendsPlaceholder = friendsListContainer.querySelector('p.text-muted');
+                        if (friendsPlaceholder) friendsPlaceholder.remove();
+                        
+                        const newFriendHTML = createFriendEntryHTML(newFriend);
+                        friendsListContainer.insertAdjacentHTML('beforeend', newFriendHTML);
+                        
+                        friendIds.add(userId);
+                        friendsCountSpan.textContent = friendIds.size;
+                    }
+                    receivedRequestIds.delete(userId);
+                    if (requestsListContainer.children.length === 0) {
+                        requestsListContainer.innerHTML = '<p class="text-muted mb-0">You have no pending requests.</p>';
+                    }
+                } else if (action === 'decline' || action === 'remove') {
+                    if (userEntry) userEntry.remove();
+                    if (searchResultEntry) {
+                        const originalButton = `<button class="btn btn-primary btn-sm" onclick="handleFriendAction('add', '${userId}', this)">Send Request</button>`;
+                        searchResultEntry.querySelector('.user-actions').innerHTML = originalButton;
+                    }
+
+                    if (action === 'remove') {
+                        friendIds.delete(userId);
+                        friendsCountSpan.textContent = friendIds.size;
+                        if (friendsListContainer.children.length === 0) {
+                            friendsListContainer.innerHTML = `<p class="text-muted mb-0">You haven't added any friends yet. Use the search to find people!</p>`;
+                        }
+                    } else { // 'decline'
+                        receivedRequestIds.delete(userId);
+                        if (requestsListContainer.children.length === 0) {
+                            requestsListContainer.innerHTML = '<p class="text-muted mb-0">You have no pending requests.</p>';
+                        }
+                    }
                 } else {
                     window.location.reload();
                 }
             } else {
-                alert('An error occurred. Please try again.');
+                alert(data.error || 'An error occurred. Please try again.');
                 if (element) element.disabled = false;
             }
         };
+
+        // Profile modal functionality
+        window.showProfileModal = async function(userId) {
+            try {
+                const response = await fetch(`{{ url_for('friends.view_friend_profile', user_id='USER_ID') }}`.replace('USER_ID', userId));
+                if (!response.ok) {
+                    throw new Error('Failed to load profile');
+                }
+                
+                const profileData = await response.json();
+                showProfileModalWithData(profileData);
+            } catch (error) {
+                alert('Error loading profile: ' + error.message);
+            }
+        };
+
+        function showProfileModalWithData(profile) {
+            const profileIconUrl = profile.profile_icon ? iconUrls[profile.profile_icon] : defaultIconUrl;
+            const joinDate = profile.created_at ? new Date(profile.created_at).toLocaleDateString() : 'Unknown';
+            
+            const modalHtml = `
+                <div class="modal fade" id="profileModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Profile Card</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body text-center">
+                                <img src="${profileIconUrl}" alt="${profile.username}" 
+                                     class="rounded-circle mb-3" style="width: 80px; height: 80px; object-fit: cover;">
+                                <h4>${profile.username}</h4>
+                                ${profile.email ? `<p class="text-muted">${profile.email}</p>` : ''}
+                                <div class="row mt-3">
+                                    <div class="col-6">
+                                        <div class="border rounded p-2">
+                                            <div class="fw-bold">${profile.decks_count || 0}</div>
+                                            <div class="small text-muted">Total Decks</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="border rounded p-2">
+                                            <div class="fw-bold">${profile.public_decks_count || 0}</div>
+                                            <div class="small text-muted">Public Decks</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="text-muted mt-3 mb-0">Member since ${joinDate}</p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                <button type="button" class="btn btn-primary" onclick="window.location.href='{{ url_for('friends.view_friend_decks', user_id='USER_ID') }}'.replace('USER_ID', '${profile.user_id || profile.id}')">View Public Decks</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Remove existing modal if any
+            const existingModal = document.getElementById('profileModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            // Add modal to page
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('profileModal'));
+            modal.show();
+            
+            // Clean up when modal is hidden
+            document.getElementById('profileModal').addEventListener('hidden.bs.modal', function() {
+                this.remove();
+            });
+        }
     });
 </script>
 {%endblock%}

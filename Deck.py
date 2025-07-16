@@ -26,6 +26,9 @@ class Deck:
         ] = None,
         created_at: Optional[datetime.datetime] = None,
         updated_at: Optional[datetime.datetime] = None,
+        is_public: bool = False,
+        shared_at: Optional[datetime.datetime] = None,
+        description: str = "",
     ):
         self.name = name
         self.name_lowercase = name.lower()  # For Firestore querying
@@ -39,6 +42,9 @@ class Deck:
         self.owner_id: Optional[str] = owner_id  # User's Firestore document ID
         self.created_at: Optional[datetime.datetime] = created_at
         self.updated_at: Optional[datetime.datetime] = updated_at
+        self.is_public: bool = is_public
+        self.shared_at: Optional[datetime.datetime] = shared_at
+        self.description: str = description
 
     @property
     def name(self) -> str:
@@ -419,6 +425,9 @@ class Deck:
             "card_ids": sorted([str(card.id) for card in self.cards]), # Store sorted list of string card IDs
             "cover_card_ids": self.cover_card_ids,
             "owner_id": self.owner_id,
+            "is_public": self.is_public,
+            "shared_at": self.shared_at,
+            "description": self.description,
             # Timestamps are handled by Firestore server or explicitly if loaded
             "updated_at": firestore.SERVER_TIMESTAMP, # Always update this on save/update
         }
@@ -452,7 +461,10 @@ class Deck:
             owner_id=deck_data.get("owner_id"),
             deck_id=doc_snapshot.id, # Get ID from the snapshot itself
             created_at=deck_data.get("created_at"), # Will be a datetime object from Firestore
-            updated_at=deck_data.get("updated_at")  # Will be a datetime object
+            updated_at=deck_data.get("updated_at"), # Will be a datetime object
+            is_public=deck_data.get("is_public", False),
+            shared_at=deck_data.get("shared_at"),
+            description=deck_data.get("description", "")
         )
         # deck.name_lowercase is set by the name.setter or __init__
 
@@ -658,3 +670,22 @@ class Deck:
             print("\nDeck is valid and ready to play!")
         else:
             print(f"\nDeck is not valid: {reason}")
+
+    def toggle_privacy(self) -> bool:
+        """Toggle deck privacy between public and private. Returns new privacy state."""
+        self.is_public = not self.is_public
+        if self.is_public:
+            self.shared_at = datetime.datetime.utcnow()
+        return self.is_public
+
+    def make_public(self, description: str = "") -> None:
+        """Make deck public with optional description."""
+        self.is_public = True
+        self.shared_at = datetime.datetime.utcnow()
+        if description:
+            self.description = description
+
+    def make_private(self) -> None:
+        """Make deck private."""
+        self.is_public = False
+        self.shared_at = None
