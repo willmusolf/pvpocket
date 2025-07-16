@@ -61,6 +61,7 @@ credentials.json
 token.json
 main.py
 shared_utils.py
+CLAUDE.md
 
 
 # IDE specific files
