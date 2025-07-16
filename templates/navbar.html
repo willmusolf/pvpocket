@@ -1,0 +1,71 @@
+{% macro account_dropdown_items(current_path) %}
+    {% if current_user.is_authenticated %}
+        <li><h6 class="dropdown-header text-end">{{ current_user.username }}</h6></li>
+        <li><a class="dropdown-item text-end" href="{{ url_for('auth.user_profile_and_settings') }}">Profile/Settings</a></li>
+        <li><a class="dropdown-item text-end" href="{{ url_for('friends.friends_page') }}">Friends</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item user-logout-link text-end" href="{{ url_for('auth.logout') }}">Logout</a></li>
+    {% else %}
+        <li><a class="dropdown-item text-end" href="{{ url_for('auth.login_prompt_page', next=current_path) }}">Log In / Sign Up</a></li>
+    {% endif %}
+{% endmacro %}
+
+<nav class="navbar navbar-expand-md p-4 border-bottom" id="mainNavbar">
+    <div class="container-fluid align-items-center">
+        <a class="navbar-brand d-flex align-items-center fs-4" href="{{ url_for('main.index') }}">
+            <img src="{{ url_for('static', filename='navbar-icon.png') }}" alt="PvPocket Logo" width="40" height="40" class="me-2">
+            PvPocket
+        </a>
+
+        <div class="d-flex align-items-center">
+            
+            <div class="nav-item dropdown d-md-none me-2">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarUserDropdownMobile" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <img src="{{ current_user_profile_icon_url }}" alt="Profile" class="rounded-circle" style="width: 38px; height: 38px; object-fit: cover; background-color: var(--border-color);">
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarUserDropdownMobile">
+                    {{ account_dropdown_items(request.full_path) }}
+                </ul>
+            </div>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+        </div>
+
+        <div class="collapse navbar-collapse text-end text-md-start pt-3 pt-md-0" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('decks.list_decks') }}">Deck Builder</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('collection_bp.view_collection') }}">My Collection</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('battle.battle') }}">Battle Simulator</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('meta.meta_rankings') }}">Meta Rankings</a>
+                </li>
+            </ul>
+            
+            <ul class="navbar-nav d-none d-md-block me-2">
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarUserDropdownDesktop" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <img src="{{ current_user_profile_icon_url }}" alt="Profile" class="rounded-circle" style="width: 38px; height: 38px; object-fit: cover; background-color: var(--border-color);">
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarUserDropdownDesktop">
+                        {{ account_dropdown_items(request.full_path) }}
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<style>
+    #mainNavbar .dropdown-menu {
+        width: max-content !important;
+        min-width: auto !important;
+    }
+</style>

@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}PvPocket{% endblock %}
+
+{% block extra_css %}
+<style>
+    .feature-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        height: 100%; /* Ensure cards in a row have the same height */
+        display: flex; /* For flexbox column layout */
+        flex-direction: column; /* Stack card content vertically */
+    }
+    
+    .feature-card .card-body {
+        flex-grow: 1; /* Allow card body to take available space */
+    }
+
+    .feature-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    }
+    
+    .feature-icon {
+        font-size: 3rem; /* Or 2.5rem if 3rem is too large with text */
+        margin-bottom: 1rem; /* Adjusted margin */
+        color: var(--bs-primary); /* Default icon color, can be overridden */
+    }
+    
+    .hero-section {
+        background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)); /* Keep your image */
+        background-size: cover;
+        background-position: center;
+        color: white;
+        padding: 60px 0; /* Slightly reduced padding */
+        margin-bottom: 40px;
+        border-radius: 0.5rem; /* Consistent border-radius */
+    }
+    
+    .card-count {
+        font-size: 2.25rem; /* Slightly adjusted */
+        font-weight: bold;
+        margin-bottom: 0.25rem; /* Added small margin */
+    }
+    
+    .stat-card {
+        border-radius: 0.5rem; /* Consistent border-radius */
+        padding: 20px;
+        text-align: center;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center; /* Center content vertically */
+    }
+    
+    /* Stat card specific colors (using Bootstrap variable names where appropriate) */
+    .stat-card.users { /* New class for users */
+        background-color: rgb(106, 37, 37); /* Example: Bootstrap info color */
+        color: white;
+    }
+    
+    .stat-card.decks { /* New class for decks */
+        background-color: rgb(44, 89, 113); /* Example: Bootstrap success color */
+        color: white;
+    }
+    
+    .stat-card.battles { /* New class for battles */
+        background-color: rgb(48, 81, 35);
+        color: white; /* Text color for warning */
+    }
+
+    /* Icon color overrides for feature cards */
+    .feature-card .battle-sim-icon { color: var(--bs-primary); } /* Blue */
+    .feature-card .deck-manage-icon { color: var(--bs-success); } /* Green */
+    .feature-card .meta-rank-icon { color: var(--bs-info); } /* Teal/Cyan */
+
+    @media (hover: none){
+        .btn-outline-light:hover,
+        .btn-outline-light:active {
+            color: var(--bs-light) !important;
+            background-color: transparent !important;
+        }
+    }
+
+</style>
+{% endblock %}
+
+{% block preload_links %}
+  {# Preload the energy icons that will be used on the decks page #}
+  {% if config.ENERGY_ICON_URLS %}
+    {% for type_name, url in config.ENERGY_ICON_URLS.items() %}
+      <link rel="preload" href="{{ url }}" as="image">
+    {% endfor %}
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+    <div class="hero-section text-center">
+        <div class="container">
+            <h1 class="display-4 mb-3">PvPocket</h1> {# Slightly smaller display size #}
+            <p class="lead mb-4">The complete companion app for serious trainers</p>
+            <div class="d-flex justify-content-center">
+                <a href="#features" class="btn btn-lg btn-outline-light px-4 py-2 no-hover-on-mobile">Explore Features</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mb-5">
+        <div class="row g-4">
+            <div class="col-lg-4 col-md-6"> {# Use lg-4 for 3 items, md-6 for 2 items on smaller screens #}
+                <div class="stat-card users">
+                    <p class="card-count">{{ total_users }}</p>
+                    <p class="mb-0">Registered Users</p>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="stat-card decks">
+                    <p class="card-count">{{ total_decks }}</p>
+                    <p class="mb-0">User-Created Decks</p>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-12"> {# Last item takes full width on medium if only 3 total stats #}
+                <div class="stat-card battles">
+                    <p class="card-count">{{ total_battles }}</p>
+                    <p class="mb-0">Battles Simulated</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mb-5" id="features">
+        <h2 class="text-center mb-5">Choose Your Path</h2>
+        
+        <div class="row g-4 justify-content-center">
+            
+            <div class="col-lg-4 col-md-6">
+                <div class="card feature-card text-center no-hover-on-mobile">
+                    <div class="card-body p-4 p-lg-5">
+                        <div class="feature-icon deck-manage-icon">
+                            <i class="fas fa-archive"></i>
+                        </div>
+                        <h3 class="card-title mb-3">Deck Builder</h3>
+                        <p class="card-text mb-4">Build your own custom decks!</p>
+                        <a href="{{ url_for('decks.list_decks') }}" class="btn btn-success btn-lg">Build Deck</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4 col-md-6">
+                <div class="card feature-card text-center no-hover-on-mobile">
+                    <div class="card-body p-4 p-lg-5">
+                        <div class="feature-icon battle-sim-icon">
+                            <i class="fas fa-gamepad"></i>
+                        </div>
+                        <h3 class="card-title mb-3">Battle Simulator</h3>
+                        <p class="card-text mb-4">Challenge our AI with your custom decks or play with pre-built meta decks to test strategies.</p>
+                        <a href="{{ url_for('battle.battle') }}" class="btn btn-primary btn-lg">Battle Now</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4 col-md-6"> {# Changed to col-lg-4 #}
+                <div class="card feature-card text-center no-hover-on-mobile">
+                    <div class="card-body p-4 p-lg-5">
+                        <div class="feature-icon meta-rank-icon">
+                            <i class="fas fa-chart-line"></i> {# Example icon for Meta Rankings #}
+                        </div>
+                        <h3 class="card-title mb-3">Meta Rankings</h3>
+                        <p class="card-text mb-4">Explore top-performing decks, card usage statistics, and current meta trends.</p>
+                        <a href="{{ url_for('meta.meta_rankings') }}" class="btn btn-info btn-lg">View Meta</a>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+
+{% endblock %}

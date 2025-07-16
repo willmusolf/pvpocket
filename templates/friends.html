@@ -1,0 +1,369 @@
+{% extends "base.html" %}
+
+{% block title %}Friends{% endblock %}
+
+{% block extra_css %}
+<style>
+    .friend-list-card {
+        background-color: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: .5rem;
+        margin-bottom: 1.5rem;
+        padding: 1.5rem;
+    }
+    .pending-requests-card {
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+    }
+    .add-friends-card {
+        padding-bottom: 0.75rem;
+    }
+    .user-entry {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.6rem 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .user-entry:last-child {
+        border-bottom: none;
+    }
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    .user-info img {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        object-fit: cover;
+        background-color: var(--border-color);
+    }
+    .user-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+    .friend-actions-dropdown .dropdown-toggle {
+        background-color: transparent;
+        border: none;
+        box-shadow: none;
+        padding: 0.3rem 0.5rem;
+        line-height: 1;
+        color: var(--bs-secondary-color, #6c757d);
+        transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
+    }
+    .friend-actions-dropdown .dropdown-toggle:hover,
+    .friend-actions-dropdown .dropdown-toggle:focus,
+    .friend-actions-dropdown .dropdown-toggle:active {
+        background-color: rgba(0, 0, 0, 0.075);
+        color: var(--bs-body-color, #212529);
+        box-shadow: none;
+        border: none;
+    }
+    .friend-actions-dropdown .dropdown-toggle::after {
+        display: none; 
+    }
+    .friend-actions-dropdown .dropdown-toggle i.bi-three-dots-vertical {
+        font-size: 1.3rem;
+        vertical-align: middle;
+    }
+    .user-actions .btn {
+        height: 31px;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    /* Dark Mode Compatibility */
+    [data-theme="dark"] .friend-list-card {
+        color: #fff;
+    }
+    [data-theme="dark"] .text-muted {
+        color: var(--bs-gray-500) !important;
+    }
+    [data-theme="dark"] .dropdown-menu {
+        --bs-dropdown-bg: #343a40;
+        --bs-dropdown-link-color: #dee2e6;
+        --bs-dropdown-link-hover-color: #fff;
+        --bs-dropdown-link-hover-bg: #495057;
+        --bs-dropdown-divider-bg: #495057;
+    }
+    [data-theme="dark"] #search-input-desktop::placeholder {
+        color: var(--bs-gray-500);
+        opacity: 1;
+    }
+    [data-theme="dark"] #search-input-mobile::placeholder {
+        color: var(--bs-gray-500);
+        opacity: 1;
+    }
+    [data-theme="dark"] .friend-actions-dropdown .dropdown-toggle {
+        color: var(--bs-gray-500, #adb5bd);
+    }
+    [data-theme="dark"] .friend-actions-dropdown .dropdown-toggle:hover,
+    [data-theme="dark"] .friend-actions-dropdown .dropdown-toggle:focus,
+    [data-theme="dark"] .friend-actions-dropdown .dropdown-toggle:active {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: var(--bs-light, #f8f9fa);
+    }
+    @media (hover: none) {
+        /* Prevents the 3-dot dropdown from changing color on tap */
+        .friend-actions-dropdown .dropdown-toggle:hover,
+        .friend-actions-dropdown .dropdown-toggle:active {
+            background-color: transparent !important;
+            color: var(--bs-secondary-color) !important;
+        }
+
+        /* Dark mode compatibility for the 3-dot dropdown */
+        [data-theme="dark"] .friend-actions-dropdown .dropdown-toggle:hover,
+        [data-theme="dark"] .friend-actions-dropdown .dropdown-toggle:active {
+            color: var(--bs-gray-500) !important;
+        }
+
+        /* Prevents standard Bootstrap buttons on this page from changing color on tap */
+        .btn-primary:active, .btn-primary:hover,
+        .btn-success:active, .btn-success:hover,
+        .btn-secondary:active, .btn-secondary:hover {
+            /* Use Bootstrap's CSS variables to force the active/hover state to match the base state */
+            --bs-btn-hover-color: var(--bs-btn-color);
+            --bs-btn-hover-bg: var(--bs-btn-bg);
+            --bs-btn-hover-border-color: var(--bs-btn-border-color);
+            --bs-btn-active-color: var(--bs-btn-color);
+            --bs-btn-active-bg: var(--bs-btn-bg);
+            --bs-btn-active-border-color: var(--bs-btn-border-color);
+            box-shadow: none !important; /* Explicitly remove focus shadow */
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="mb-4">Friends</h1>
+
+    <div class="row">
+        <div class="col-lg-7">
+            <div class="friend-list-card pending-requests-card">
+                <h4>Pending Requests</h4>
+                <div id="received-requests-list">
+                    {% for user in received_requests %}
+                    <div class="user-entry" id="user-entry-{{ user.id }}">
+                        <div class="user-info">
+                            <img src="{{ config.PROFILE_ICON_URLS.get(user.profile_icon, config.DEFAULT_PROFILE_ICON_URL) }}" alt="{{ user.username }}">
+                            <span>{{ user.username }}</span>
+                        </div>
+                        <div class="user-actions">
+                            <button class="btn btn-success btn-sm" onclick="handleFriendAction('accept', '{{ user.id }}')">Accept</button>
+                            <button class="btn btn-secondary btn-sm" onclick="handleFriendAction('decline', '{{ user.id }}')">Decline</button>
+                        </div>
+                    </div>
+                    {% else %}
+                        <p class="text-muted mb-0">You have no pending requests.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="d-lg-none">
+                <div class="friend-list-card add-friends-card">
+                    <h4>Add Friends</h4>
+                    <div class="input-group mb-3">
+                        <input type="text" id="search-input-mobile" class="form-control" placeholder="Search by username..." aria-label="Search by username">
+                        <button class="btn btn-primary no-hover-on-mobile" type="button" id="search-btn-mobile">Search</button>
+                    </div>
+                    <div id="search-results-mobile"></div>
+                </div>
+            </div>
+
+            <div class="friend-list-card">
+                <h4>Your Friends (<span id="friends-count">{{ friends|length }}</span>)</h4>
+                <div id="friends-list">
+                    {% if friends %}
+                        {% for user in friends %}
+                        <div class="user-entry" id="user-entry-{{ user.id }}">
+                            <div class="user-info">
+                                <img src="{{ config.PROFILE_ICON_URLS.get(user.profile_icon, config.DEFAULT_PROFILE_ICON_URL) }}" alt="{{ user.username }}">
+                                <span>{{ user.username }}</span>
+                            </div>
+                            <div class="user-actions">
+                                <div class="dropdown friend-actions-dropdown">
+                                    <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Actions" data-bs-container="body">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><a class="dropdown-item" href="#" onclick="handleFriendAction('view_decks', '{{ user.id }}')">View Decks</a></li>
+                                        <li><a class="dropdown-item" href="#" onclick="handleFriendAction('view_profile', '{{ user.id }}')">View Profile Card</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item text-danger" href="#" onclick="handleFriendAction('remove', '{{ user.id }}')">Remove Friend</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted mb-0">You haven't added any friends yet. Use the search to find people!</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5 d-none d-lg-block">
+            <div class="friend-list-card add-friends-card">
+                <h4>Add Friends</h4>
+                <div class="input-group mb-3">
+                    <input type="text" id="search-input-desktop" class="form-control" placeholder="Search by username..." aria-label="Search by username">
+                    <button class="btn btn-primary" type="button" id="search-btn-desktop">Search</button>
+                </div>
+                <div id="search-results-desktop"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // --- UPDATED: Selectors for both mobile and desktop search elements ---
+        const searchInputs = [document.getElementById('search-input-mobile'), document.getElementById('search-input-desktop')];
+        const searchBtns = [document.getElementById('search-btn-mobile'), document.getElementById('search-btn-desktop')];
+        const searchResultsContainers = [document.getElementById('search-results-mobile'), document.getElementById('search-results-desktop')];
+        
+        const friendsListContainer = document.getElementById('friends-list');
+        const requestsListContainer = document.getElementById('received-requests-list');
+        const friendsCountSpan = document.getElementById('friends-count');
+        
+        const iconUrls = {{ config.PROFILE_ICON_URLS | tojson }};
+        const defaultIconUrl = '{{ config.DEFAULT_PROFILE_ICON_URL }}';
+
+        const friendIds = new Set();
+        {% for user in friends %}
+            friendIds.add('{{ user.id }}');
+        {% endfor %}
+
+        const sentRequestIds = new Set();
+        {% for user in sent_requests %}
+            sentRequestIds.add('{{ user.id }}');
+        {% endfor %}
+        
+        const receivedRequestIds = new Set();
+        {% for user in received_requests %}
+            receivedRequestIds.add('{{ user.id }}');
+        {% endfor %}
+
+        const performSearch = async (query) => {
+            if (query.length < 3) {
+                const message = '<p class="text-muted mb-0">Enter at least 3 characters to search.</p>';
+                searchResultsContainers.forEach(c => c.innerHTML = message);
+                return;
+            }
+
+            const response = await fetch('{{ url_for("friends.search_users") }}', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ query: query })
+            });
+            const results = await response.json();
+
+            let finalHtml = '';
+            if (results.length > 0) {
+                results.forEach(user => {
+                    const profileIconUrl = user.profile_icon ? iconUrls[user.profile_icon] : defaultIconUrl;
+                    let actionButtonHtml;
+                    if (friendIds.has(user.id)) {
+                        actionButtonHtml = `<span class="text-muted fst-italic">Already friends</span>`;
+                    } else if (receivedRequestIds.has(user.id)) {
+                        actionButtonHtml = `
+                            <button class="btn btn-success btn-sm" onclick="handleFriendAction('accept', '${user.id}', this)">Accept</button>
+                            <button class="btn btn-secondary btn-sm" onclick="handleFriendAction('decline', '${user.id}', this)">Decline</button>`;
+                    } else if (sentRequestIds.has(user.id)) {
+                        actionButtonHtml = `<button class="btn btn-success btn-sm" disabled><i class="bi bi-check-lg"></i> Sent!</button>`;
+                    } else {
+                        actionButtonHtml = `<button class="btn btn-primary btn-sm" onclick="handleFriendAction('add', '${user.id}', this)">Send Request</button>`;
+                    }
+                    finalHtml += `
+                        <div class="user-entry" id="search-result-${user.id}">
+                            <div class="user-info">
+                                <img src="${profileIconUrl}" alt="${user.username}">
+                                <span>${user.username}</span>
+                            </div>
+                            <div class="user-actions">${actionButtonHtml}</div>
+                        </div>
+                    `;
+                });
+            } else {
+                finalHtml = '<p class="text-muted mb-0">No users found.</p>';
+            }
+            searchResultsContainers.forEach(c => c.innerHTML = finalHtml);
+        };
+
+        // --- UPDATED: Attach listeners to both mobile and desktop elements ---
+        searchBtns.forEach((btn, index) => {
+            btn.addEventListener('click', () => performSearch(searchInputs[index].value));
+        });
+        searchInputs.forEach(input => {
+            input.addEventListener('keyup', (event) => {
+                if (event.key === 'Enter') {
+                    performSearch(input.value);
+                }
+            });
+        });
+
+        const createFriendEntryHTML = (user) => {
+            const profileIconUrl = user.profile_icon ? iconUrls[user.profile_icon] : defaultIconUrl;
+            return `
+                <div class="user-entry" id="user-entry-${user.id}">
+                    <div class="user-info">
+                        <img src="${profileIconUrl}" alt="${user.username}">
+                        <span>${user.username}</span>
+                    </div>
+                    <div class="user-actions">
+                        <div class="dropdown friend-actions-dropdown">
+                            <button class="btn dropdown-toggle no-hover-on-mobile" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Actions" data-bs-container="body"><i class="bi bi-three-dots-vertical"></i></button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="#" onclick="handleFriendAction('view_decks', '${user.id}')">View Decks</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="handleFriendAction('view_profile', '${user.id}')">View Profile Card</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="#" onclick="handleFriendAction('remove', '${user.id}')">Remove Friend</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>`;
+        };
+
+        window.handleFriendAction = async (action, userId, element) => {
+            if (element) element.disabled = true;
+
+            if (action === 'remove' && !window.confirm("Are you sure you want to remove this friend?")) {
+                if (element) element.disabled = false;
+                return;
+            }
+            
+            if (action === 'view_decks' || action === 'view_profile') {
+                alert('This feature is not yet implemented.');
+                return;
+            }
+
+            let url, body;
+            switch (action) {
+                case 'add': url = '{{ url_for("friends.send_friend_request") }}'; body = { recipient_id: userId }; break;
+                case 'accept': url = '{{ url_for("friends.accept_friend_request") }}'; body = { sender_id: userId }; break;
+                case 'decline': url = '{{ url_for("friends.decline_friend_request") }}'; body = { sender_id: userId }; break;
+                case 'remove': url = '{{ url_for("friends.remove_friend") }}'; body = { friend_id: userId }; break;
+                default: if (element) element.disabled = false; return;
+            }
+
+            const response = await fetch(url, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
+
+            if (response.ok) {
+                if (action === 'add' && element) {
+                    sentRequestIds.add(userId);
+                    element.innerHTML = '<i class="bi bi-check-lg"></i> Sent!';
+                    element.classList.replace('btn-primary', 'btn-success');
+                } else {
+                    window.location.reload();
+                }
+            } else {
+                alert('An error occurred. Please try again.');
+                if (element) element.disabled = false;
+            }
+        };
+    });
+</script>
+{%endblock%}

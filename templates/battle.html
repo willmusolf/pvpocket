@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block title %}Battle Simulator - PvPocket{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <h1 class="display-4">Battle Simulator</h1>
+            <p class="lead">Get ready to test your decks!</p>
+            <hr class="my-4">
+            <h2>Coming Soon!</h2>
+            <p>The Battle Simulator is currently under development. Check back later to simulate battles with your custom decks and strategies against various opponents.</p>
+            <a href="{{ url_for('main.index') }}" class="btn btn-primary btn-lg mt-3">Return to Homepage</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

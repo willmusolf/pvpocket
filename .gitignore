@@ -1,0 +1,73 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pkl
+*$py.class
+*.so
+.gcloudignore
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+node_modules/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
+Dockerfile
+
+# Database
+*.db
+*.sqlite3
+pokemon_cards.db
+card_collection.pkl
+scraping/
+app/static/
+app/__init__.py
+
+# OS specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Environment variables and secrets
+.env
+.env.local
+.env.development
+.env.production
+.flaskenv
+secrets/
+secrets
+app.yaml
+app-test.yaml
+credentials.json
+token.json
+main.py
+shared_utils.py
+
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log

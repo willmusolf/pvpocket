@@ -1,0 +1,637 @@
+{% extends "base.html" %}
+
+{% block title %}My Collection - PvPocket{% endblock %}
+
+{% block content %}
+<style>
+
+    .card-body {
+        position: relative;
+        padding: 0; /* Remove padding from the wrapper */
+    }
+
+    /* Styles for the new Filter Bar */
+    .filter-bar {
+        padding: 1rem 1.25rem; /* Adjusted padding now that labels are gone */
+        background-color: var(--settings-bg);
+        border-bottom: 1px solid var(--bs-border-color);
+    }
+
+    /* Make the search bar column flexible */
+    .filter-bar .col-md-7 {
+        min-width: 320px; /* It won't shrink smaller than this before wrapping */
+    }
+
+    /* Make the energy icons column rigid */
+    .filter-bar .col-md-5 {
+        flex: 0 0 auto; /* It will not grow or shrink */
+        width: auto;
+    }
+    
+    .filter-bar .form-control::placeholder {
+        color: var(--text-color);
+        opacity: 0.6;
+    }
+    [data-theme="dark"] .filter-bar .form-control::placeholder {
+        opacity: 0.5;
+    }
+
+    .filter-bar .energy-icons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .filter-bar .energy-icon-wrapper {
+        position: relative;
+        cursor: pointer;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        transition: all 0.2s ease;
+    }
+
+    .filter-bar .energy-icon-wrapper:not(.active) {
+        opacity: 0.4;
+        filter: saturate(0.5);
+    }
+
+    .filter-bar .energy-icon-wrapper:hover:not(.active) {
+        opacity: 0.7;
+    }
+
+    .filter-bar .energy-icon-wrapper.active {
+        opacity: 1;
+        transform: scale(1.15);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        z-index: 2;
+    }
+    /* End of Filter Bar Styles */
+
+    #decks-container {
+        padding: 1.5rem 1.25rem 0; /* Add padding to the deck list area */
+    }
+
+    .energy-icon-wrapper {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        margin-right: 4px;
+        margin-bottom: 4px;
+        overflow: hidden;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .energy-icon {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .card-body h5.card-title {
+        white-space: nowrap; 
+        overflow: hidden;    
+        text-overflow: ellipsis; 
+        max-width: 100%;     
+        display: block; 
+        margin-top: 0.5rem;
+        margin-bottom: 0rem;
+        min-height: 1.2em;
+    }
+
+    .collection-main-content {
+        width: 100%; 
+        padding-right: var(--bs-gutter-x, .75rem);
+        padding-left: var(--bs-gutter-x, .75rem);
+        margin-right: auto;
+        margin-left: auto;
+    }
+
+    .deck-header-right-actions {
+        position: absolute;
+        top: 0.6rem;
+        right: 0.6rem;
+        display: flex; 
+        align-items: center; 
+        gap: 0.3rem;
+        z-index: 10; 
+    }
+
+    .deck-header-right-actions .badge {
+        padding: 0.35em 0.55em;
+        font-size: 0.75rem;
+    }
+
+    .deck-actions-dropdown .dropdown-toggle {
+        background-color: transparent;
+        border: none;
+        box-shadow: none;
+        padding: 0.3rem 0.5rem;
+        line-height: 1;
+        color: var(--bs-secondary-color, #6c757d);
+        transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
+        margin-top: 1.5px;
+    }
+
+    .deck-actions-dropdown .dropdown-toggle:hover,
+    .deck-actions-dropdown .dropdown-toggle:focus,
+    .deck-actions-dropdown .dropdown-toggle:active {
+        background-color: rgba(0, 0, 0, 0.075);
+        color: var(--bs-body-color, #212529);
+        box-shadow: none;
+        border: none;
+    }
+
+    [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle {
+            color: var(--bs-gray-500, #adb5bd);
+    }
+
+    [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle:hover,
+    [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle:focus,
+    [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle:active {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: var(--bs-light, #f8f9fa);
+    }
+
+    .deck-actions-dropdown .dropdown-toggle i.bi-three-dots-vertical {
+        font-size: 1.3rem;
+        vertical-align: middle;
+    }
+
+    .deck-actions-dropdown .dropdown-menu {
+        min-width: 190px;
+    }
+
+    .deck-actions-dropdown .dropdown-item {
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+    }
+    .deck-actions-dropdown .dropdown-item .bi {
+        width: 1.5em;
+    }
+
+    .deck-cover-cards-area {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 110px; 
+        margin-bottom: 0.25rem;
+        gap: 3px; 
+        position: relative; 
+        border-radius: 5px; 
+        overflow: hidden; 
+        transition: all 0.15s ease-out;
+    }
+
+    .deck-cover-cards-area .cover-card-image-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 85px;  
+        width: 60px;   
+        min-height: 75px; 
+        min-width: 53px;  
+        transition: all 0.15s ease-out;
+    }
+
+    .deck-cover-cards-area .cover-card-image-wrapper:first-child { 
+        height: 125px; 
+        width: 90px;  
+        min-height: 110px;
+        min-width: 78px;  
+    }
+
+    .deck-cover-cards-area .cover-card-image-wrapper img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        border-radius: 3px; 
+        transition: all 0.15s ease-out;
+    }
+
+    .deck-not-full-overlay {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%); 
+        background-color: rgba(148, 148, 148, 0.78); 
+        color: #fff; 
+        padding: 0.25rem 0.6rem; 
+        border-radius: 4px; 
+        font-weight: bold;
+        font-size: 0.8rem; 
+        text-align: center;
+        white-space: nowrap; 
+        pointer-events: none; 
+        z-index: 5; 
+    }
+
+    [data-theme="dark"] .deck-not-full-overlay {
+        background-color: rgba(148, 148, 148, 0.78); 
+    }
+
+    .row { 
+        flex-wrap: wrap; 
+        justify-content: flex-start; 
+    }
+    
+    #decks-container.row { 
+        margin-left: -0.375rem;
+        margin-right: -0.375rem; 
+    }
+
+    .col-12.col-sm-6.col-md-4.col-lg-3.mb-4 { 
+        padding-right: 0.375rem;
+        padding-left: 0.375rem;
+        transition: width 0.2s ease-out, flex-basis 0.2s ease-out, opacity 0.2s ease-out;
+    }
+
+    .card.h-100 {
+        width: 100%; 
+        display: flex; 
+        flex-direction: column; 
+        transition: box-shadow 0.2s ease-out;
+    }
+
+
+    .deck-actions-dropdown .dropdown-toggle::after {
+        display: none; 
+    }
+
+    /* New rules for filter bar layout and exact search styling */
+    .filter-bar .row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0rem 1.5rem; /* Controls vertical and horizontal spacing */
+        --bs-gutter-x: 0;
+    }
+
+    /* Replicates the search icon container style from decks.html */
+    .filter-bar .input-group-text {
+        background-color: var(--input-bg);
+        border: 1px solid var(--border-color);
+        border-right: none;
+        color: var(--text-color);
+        opacity: 0.7;
+    }
+
+    /* Replicates the search input field style from decks.html */
+    .filter-bar .form-control {
+        background-color: var(--input-bg);
+        border: 1px solid var(--border-color);
+        border-left: none;
+        color: var(--input-text);
+    }
+
+    /* Removes the blue glow on the input so we can style the group */
+    .filter-bar .form-control:focus {
+        box-shadow: none;
+        background-color: var(--input-bg);
+    }
+
+    /* Center energy icons horizontally when they wrap to a new line on smaller screens */
+    @media (max-width: 767.98px) {
+        .filter-bar .energy-icons {
+            justify-content: center;
+        }
+    }
+
+    /* Media Queries for column count and sizing */
+    @media (max-width: 575.98px) { 
+        .col-12.col-sm-6.col-md-4.col-lg-3.mb-4 {
+            width: 100%;
+            flex-basis: 100%;
+        }
+    }
+
+    @media (min-width: 576px) and (max-width: 991.98px) {
+        .col-12.col-sm-6.col-md-4.col-lg-3.mb-4 {
+            flex: 0 0 50%; 
+            max-width: 50%;
+        }
+    }
+
+    @media (min-width: 992px) and (max-width: 1199.98px) {
+        .col-12.col-sm-6.col-md-4.col-lg-3.mb-4 {
+            flex: 0 0 33.333333%; 
+            max-width: 33.333333%;
+        }
+    }
+
+    @media (min-width: 1200px) {
+        .col-12.col-sm-6.col-md-4.col-lg-3.mb-4 {
+            flex: 0 0 25%; 
+            max-width: 25%;
+        }
+    }
+
+    @media (max-width: 767.98px) {
+        /* Make the whole filter bar more compact */
+        .filter-bar {
+            padding-top: 0.75rem;
+            padding-bottom: 0.75rem;
+        }
+
+        /* Stack the controls and set a single, controlled gap */
+        .filter-bar .row {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        /* THE FIX: Forcefully remove any default vertical margin on the components */
+        .filter-bar .input-group,
+        .filter-bar .energy-icons {
+            margin-top: 0;
+            margin-bottom: 0;
+        }
+
+        /* Keep the other necessary mobile layout rules */
+        .filter-bar .col-md-7,
+        .filter-bar .col-md-5 {
+            width: 100%;
+            min-width: 0;
+        }
+        /* Make the icons even smaller to guarantee they fit on one row */
+        .filter-bar .energy-icon-wrapper {
+            width: 24px;
+            height: 24px;
+        }
+
+        /* Adjust the gap and ensure they are spaced out */
+        .filter-bar .energy-icons {
+            display: flex;
+            justify-content: space-between;
+            gap: 4px;
+        }
+    }
+    @media (hover: none) {
+        .deck-actions-dropdown .dropdown-toggle:hover,
+        .deck-actions-dropdown .dropdown-toggle:active {
+            background-color: transparent !important;
+            color: var(--bs-secondary-color) !important;
+        }
+
+        /* Dark mode compatibility */
+        [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle:hover,
+        [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle:active {
+            color: var(--bs-gray-500) !important;
+        }
+    }
+
+</style>
+
+<div class="collection-main-content">
+    <script id="page-data" type="application/json">{{ page_data | tojson | safe }}</script>
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">My Decks</h3>
+                    <a href="{{ url_for('decks.list_decks') }}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Create New Deck
+                    </a>
+                </div>
+                <div class="card-body position-relative">
+                    <div class="filter-bar">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-7 col-lg-8">
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                    <input type="text" id="deck-search-input" class="form-control" placeholder="Search" autocomplete="off">
+                                </div>
+                            </div>
+                            <div class="col-md-5 col-lg-4">
+                                <div class="energy-icons">
+                                    {% set deck_energy_selectable_types = [
+                                        "Grass", "Fire", "Water", "Lightning",
+                                        "Psychic", "Fighting", "Darkness", "Metal"
+                                    ] %}
+                                    {% for type_name in deck_energy_selectable_types %}
+                                    <div class="energy-icon-wrapper" data-type="{{ type_name }}" title="{{ type_name }}">
+                                        {% if page_data.energy_icon_urls and page_data.energy_icon_urls.get(type_name) %}
+                                        <img src="{{ page_data.energy_icon_urls.get(type_name) }}" alt="{{ type_name }}" class="energy-icon">
+                                        {% endif %}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="decks-container" class="row">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+    
+
+<script>
+    let allDecks = [];
+    let activeFilters = {
+        searchText: '',
+        energyTypes: []
+    };
+
+    function escapeHTML(str) {
+        if (str === null || str === undefined) return '';
+        return str.toString().replace(/[&<>"']/g, match => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[match]));
+    }
+
+    function createDeckCardHTML(deck, pageData) {
+        const deckEditUrl = `${pageData.deck_builder_url}?edit=${deck.deck_id}`;
+        const deckCopyUrl = `${pageData.deck_builder_url}?copy_from=${deck.deck_id}`;
+        const energyUrls = pageData.energy_icon_urls;
+
+        const energyIconsHTML = (deck.types || []).map(type => {
+            const iconUrl = energyUrls[type] || '';
+            return `<div class="energy-icon-wrapper"><img src="${escapeHTML(iconUrl)}" alt="${escapeHTML(type)}" class="energy-icon"></div>`;
+        }).join('');
+
+        const coverCardsHTML = (deck.resolved_cover_cards || []).map(cover => {
+            const imgPath = cover.display_image_path || '';
+            return `<div class="cover-card-image-wrapper is-loading"><img data-src="${escapeHTML(imgPath)}" alt="${escapeHTML(cover.name)}" title="${escapeHTML(cover.name)}"></div>`;
+        }).join('');
+
+        const notUsableHTML = deck.card_count < 20 ? '<div class="deck-not-full-overlay">DECK NOT USABLE</div>' : '';
+        const deckColumnId = `deck-col-${deck.deck_id}`;
+
+        return `
+            <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4" id="${deckColumnId}">
+                <div class="card h-100">
+                    <div class="card-body" style="padding: 1rem;">
+                        <div class="deck-header-right-actions">
+                            <span class="badge bg-primary">${escapeHTML(deck.card_count)}/20 cards</span>
+                            <div class="dropdown deck-actions-dropdown">
+                                <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Deck Actions"><i class="bi bi-three-dots-vertical"></i></button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="${deckEditUrl}"><i class="bi bi-pencil-square me-2"></i>Edit</a></li>
+                                    <li><a class="dropdown-item" href="${deckCopyUrl}"><i class="bi bi-files me-2"></i>Make a copy</a></li>
+                                    <li><a class="dropdown-item" href="${pageData.battle_sim_url}"><i class="bi bi-joystick me-2"></i>Load into Battle Sim</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-danger deck-action-delete" href="#" data-deck-id="${escapeHTML(deck.deck_id)}" data-deck-name="${escapeHTML(deck.name)}"><i class="bi bi-trash me-2"></i>Delete</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="d-flex mb-2">${energyIconsHTML}</div>
+                        <div class="deck-cover-cards-area">${coverCardsHTML}${notUsableHTML}</div>
+                        <h5 class="card-title">${escapeHTML(deck.name)}</h5>
+                    </div>
+                </div>
+            </div>`;
+    }
+
+    function initializeImageLazyLoader() {
+        if (!('IntersectionObserver' in window)) return;
+        const imageObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    const wrapper = img.parentElement;
+                    img.onload = () => {
+                        wrapper.classList.remove('is-loading');
+                        wrapper.classList.add('is-loaded');
+                    };
+                    img.onerror = () => wrapper.classList.remove('is-loading');
+                    img.src = img.dataset.src;
+                    img.removeAttribute('data-src');
+                    observer.unobserve(img);
+                }
+            });
+        }, { rootMargin: '250px' });
+        document.querySelectorAll('.cover-card-image-wrapper img[data-src]').forEach(img => imageObserver.observe(img));
+    }
+
+    function applyFilters() {
+        const searchText = activeFilters.searchText.toLowerCase().trim();
+        const selectedEnergies = activeFilters.energyTypes;
+        let visibleCount = 0;
+
+        allDecks.forEach(deck => {
+            const deckElement = document.getElementById(`deck-col-${deck.deck_id}`);
+            if (!deckElement) return;
+
+            const deckTypes = deck.types || [];
+            let energyMatch = true;
+            if (selectedEnergies.length > 0) {
+                if (deckTypes.length !== selectedEnergies.length) {
+                    energyMatch = false;
+                } else {
+                    energyMatch = selectedEnergies.every(energy => deckTypes.includes(energy));
+                }
+            }
+
+            const coverNames = (deck.resolved_cover_cards || []).map(c => c.name.toLowerCase());
+            let textMatch = true;
+            if (searchText) {
+                textMatch = deck.name.toLowerCase().includes(searchText) ||
+                            coverNames.some(name => name.includes(searchText));
+            }
+
+            if (energyMatch && textMatch) {
+                deckElement.style.display = '';
+                visibleCount++;
+            } else {
+                deckElement.style.display = 'none';
+            }
+        });
+
+        const noResultsMessage = document.getElementById('no-results-message');
+        if (noResultsMessage) {
+            noResultsMessage.style.display = visibleCount === 0 ? 'block' : 'none';
+        }
+    }
+
+    function setupFilterListeners() {
+        document.getElementById('deck-search-input').addEventListener('input', (e) => {
+            activeFilters.searchText = e.target.value;
+            applyFilters();
+        });
+
+        document.querySelectorAll('.filter-bar .energy-icon-wrapper').forEach(icon => {
+            icon.addEventListener('click', () => {
+                const energyType = icon.dataset.type;
+                const isCurrentlyActive = icon.classList.contains('active');
+
+                // If the icon is already active, always allow de-selecting it.
+                if (isCurrentlyActive) {
+                    icon.classList.remove('active');
+                    activeFilters.energyTypes = activeFilters.energyTypes.filter(e => e !== energyType);
+                    applyFilters();
+                } 
+                // If it's not active, only allow selecting it if fewer than 3 are already selected.
+                else if (activeFilters.energyTypes.length < 3) {
+                    icon.classList.add('active');
+                    activeFilters.energyTypes.push(energyType);
+                    applyFilters();
+                }
+                // If 3 are already active and you click an inactive one, do nothing.
+            });
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const pageDataEl = document.getElementById('page-data');
+        const decksContainer = document.getElementById('decks-container');
+        if (!pageDataEl || !decksContainer) return;
+
+        const pageData = JSON.parse(pageDataEl.textContent);
+
+        decksContainer.innerHTML = `<div class="col-12 text-center p-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>`;
+
+        fetch(pageData.api_url)
+            .then(response => response.ok ? response.json() : Promise.reject(response))
+            .then(data => {
+                decksContainer.innerHTML = '';
+
+                if (data.decks && data.decks.length > 0) {
+                    allDecks = data.decks;
+                    allDecks.forEach(deck => {
+                        const deckCardHTML = createDeckCardHTML(deck, pageData);
+                        decksContainer.insertAdjacentHTML('beforeend', deckCardHTML);
+                    });
+
+                    decksContainer.insertAdjacentHTML('beforeend', `
+                        <div id="no-results-message" class="col-12 text-center p-5" style="display: none;">
+                            <p class="h5">No decks match your current filters.</p>
+                        </div>
+                    `);
+
+                    initializeImageLazyLoader();
+                    setupFilterListeners();
+                } else {
+                    decksContainer.innerHTML = `<div class="col-12"><div class="alert alert-info"><p>You don't have any decks yet. <a href="${pageData.deck_builder_url}">Create your first deck!</a></p></div></div>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching decks:', error);
+                decksContainer.innerHTML = `<div class="col-12"><div class="alert alert-danger">Could not load decks. Please try again later.</div></div>`;
+            });
+
+        document.body.addEventListener('click', function(event) {
+            const deleteLink = event.target.closest('.deck-action-delete');
+            if (deleteLink) {
+                event.preventDefault();
+                const { deckId, deckName } = deleteLink.dataset;
+                if (confirm(`Are you sure you want to delete the deck "${deckName}"?`)) {
+                    fetch(`/api/decks/${deckId}`, { method: 'DELETE' })
+                        .then(res => {
+                            if (res.ok) {
+                                document.getElementById(`deck-col-${deckId}`).remove();
+                                allDecks = allDecks.filter(d => d.deck_id !== deckId);
+                            } else {
+                                alert('Failed to delete deck.');
+                            }
+                        });
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

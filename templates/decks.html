@@ -1,0 +1,3570 @@
+{% extends 'base.html' %}
+
+{% block title %}Deck Builder - PvPocket{% endblock %}
+
+{% block extra_css %}
+{# Link for Bootstrap Icons, specific to this page #}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+{# STYLE #}
+<style>
+    .navbar {
+        margin-bottom: 0px;
+    }
+    .navbar-brand {
+        font-weight: bold;
+        font-size: 1.5rem;
+    }
+    .container {
+        padding-left: 10px;
+        padding-right: 10px;
+        max-width: 98%;
+    }
+    #main-navbar-container .navbar-collapse {
+        justify-content: center !important;
+        flex-grow: 0;
+    }
+    #main-navbar-container .navbar-nav.me-auto {
+        margin-right: 0 !important;
+    }
+    #main-navbar-container .navbar-nav.ms-auto {
+        margin-left: 0 !important;
+    }
+    #main-navbar-container .navbar-nav:not(:last-child) {
+        margin-right: 1rem;
+    }
+    .deck-builder-main-row {
+        display: flex;
+        flex-wrap: wrap;
+    }
+    .add-cards-wrapper .card,
+    .current-deck-wrapper .card {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        min-height: 65vh;
+    }
+    .col-md-8.mb-4 .card-body {
+        flex-grow: 1;
+        overflow: hidden;
+        padding: 0;
+        position: relative;
+    }
+    .col-md-8.mb-4 .card-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        justify-content: flex-start;
+        flex-wrap: nowrap;
+        padding: 10px !important;
+    }
+    .col-md-8.mb-4 .card-header .input-group {
+        flex-grow: 1;
+        flex-shrink: 1;
+        min-width: 150px;
+        margin-bottom: 0;
+    }
+    .col-md-8.mb-4 .card-header .dropdown {
+        flex-shrink: 0;
+        width: 85px;
+        min-width: 85px;
+        margin-bottom: 0;
+    }
+    .col-md-8.mb-4 .card-header .dropdown button {
+        width: 100%;
+        min-width: auto;
+        font-size: 14px;
+        padding: 10px 15px;
+        text-align: left;
+    }
+    .col-md-8.mb-4 .card-header .dropdown .dropdown-toggle::after {
+        display: none;
+    }
+    .filter-bar {
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 8px;
+        background-color: var(--settings-bg);
+        border: 1px solid var(--border-color);
+    }
+    .filter-bar .row {
+        display: flex;
+        flex-wrap: wrap;
+        margin-right: -5px;
+        margin-left: -5px;
+        align-items: flex-start;
+    }
+    .filter-bar .col-md-8,
+    .filter-bar .col-md-4 {
+        padding: 0 10px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+    }
+    .filter-bar .col-md-4 {
+        padding-top: 0;
+    }
+    .filter-bar .col-md-8 .row {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        width: 100%;
+    }
+    .filter-bar .col-md-3 {
+        padding: 0 5px;
+        flex: 1;
+        min-width: 0;
+    }
+    .filter-label,
+    .filter-label-top,
+    .filter-label-top-color {
+        font-size: 0.8rem;
+        color: var(--text-color);
+        opacity: 0.7;
+        font-weight: 600;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+        display: block;
+        line-height: 1;
+    }
+    .filter-bar .dropdown button {
+        width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        text-align: left;
+        font-size: 14px;
+        padding: 10px 15px;
+        border: 1px solid var(--border-color);
+        background-color: var(--input-bg);
+        color: var(--input-text);
+    }
+    .filter-bar .dropdown-menu {
+        width: 100%;
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    .filter-bar .dropdown-menu .dropdown-item {
+        border-bottom: 1px solid #e9ecef;
+        white-space: normal;
+        word-wrap: break-word;
+    }
+    .filter-bar .energy-icons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: flex-start;
+        margin-top: 5px;
+        width: 100%;
+        overflow: visible;
+    }
+    .energy-icon-wrapper {
+        position: relative;
+        cursor: pointer;
+        width: 29px;
+        height: 29px;
+        border-radius: 50%;
+        overflow: visible;
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+    }
+    .energy-icon-wrapper:not(.active) {
+        opacity: 0.5;
+        filter: saturate(0.8);
+    }
+    .energy-icon-wrapper:hover {
+        opacity: 0.9;
+        filter: saturate(0.9);
+    }
+    .energy-icon-wrapper.active {
+        opacity: 1;
+        filter: saturate(1.1);
+        transform: scale(1.2);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        z-index: 2;
+    }
+    .energy-icon {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+    .energy-icon-wrapper.deck-energy {
+        width: 25px;
+        height: 25px;
+        margin: 0 2px;
+    }
+    .deck-energy {
+        cursor: pointer;
+        transition: all 0.2s ease;
+        opacity: 0.5;
+        width: 27px;
+        height: 27px;
+        margin: 0;
+    }
+    .deck-energy.active {
+        opacity: 1;
+        transform: scale(1.15);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+    #card-collection {
+        overflow-y: scroll;
+        padding: 15px;
+        padding-bottom: 10px;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+    }
+    #card-collection::-webkit-scrollbar {
+        width: 8px;
+    }
+    #card-collection::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    #card-collection::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 10px;
+    }
+    #card-collection::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+    [data-theme="dark"] #card-collection::-webkit-scrollbar-track {
+        background: var(--bg-color);
+    }
+    [data-theme="dark"] #card-collection::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+    }
+    .card-item {
+        position: relative;
+        margin-bottom: 200px;
+        will-change: transform;
+    }
+    .card-item img {
+        width: 100%;
+        border-radius: 3.5%;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        transition: transform 0.2s ease;
+        cursor: pointer;
+    }
+    .card-item:hover {
+        transform: scale(1.05);
+        transition: transform 0.2s ease;
+    }
+    .card-item:hover img {
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        transition: all 0.2s ease;
+    }
+    .card-item .badge,
+    .card-item .btn-remove-small {
+        transition: transform 0.2s ease;
+        z-index: 10;
+    }
+    .card-item:hover .badge {
+        transform: scale(1.05);
+        transition: all 0.2s ease;
+    }
+    .card-item .badge {
+        position: absolute;
+        top: 5px;
+        left: 5px;
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+        background-color: rgba(0, 13, 130, 0.826) !important;
+        color: white;
+        font-weight: 600;
+        border-radius: 50%;
+        border: none;
+        font-size: 12px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    .clickable-card {
+        cursor: pointer;
+        position: relative;
+        transition: transform 0.2s ease;
+    }
+    .clickable-card::before {
+        content: '+';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 36px;
+        height: 36px;
+        background-color: rgba(40, 40, 40, 0.8);
+        color: #2ecc71;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+        z-index: 10;
+        padding-bottom: 4px;
+        font-weight: bold;
+        font-size: 24px;
+        pointer-events: none;
+    }
+    .clickable-card:hover::before {
+        opacity: 0.9;
+    }
+    [data-theme="dark"] .clickable-card::before {
+        background-color: rgba(60, 60, 60, 0.8);
+        color: #2ecc71;
+    }
+    .col-6.col-sm-4.col-md-3.col-lg-2.mb-3 {
+        margin-bottom: 7px !important;
+    }
+    #search-input.form-control {
+        background-color: var(--input-bg);
+        color: var(--input-text);
+        border-color: var(--border-color);
+    }
+    #search-input::placeholder,
+    #deck-name::placeholder {
+        color: var(--text-color);
+        opacity: 0.6;
+    }
+    [data-theme="dark"] #search-input::placeholder,
+    [data-theme="dark"] #deck-name::placeholder {
+        color: var(--text-color);
+        opacity: 0.5;
+    }
+    .input-group > span.input-group-text:first-child {
+        background-color: var(--input-bg);
+        border-color: var(--border-color);
+        color: var(--text-color);
+        opacity: 0.7;
+    }
+    #card-count-search {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--input-bg);
+        color: var(--input-text);
+        border: 1px solid var(--border-color);
+        border-left: none;
+        padding: 0.6rem 0.75rem;
+        padding-top: calc(0.6rem + 2.9px);
+        font-size: 0.875rem;
+        border-top-right-radius: var(--bs-border-radius);
+        border-bottom-right-radius: var(--bs-border-radius);
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+    }
+    [data-theme="dark"] #card-count-search {
+        color: #FFFFFF !important;
+    }
+    :root:not([data-theme="dark"]) #card-count-search,
+    body:not([data-theme="dark"]) #card-count-search {
+        color: #343a40;
+    }
+    .sort-arrow i {
+        margin-left: 0.25rem;
+        font-size: 0.8em;
+    }
+    #current-deck {
+        height: 100%;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 5px;
+        width: 100%;
+    }
+    .current-deck-container .card {
+        padding-right: 0;
+        overflow: hidden;
+    }
+    .current-deck-container .card-body {
+        padding: 10px;
+    }
+    .card-header {
+        padding: 10px !important;
+        padding-bottom: 7px !important;
+    }
+    .current-deck-container .card-header {
+        background-color: var(--settings-bg);
+        border-bottom: 1px solid var(--border-color);
+        padding: 15px;
+        padding-bottom: 0px !important;
+    }
+    [data-theme="dark"] .current-deck-container .card-header {
+        background-color: #2c3136;
+        border-bottom-color: var(--border-color);
+    }
+    .deck-header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    .input-group {
+        display: flex;
+        align-items: stretch;
+        width: 100%;
+        margin-bottom: 5px;
+    }
+    #deck-name {
+        height: 45px;
+        border-radius: 8px 0 0 8px;
+        border: 1px solid white;
+        padding: 0 12px;
+        flex-grow: 1;
+    }
+    #save-deck-btn, #clear-deck-btn {
+        height: 45px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 16px;
+        font-weight: 500;
+        border-radius: 0%;
+    }
+    .deck-counter {
+        background-color: rgba(52, 58, 64, 0.55) !important;
+        color: white;
+        font-weight: 600;
+        border-radius: 0 8px 8px 0;
+        min-width: 70px;
+        height: 45px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2), inset 0 0 0 1px white;
+        border-left: none;
+    }
+    .deck-counter.full {
+        background-color: rgba(52, 58, 64) !important;
+    }
+    .energy-section {
+        margin-top: 12px;
+    }
+    .energy-label {
+        margin-right: 8px;
+        margin-left: 6px;
+        margin-top: 4px;
+        margin-bottom: 8px;
+        color: #444;
+        display: block;
+        font-size: 16px;
+    }
+    [data-theme="dark"] .energy-label {
+        color: var(--text-color);
+        opacity: 0.9;
+    }
+    .energy-selection-bar {
+        display: flex;
+        justify-content: space-evenly;
+        width: 98%;
+        margin: 9px 0;
+        padding: 0;
+        align-items: center;
+    }
+    .selected-energies-info {
+        display: block;
+        margin-top: 8px;
+        margin-bottom: 5px;
+    }
+    .deck-slots {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        height: 100%;
+        align-content: flex-start;
+        width: 100%;
+        margin: 0;
+    }
+    .card-slot {
+        width: 25%;
+        margin-bottom: 10px;
+    }
+    .card-slot-container {
+        position: relative;
+        aspect-ratio: 63/88;
+        border-radius: 4px;
+        overflow: hidden;
+        transition: all 0.2s ease;
+        display: block;
+    }
+    .card-slot-container img {
+        display: block;
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        border-radius: 3.5%;
+    }
+    .card-slot-container.empty {
+        border: 2px dashed var(--border-color);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: var(--hover-shadow);
+    }
+    .card-slot-container.filled:hover {
+        transform: scale(1.05);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+    .max-copies img {
+        filter: grayscale(85%);
+    }
+    .empty-slot {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: #aaa;
+    }
+    .empty-slot-text {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-weight: 500;
+        color: var(--text-color);
+        opacity: 0.7;
+    }
+    [data-theme="dark"] .empty-slot-text {
+        color: var(--text-color);
+    }
+    .btn-remove-small,
+    .btn-remove {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+        background-color: rgba(220, 53, 69, 0.85);
+        color: white;
+        border-radius: 50%;
+        border: none;
+        font-size: 14px;
+        transition: all 0.2s ease;
+    }
+    .btn-remove-small:hover,
+    .btn-remove:hover {
+        opacity: 1;
+        background-color: rgba(176, 42, 55, 0.95);
+        transform: scale(1.05);
+    }
+    .btn-favorite {
+        position: absolute;
+        top: 5px;
+        left: 5px;
+        width: 28px;
+        height: 28px;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        border: none;
+        background: none;
+        cursor: pointer;
+        color: transparent;
+        line-height: 1;
+        font-size: 28px;
+        transition: transform 0.15s ease-in-out;
+    }
+    .btn-favorite:hover {
+        transform: scale(1.1);
+    }
+    .btn-favorite i {
+        color: #FFFFFF;
+        position: relative;
+        z-index: 0;
+    }
+    .btn-favorite.active i {
+        color: #FFD700;
+        opacity: 1;
+        text-shadow: 0 0 3px rgba(0,0,0,0.5);
+    }
+    [data-theme="dark"] .btn-favorite.active i {
+        text-shadow: 0 0 4px rgba(0,0,0,0.7);
+    }
+    .btn-favorite i.bi-star::before,
+    .btn-favorite i.bi-star::after,
+    .btn-favorite.active i.bi-star-fill::before {
+        font-weight: normal !important;
+    }
+    .btn-favorite .cover-card-number {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 0.65rem;
+        font-weight: bold;
+        color: black;
+        text-shadow: 0px 0px 2px white, 0px 0px 1px white;
+        pointer-events: none;
+        line-height: 1;
+        z-index: 1;
+        margin-top: 1px;
+    }
+    .card-zoom-container {
+        position: fixed;
+        display: none;
+        z-index: 9999;
+        pointer-events: none;
+        transition: all 0.1s ease-out;
+    }
+    .card-zoom-container img {
+        max-height: 90vh;
+        max-width: 340px;
+        box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        border-radius: 15px;
+    }
+    [data-theme="dark"] .card-zoom-container img {
+        box-shadow: 0 0 20px rgba(255,255,255,0.2);
+    }
+    .auth-modal {
+        display: none;
+        position: fixed;
+        z-index: 10001;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0,0,0,0.6);
+        padding-top: 60px;
+    }
+    .auth-modal-content {
+        background-color: var(--settings-bg, #fefefe);
+        color: var(--text-color, #000000);
+        margin: 5% auto;
+        padding: 25px 30px;
+        border: 1px solid var(--border-color, #888);
+        border-radius: 8px;
+        width: 80%;
+        max-width: 450px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        text-align: center;
+    }
+    [data-theme="dark"] .auth-modal-content {
+        background-color: #2c3136;
+        border-color: #444;
+    }
+    .auth-modal-close-btn {
+        color: var(--text-color-muted, #aaa);
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        line-height: 1;
+    }
+    .auth-modal-close-btn:hover,
+    .auth-modal-close-btn:focus {
+        color: var(--text-color, #000);
+        text-decoration: none;
+        cursor: pointer;
+    }
+    .auth-modal h2 {
+        margin-top: 0;
+        margin-bottom: 15px;
+        font-weight: 600;
+    }
+    .auth-modal p {
+        margin-bottom: 25px;
+        font-size: 1rem;
+        line-height: 1.6;
+    }
+    .auth-modal-actions button {
+        padding: 10px 20px;
+        margin: 5px;
+        min-width: 100px;
+        font-weight: 500;
+    }
+    .filter-bar .row,
+    .filter-bar .col-md-8,
+    .filter-bar .col-md-4,
+    .filter-bar .dropdown button,
+    .energy-icon-wrapper {
+        transition: all 0.15s ease-out;
+    }
+    @keyframes shimmer {
+        100% {
+            transform: translateX(100%);
+        }
+    }
+    .clickable-card.is-loading {
+        display: block;
+        position: relative;
+        width: 100%;
+        aspect-ratio: 63 / 88;
+        background-color: #e0e0e0;
+        border-radius: 3.5%;
+        overflow: hidden;
+    }
+    .clickable-card.is-loading::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+        transform: translateX(-100%);
+        animation: shimmer 1.5s infinite;
+    }
+    .clickable-card.is-loading::before {
+        content: none !important;
+    }
+    [data-theme="dark"] .clickable-card.is-loading {
+        background-color: #3a3f44;
+    }
+    [data-theme="dark"] .clickable-card.is-loading::after {
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+    }
+    .clickable-card.is-loading > img {
+        opacity: 0;
+    }
+    .clickable-card.is-loaded > img {
+        opacity: 1;
+        transition: opacity 0.1s ease-in-out;
+    }
+    :root:not([data-theme="dark"]) {
+        .current-deck-container .input-group #deck-name {
+            background-color: var(--input-bg, #f1f1f1);
+            border-color: var(--border-color, #dee2e6);
+        }
+        .current-deck-container .deck-counter {
+            background-color: var(--input-bg, #f1f1f1) !important;
+            color: var(--text-color, #212529) !important;
+            box-shadow: none !important;
+            border: 1px solid var(--border-color, #dee2e6);
+            border-left: 1px solid transparent;
+        }
+        #clear-deck-btn {
+            background-color: transparent;
+            border-color: var(--border-color, #dee2e6);
+            color: var(--bs-danger, #dc3545);
+        }
+        #clear-deck-btn:hover {
+            background-color: rgba(220, 53, 69, 0.1);
+        }
+        .filter-label,
+        .filter-label-top,
+        .filter-label-top-color {
+            color: #6c757d;
+            opacity: 1;
+        }
+    }
+    @keyframes card-click-effect {
+        50% {
+            transform: scale(1);
+        }
+    }
+    .card-item.is-clicking {
+        animation: card-click-effect 0.12s ease-out;
+    }
+    #sort-options-dropdown.dropdown-menu {
+        width: max-content !important;
+        min-width: auto !important;
+    }
+    @media (min-width: 1430px) {
+        .filter-bar .row {
+            flex-direction: row;
+            align-items: flex-start;
+        }
+        .filter-bar .col-md-8 {
+            width: 70%;
+        }
+        .filter-bar .col-md-4 {
+            width: 30%;
+            padding-bottom: 0;
+            padding-top: 2px;
+        }
+        .filter-bar .col-md-3 {
+            flex: 0 0 25%;
+            margin-bottom: 0;
+        }
+        .filter-bar .col-md-8 .row {
+            flex-wrap: nowrap;
+        }
+    }
+    @media (max-width: 1429px) and (min-width: 800px) {
+        .filter-bar .row {
+            flex-direction: row;
+            align-items: flex-start;
+        }
+        .filter-bar .col-md-8 {
+            width: 70%;
+        }
+        .filter-bar .col-md-4 {
+            width: 30%;
+            height: 100%;
+            align-self: center;
+        }
+        .filter-bar .col-md-8 .row {
+            flex-wrap: wrap;
+        }
+        .filter-bar .col-md-3 {
+            flex: 0 0 50%;
+            margin-bottom: 10px;
+        }
+        .filter-bar .col-md-3:nth-child(1),
+        .filter-bar .col-md-3:nth-child(2) {
+            margin-bottom: 10px;
+        }
+        .filter-bar .col-md-3:nth-child(3),
+        .filter-bar .col-md-3:nth-child(4) {
+            margin-bottom: 0;
+        }
+        .filter-bar .energy-icons {
+            width: 100%;
+            max-width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            margin-top: 4px;
+        }
+    }
+    @media (max-width: 1300px) and (min-width: 800px) {
+        .deck-builder-main-row {
+            display: flex;
+            flex-wrap: wrap;
+            margin-right: 0;
+            margin-left: 0;
+        }
+        .add-cards-wrapper {
+            flex-grow: 1;
+            flex-shrink: 1;
+            width: calc(100% - 398px);
+            min-width: 0;
+            flex-basis: auto;
+            padding-left: 0;
+        }
+        .current-deck-wrapper {
+            width: 398px;
+            flex-shrink: 0 !important;
+            padding-right: 0 !important;
+            margin-left: 0;
+            flex-basis: auto !important;
+        }
+        .add-cards-wrapper .card,
+        .current-deck-wrapper .card {
+            display: flex !important;
+            flex-direction: column !important;
+            height: 100% !important;
+        }
+        .add-cards-wrapper .card-body,
+        .current-deck-wrapper .card-body {
+            flex-grow: 1;
+            overflow: hidden;
+            position: relative;
+        }
+        .add-cards-wrapper #card-collection,
+        .current-deck-wrapper #current-deck {
+            height: 100%;
+            overflow-y: auto;
+        }
+    }
+    @media (max-width: 800px) {
+        .filter-bar {
+            width: 100%;
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+        .filter-bar .dropdown button {
+            width: 100%;
+        }
+        .filter-bar .row {
+            flex-direction: column;
+        }
+        .filter-bar .col-md-8,
+        .filter-bar .col-md-4 {
+            width: 100%;
+        }
+        .filter-bar .col-md-8 {
+            margin-bottom: 10px;
+        }
+        .filter-bar .col-md-8 .row {
+            flex-direction: column;
+            width: 100%;
+        }
+        .filter-bar .col-md-3 {
+            flex: 0 0 100%;
+            margin-bottom: 10px;
+            width: 100%;
+        }
+        .filter-bar .col-md-3:last-child {
+            margin-bottom: 0;
+        }
+        .row.mb-4 {
+            flex-direction: column;
+        }
+        .col-md-8.mb-4,
+        .col-md-4.mb-4 {
+            display: block !important;
+            flex: none !important;
+            max-width: 100% !important;
+            width: 100% !important;
+            margin-bottom: 1rem !important;
+            min-height: 300px;
+        }
+        .add-cards-wrapper .card,
+        .current-deck-wrapper .card {
+            height: auto;
+            min-height: 620px;
+        }
+        .current-deck-wrapper #current-deck {
+            height: auto;
+        }
+        .deck-builder-main-row {
+            display: block;
+        }
+        .card-zoom-container img {
+            max-width: 260px;
+        }
+    }
+    @media (hover: none) {
+        /* --- General Mobile Hover Resets --- */
+        .card-item:hover,
+        .card-slot-container.filled:hover,
+        .btn-favorite:hover,
+        .btn-remove-small:hover,
+        .btn-remove:hover,
+        .card-item:hover .badge {
+            transform: none;
+        }
+        .card-item:hover img {
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .btn-remove-small:hover,
+        .btn-remove:hover {
+            background-color: rgba(220, 53, 69, 0.85);
+        }
+        .energy-icon-wrapper:hover:not(.active) { 
+            opacity: 0.5; 
+            filter: saturate(0.8); 
+        }
+        .auth-modal-close-btn:hover, .auth-modal-close-btn:focus { 
+            color: var(--text-color-muted, #aaa); 
+            text-decoration: none; 
+        }
+        #card-collection::-webkit-scrollbar-thumb:hover { 
+            background: #888; 
+        }
+        [data-theme="dark"] #card-collection::-webkit-scrollbar-thumb:hover { 
+            background: var(--border-color); 
+        }
+
+        /* --- Mobile Tap Animations & Effects --- */
+        .card-item {
+            -webkit-tap-highlight-color: transparent;
+        }
+        .clickable-card::before {
+            content: '+';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 36px;
+            height: 36px;
+            background-color: rgba(40, 40, 40, 0.8);
+            color: #2ecc71;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.9;
+            transition: opacity 0.2s ease-in-out;
+            z-index: 10;
+            padding-bottom: 4px;
+            font-weight: bold;
+            font-size: 24px;
+            pointer-events: none;
+        }
+        @keyframes mobile-card-tap-animation {
+            50% { transform: scale(0.95); }
+        }
+        .clickable-card.tapped-mobile {
+            animation: mobile-card-tap-animation 0.12s ease-in-out;
+        }
+        .btn-remove.is-tapping,
+        .btn-remove-small.is-tapping {
+            animation: mobile-card-tap-animation 0.17s ease-in-out;
+        }
+        #save-deck-btn, #clear-deck-btn {
+            -webkit-tap-highlight-color: transparent;
+        }
+        #save-deck-btn:hover,
+        #save-deck-btn:active {
+            transform: none !important;
+            box-shadow: none !important;
+            background-color: #198754 !important;
+            border-color: #198754 !important;
+            color: white !important;
+        }
+        #clear-deck-btn:hover,
+        #clear-deck-btn:active {
+            transform: none !important;
+            box-shadow: none !important;
+            background-color: transparent !important;
+            color: #dc3545 !important;
+        }
+        #save-deck-btn:focus,
+        #clear-deck-btn:focus {
+            box-shadow: none !important;
+        }
+        .btn-outline-secondary:hover,
+        .btn-outline-secondary:active,
+        .btn-outline-secondary:focus {
+            color: var(--bs-secondary) !important;
+            background-color: transparent !important;
+            box-shadow: none !important;
+        }
+    }
+    @media (max-width: 450px) {
+        .filter-bar .row {
+            justify-content: space-between;
+        }
+        .filter-bar .col-md-8 .row {
+            flex-direction: row;
+            flex-wrap: wrap;
+            gap: 15px 0;
+        }
+        .filter-bar .col-md-3 {
+            flex: 1 0 48%;
+            max-width: 48%;
+            margin-bottom: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .filter-bar .col-md-3 .dropdown {
+            margin-top: auto;
+        }
+        .filter-bar .col-md-3:nth-child(3) {
+            flex-grow: 0.5;
+        }
+        .filter-bar .col-md-3:nth-child(4) {
+            flex-grow: 1.5;
+        }
+        .filter-bar .energy-icons {
+            display: flex;
+            justify-content: flex-start;
+            gap: 8px;
+            padding-left: 0;
+            width: 100%;
+            flex-wrap: wrap;
+            overflow-x: auto;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+            margin-top: 2px;
+            padding: 9px 7px;
+        }
+        .filter-bar .energy-icon-wrapper {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+        .col-md-8.mb-4 .card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .col-md-8.mb-4 .card-header .input-group {
+            flex: 1 1 auto;
+            min-width: 120px;
+        }
+        .current-deck-container .card-header .input-group {
+            flex-wrap: wrap;
+            gap: 0.5rem 0;
+        }
+        .current-deck-container .card-header #deck-name {
+            flex-basis: 100%;
+            border-radius: 8px;
+            margin-bottom: 5px;
+        }
+        .current-deck-container .card-header .btn,
+        .current-deck-container .card-header .deck-counter {
+            flex-grow: 1;
+            border-radius: 0 !important;
+        }
+        .current-deck-container .card-header #save-deck-btn {
+            border-top-left-radius: 8px !important;
+            border-bottom-left-radius: 8px !important;
+        }
+        .current-deck-container .card-header .deck-counter {
+            border-top-right-radius: 8px !important;
+            border-bottom-right-radius: 8px !important;
+        }
+        .col-md-8.mb-4 .card-header .dropdown {
+            width: 75px;
+            min-width: 75px;
+        }
+        .col-md-8.mb-4 .card-header .dropdown button {
+            padding: 10px 12px;
+        }
+        .col-md-8.mb-4 .card-header .dropdown .dropdown-toggle::after {
+            display: none;
+        }
+        .energy-selection-bar {
+            justify-content: space-between;
+            padding: 4px 0;
+        }
+        .energy-selection-bar .energy-label {
+            margin-right: 6px;
+        }
+        .energy-selection-bar .energy-icon-wrapper.deck-energy {
+            width: 22px;
+            height: 22px;
+            margin: 0 1px;
+        }
+        .current-deck-wrapper .card,
+        .current-deck-wrapper .card-body {
+            overflow-x: hidden;
+        }
+        .filter-label-top,
+        .filter-label-top-color {
+            margin-bottom: 4px;
+            min-height: 0;
+        }
+        #search-input,
+        #search-input::placeholder {
+            font-size: 0.875rem;
+        }
+
+        #card-count-search {
+            font-size: 0.8rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{# HTML SECTION #}
+<body>
+    <div class="container">
+        <div class="container-fluid">
+            <div class="filter-bar mb-4 rounded">
+                <div class="row align-items-start">
+                    <div class="col-md-8">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="filter-container">
+                                    <div class="filter-label-top">Card Type</div>
+                                    <div class="dropdown w-100">
+                                        <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" id="cardTypeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                            All
+                                        </button>
+                                        <ul class="dropdown-menu w-100" id="card-type-dropdown">
+                                            <li><a class="dropdown-item active" href="#" data-value="All">All</a></li>
+                                            <li><a class="dropdown-item" href="#" data-value="Pokémon">Pokémon</a></li>
+                                            <li><a class="dropdown-item" href="#" data-value="Trainer">Trainer</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <div class="filter-container">
+                                    <div class="filter-label-top">Stage/Trainer</div>
+                                    <div class="dropdown w-100">
+                                        <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" id="stageTypeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                            All
+                                        </button>
+                                        <ul class="dropdown-menu w-100" id="stage-type-dropdown">
+                                            <li><a class="dropdown-item active" href="#" data-value="All">All</a></li>
+                                            <li><a class="dropdown-item" href="#" data-value="Supporter">Supporter</a></li>
+                                            <li><a class="dropdown-item" href="#" data-value="Basic">Basic</a></li>
+                                            <li><a class="dropdown-item" href="#" data-value="Stage 1">Stage 1</a></li>
+                                            <li><a class="dropdown-item" href="#" data-value="Stage 2">Stage 2</a></li>
+                                            <li><a class="dropdown-item" href="#" data-value="EX">EX</a></li>
+                                            <li><a class="dropdown-item" href="#" data-value="Ultra Beast">Ultra Beast</a></li>
+                                            <li><a class="dropdown-item" href="#" data-value="Item">Item</a></li>
+                                            <li><a class="dropdown-item" href="#" data-value="Tool">Tool</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <div class="filter-container">
+                                    <div class="filter-label-top">Set</div>
+                                    <div class="dropdown w-100">
+                                        <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" id="setDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                            All </button>
+                                        <ul class="dropdown-menu w-100" id="set-dropdown">
+                                            </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <div class="filter-container">
+                                    <div class="filter-label-top">Rarity</div>
+                                    <div class="dropdown w-100">
+                                        <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" id="rarityDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                            All
+                                        </button>
+                                        <ul class="dropdown-menu w-100" id="rarity-dropdown">
+                                            <li><a class="dropdown-item active" href="#" data-value="All">All</a></li>
+                                            <li><a class="dropdown-item" href="#" data-value="◊">◊</a></li>
+                                            <li><a class="dropdown-item" href="#" data-value="◊◊">◊◊</a></li>
+                                            <li><a class="dropdown-item" href="#" data-value="◊◊◊">◊◊◊</a></li>
+                                            <li><a class="dropdown-item" href="#" data-value="◊◊◊◊">◊◊◊◊</a></li>
+                                            <li><a class="dropdown-item" href="#" data-value="☆">☆</a></li>
+                                            <li><a class="dropdown-item" href="#" data-value="☆☆">☆☆</a></li>
+                                            <li><a class="dropdown-item" href="#" data-value="☆☆☆">☆☆☆</a></li>
+                                            <li><a class="dropdown-item" href="#" data-value='✵'>✵</a></li>
+                                            <li><a class="dropdown-item" href="#" data-value='✵✵'>✵✵</a></li>
+                                            <li><a class="dropdown-item" href="#" data-value="Crown Rare">👑</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="filter-label-top">Color</div>
+                        <div class="energy-icons">
+                            {% set energy_types_for_filter = ["Grass", "Fire", "Water", "Lightning", "Psychic", "Fighting", "Darkness", "Metal", "Dragon", "Colorless"] %}
+                            {% set energy_type_filenames = {
+                                "Grass": "grass.png", "Fire": "fire.png", "Water": "water.png", 
+                                "Lightning": "electric.png", "Psychic": "psychic.png", 
+                                "Fighting": "fighting.png", "Darkness": "dark.png", 
+                                "Metal": "metal.png", "Dragon": "dragon.png", "Colorless": "colorless.png"
+                            } %}
+
+                            {% for type_name in energy_types_for_filter %}
+                            <div class="energy-icon-wrapper" data-type="{{ type_name }}">
+                                {% if config.ENERGY_ICON_URLS and config.ENERGY_ICON_URLS.get(type_name) %}
+                                    <img src="{{ config.ENERGY_ICON_URLS.get(type_name) }}" alt="{{ type_name }}" class="energy-icon" data-energy-type="{{ type_name }}" onerror="this.style.display='none'; this.parentElement.innerHTML += '{{ type_name[0] if type_name else '' }}';">
+                                {% else %}
+                                    <span class="energy-fallback-text-small" title="{{ type_name }}">{{ type_name[0] if type_name else '?' }}</span>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row deck-builder-main-row">
+                <div class="col-md-8 mb-4 add-cards-wrapper">
+                    <div class="card">
+                        <div class="card-header d-flex align-items-center gap-2"> <div class="input-group flex-grow-1">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input type="text" id="search-input" class="form-control" placeholder="Search" autocomplete="off">
+                                <span id="card-count-search" class="input-group-text">0 cards</span>
+                            </div>
+
+                            <div class="dropdown"> <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" id="sortDropdownButton" data-bs-toggle="dropdown" aria-expanded="false">
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="sortDropdownButton" id="sort-options-dropdown">
+                                    <li>
+                                        <a class="dropdown-item" href="#" data-sort-type="set" data-default-direction="desc">
+                                            Set <span class="sort-arrow"></span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="#" data-sort-type="rarity" data-default-direction="asc">
+                                            Rarity <span class="sort-arrow"></span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="#" data-sort-type="type" data-default-direction="asc">
+                                            Type <span class="sort-arrow"></span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="#" data-sort-type="name" data-default-direction="asc">
+                                            Name <span class="sort-arrow"></span>
+                                        </a>
+                                    </li>
+                                    </ul>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="card-collection">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                    <div class="col-md-4 mb-4 current-deck-container current-deck-wrapper">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="input-group mb-2">
+                                <input type="text" id="deck-name" class="form-control" placeholder="Enter Deck Name" autocomplete="off">
+                                <button id="save-deck-btn" class="btn btn-success">Save</button>
+                                <button id="clear-deck-btn" class="btn btn-outline-danger">Clear</button>
+                                <span class="deck-counter">0/20</span>
+                            </div>
+                            {% set deck_energy_selectable_types = [
+                                "Grass", "Fire", "Water", "Lightning", 
+                                "Psychic", "Fighting", "Darkness", "Metal"
+                            ] %}
+                            <div class="energy-selection-bar d-flex flex-wrap">
+                                <label class="energy-label">Energy:</label>
+                                {% for type_name in deck_energy_selectable_types %}
+                                <div class="energy-icon-wrapper deck-energy" data-type="{{ type_name }}">
+                                    {% if config.ENERGY_ICON_URLS and config.ENERGY_ICON_URLS.get(type_name) %}
+                                        <img src="{{ config.ENERGY_ICON_URLS.get(type_name) }}" 
+                                            alt="{{ type_name }}" 
+                                            class="energy-icon" 
+                                            data-energy-type="{{ type_name }}" 
+                                            onerror="this.style.display='none';">
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="current-deck" class="deck-slots">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-zoom-container" id="card-zoom-container"></div>
+        <div id="loginToSaveModal" class="auth-modal" style="display: none;">
+            <div class="auth-modal-content">
+                <span class="auth-modal-close-btn" style="cursor: pointer;" title="Close">&times;</span>
+                <h2>Save Your Deck</h2>
+                <p>Please sign in with your Google account to save your deck. Your current deck progress has been temporarily remembered!</p>
+                <div class="auth-modal-actions" style="margin-top: 20px;">
+                    <button id="loginToSaveModal_googleBtn" class="btn btn-danger btn-lg">
+                        <i class="fab fa-google" style="margin-right: 8px;"></i>Sign in with Google & Save
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+{% endblock %}
+
+{% block extra_js %}
+{# JAVASCRIPT #}
+<script>
+    
+    let allCards = [];
+    let currentDeck = [];
+    let selectedCoverCardIds = [];
+    let loadedDeckId = null;
+    let selectedFilters = { 
+        cardType: 'All',
+        stageType: 'All',
+        rarity: 'All',
+        set: 'All',
+        energyTypes: [] 
+    };
+    let rawSearchText = ''; 
+    let deckSaved = false;
+    let cardObserver = null; // Manages loading for visible images
+    let progressiveLoadTimeout = null; // Manages the background loading of off-screen images
+    let highResImageCache = new Set();
+    let highResLoadTimeout = null;
+
+    let currentSortType = 'set'; 
+    let currentSortDirection = 'asc'; 
+    let orderedSetNamesForSort = []; 
+    let sortTypeDirections = {
+        'set': 'asc',  
+        'rarity': 'asc',  
+        'type': 'asc',    
+        'name': 'asc'     
+    };
+
+    let canShowDeckFullToast = true;
+    let deckFullToastTimeoutId = null;       
+    let deckFullToastCooldownTimeoutId = null; 
+    let selectedDeckEnergies = [];
+    let selectedFilterEnergies = [];
+    let deckWasRestored = false;
+
+    const DECK_FULL_TOAST_DURATION = 2500;   
+    const DECK_FULL_TOAST_COOLDOWN = 2500; 
+
+    const PENDING_DECK_KEY = 'pendingDeckToSave_v1';
+    const ACTION_AFTER_AUTH_KEY = 'actionAfterAuth_v1';
+
+    const rarityOrder = {
+        // Lower number = higher rarity for default DESC sort
+        'Crown Rare': 0, '✵✵': 1, '✵': 2,
+        '☆☆☆': 3, '☆☆': 4, '☆': 5,
+        '◊◊◊◊': 6, '◊◊◊': 7, '◊◊': 8, '◊': 9,
+        'default': 99 // Handle null/undefined/unknown rarities
+    };
+    const typeOrder = {
+        // Lower number = appears first for default ASC sort (A-Z like for types)
+        'Grass': 0, 
+        'Fire': 1, 
+        'Water': 2, 
+        'Lightning': 3, 
+        'Psychic': 4,
+        'Fighting': 5, 
+        'Darkness': 6, 
+        'Metal': 7, 
+        'Dragon': 8, 
+        'Colorless': 9,
+        'Trainer': 10, // Trainers after all Pokémon energy types
+        'default': 99  // For any other types or null/undefined card.energy_type
+    };
+    const stageOrder = {
+        // Lower number means higher stage priority for sorting (e.g., Stage 2 appears before Stage 1)
+        'Stage 2': 0,
+        'Stage 1': 1,
+        'Basic': 2,
+        // For non-Pokemon (like Trainers, which will be grouped by 'Trainer' type first)
+        // or Pokémon cards with unknown/unspecified stages.
+        'Item': 3,      // Optional: if you want specific trainer subtypes ordered
+        'Supporter': 4, // Optional
+        'Tool': 5,      // Optional
+        'Ultra Beast': 6,   // Optional (if you add this type)
+        'default': 99 
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Deck Builder DOMContentLoaded: Initializing...');
+        loadCards();
+        setupEventListeners();
+        initializeCardObserver();
+    });
+
+    function initializeCardObserver() {
+        if (!('IntersectionObserver' in window)) {
+            console.warn("IntersectionObserver not supported. All images will load in the background.");
+            return;
+        }
+
+        const cardCollectionEl = document.getElementById('card-collection');
+        if (!cardCollectionEl) return;
+
+        const options = {
+            root: cardCollectionEl,
+            rootMargin: '0px 0px 400px 0px', // Load images 400px below the viewport
+            threshold: 0.01
+        };
+
+        cardObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const cardItem = entry.target;
+                    
+                    // This is the one-line fix:
+                    // We now find the container by a class that is always present.
+                    const cardContainer = cardItem.querySelector('.position-relative');
+                    const img = cardItem.querySelector('img[data-src]');
+
+                    if (img && cardContainer) {
+                        const highResSrc = img.getAttribute('data-src');
+
+                        img.onload = () => {
+                            cardContainer.classList.add('is-loaded');
+                            setTimeout(() => {
+                                cardContainer.classList.remove('is-loading');
+                            }, 110);
+                        };
+                        img.onerror = () => {
+                            cardContainer.classList.remove('is-loading');
+                        };
+
+                        img.src = highResSrc;
+                        img.removeAttribute('data-src');
+                    }
+                    observer.unobserve(cardItem);
+                }
+            });
+        }, options);
+    }
+
+    function loadCards() {
+        console.log('loadCards: Fetching all card data...');
+        const cardCollectionDiv = document.getElementById('card-collection');
+        if (cardCollectionDiv) {
+            cardCollectionDiv.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-primary"></div><p>Loading cards...</p></div>';
+        }
+
+        fetch('/api/cards')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status} fetching /api/cards`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data && data.cards && data.cards.length > 0) {
+                    allCards = data.cards;
+                    filteredCards = [...allCards];
+                    console.log(`loadCards: ${allCards.length} cards loaded.`);
+                } else {
+                    allCards = [];
+                    filteredCards = [];
+                    console.warn('loadCards: No cards data received.');
+                    if (cardCollectionDiv) {
+                        cardCollectionDiv.innerHTML = '<div class="text-center p-3"><p>No card data found.</p></div>';
+                    }
+                }
+
+                const uniqueSetsData = [];
+                const encounteredSetCodes = new Set();
+
+                allCards.forEach(card => {
+                    if (card.set_name && card.set_name.trim() !== "" && card.set_code && card.set_code.trim() !== "") {
+                        const setName = card.set_name.trim();
+                        const setCode = card.set_code.trim();
+                        if (!encounteredSetCodes.has(setCode)) {
+                            encounteredSetCodes.add(setCode);
+                            uniqueSetsData.push({ name: setName, code: setCode });
+                        }
+                    }
+                });
+
+                function parseSetCode(code) {
+                    const promoMatch = code.match(/^P[A-Z]*-([A-Z0-9]+(?:[a-z]?))$/i) || code.match(/^P-([A-Z0-9]+(?:[a-z]?))$/i) || code.match(/^P([A-Z0-9]+(?:[a-z]?))$/i);
+                    if (promoMatch) {
+                        return { isPromo: true, prefix: "P", suffix: promoMatch[1] || code, original: code };
+                    }
+                    const match = code.match(/^([A-Z]+)([0-9A-Za-z].*)$/);
+                    if (match) {
+                        return { isPromo: false, prefix: match[1], suffix: match[2], original: code };
+                    }
+                    return { isPromo: false, prefix: "", suffix: code, original: code };
+                }
+
+                uniqueSetsData.sort((a, b) => {
+                    const parsedA = parseSetCode(a.code);
+                    const parsedB = parseSetCode(b.code);
+                    if (parsedA.isPromo && !parsedB.isPromo) return 1;
+                    if (!parsedA.isPromo && parsedB.isPromo) return -1;
+                    if (parsedA.isPromo && parsedB.isPromo) {
+                        return parsedA.original.localeCompare(parsedB.original);
+                    }
+                    if (parsedA.prefix > parsedB.prefix) return -1;
+                    if (parsedA.prefix < parsedB.prefix) return 1;
+                    if (parsedA.suffix > parsedB.suffix) return -1;
+                    if (parsedA.suffix < parsedB.suffix) return 1;
+                    return 0;
+                });
+                
+                orderedSetNamesForSort = uniqueSetsData.map(setObj => setObj.name);
+                populateDropdown('set-dropdown', ['All', ...orderedSetNamesForSort]);
+                if (document.getElementById('setDropdown')) document.getElementById('setDropdown').textContent = 'All';
+
+                let restoredPendingDeck = false;
+                let userIsAuthenticated = window.IS_USER_AUTHENTICATED || false;
+
+                if (userIsAuthenticated) {
+                    const actionAfterAuth = sessionStorage.getItem('ACTION_AFTER_AUTH_KEY');
+                    if (actionAfterAuth === 'savePendingDeck') {
+                        const pendingDeckJSON = sessionStorage.getItem(PENDING_DECK_KEY);
+                        if (pendingDeckJSON) {
+                            sessionStorage.removeItem(PENDING_DECK_KEY);
+                            sessionStorage.removeItem(ACTION_AFTER_AUTH_KEY);
+                            try {
+                                const pendingDeck = JSON.parse(pendingDeckJSON);
+                                console.log("Restoring pending deck after login:", pendingDeck);
+                                document.getElementById('deck-name').value = pendingDeck.name || '';
+                                currentDeck = [];
+                                if (pendingDeck.cards && Array.isArray(pendingDeck.cards)) {
+                                    pendingDeck.cards.forEach(deckCardInfo => {
+                                        const fullCard = allCards.find(c => c.id === deckCardInfo.id);
+                                        if (fullCard) currentDeck.push(fullCard);
+                                    });
+                                }
+                                selectedDeckEnergies = pendingDeck.deck_types || [];
+                                selectedCoverCardIds = (pendingDeck.cover_card_ids || []).map(id => String(id));
+                                loadedDeckId = null; 
+                                deckSaved = false;
+                                updateAllDeckUI();
+                                restoredPendingDeck = true;
+                            } catch (error) {
+                                console.error("Error parsing/restoring pending deck:", error);
+                            }
+                        } else {
+                            sessionStorage.removeItem(ACTION_AFTER_AUTH_KEY); 
+                        }
+                    }
+                }
+
+                if (window.matchMedia("(hover: none)").matches) {
+                    const autoSavedDeckJSON = sessionStorage.getItem('autoSavedDeck');
+                    if (autoSavedDeckJSON) {
+                        sessionStorage.removeItem('autoSavedDeck');
+                        try {
+                            const savedDeck = JSON.parse(autoSavedDeckJSON);
+                            if (savedDeck && savedDeck.cards && savedDeck.cards.length > 0) {
+                                if (window.showGlobalToast) {
+                                    window.showGlobalToast("Restoring unsaved deck...", "default");
+                                }
+                                document.getElementById('deck-name').value = savedDeck.name || '';
+                                currentDeck = [];
+                                savedDeck.cards.forEach(savedCard => {
+                                    const fullCard = allCards.find(c => c.id === savedCard.id);
+                                    if (fullCard) currentDeck.push(fullCard);
+                                });
+                                selectedDeckEnergies = savedDeck.deck_types || [];
+                                selectedCoverCardIds = savedDeck.cover_card_ids || [];
+                                loadedDeckId = null;
+                                deckSaved = false;
+                                deckWasRestored = true;
+                            }
+                        } catch (error) {
+                            console.error("Error restoring auto-saved deck:", error);
+                        }
+                    }
+                }
+
+                if (deckWasRestored) {
+                    updateAllDeckUI();
+                } else if (!restoredPendingDeck) { 
+                    if (!userIsAuthenticated) {
+                        clearDeck(false);
+                        updateAllDeckUI();
+                    } else {
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const deckIdToEdit = urlParams.get('edit'); 
+                        const sourceDeckIdForCopy = urlParams.get('copy_from'); 
+                        if (deckIdToEdit) {
+                            loadDeckData(deckIdToEdit, false); 
+                        } else if (sourceDeckIdForCopy) { 
+                            loadDeckData(sourceDeckIdForCopy, true); 
+                        } else {
+                            updateAllDeckUI();
+                        }
+                    }
+                }
+
+                applyFilters(); 
+                updateSortDropdownUI(); 
+            })
+            .catch(error => {
+                console.error('loadCards: Error fetching or processing card data:', error);
+                const cardCollectionDiv = document.getElementById('card-collection');
+                if (cardCollectionDiv) {
+                    cardCollectionDiv.innerHTML = `<div class="text-center p-3"><p>Error loading card data: ${error.message}. Please refresh.</p></div>`;
+                }
+                clearDeck(false);
+            });
+    }
+    function loadDeckData(deckIdToLoad, isCopyOperation) {
+        console.log(`loadDeckData: Fetching data for deck ID '${deckIdToLoad}'. isCopyOperation: ${isCopyOperation}`);
+        
+        fetch(`/api/decks/${deckIdToLoad}`) 
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status} fetching deck ID ${deckIdToLoad}`);
+                }
+                return response.json();
+            })
+            .then(data => { 
+                if (!data.success || !data.deck) {
+                    const errorMsg = data.error || 'Deck data not found or invalid server response.';
+                    alert(`Failed to load deck data for '${deckIdToLoad}'. Error: ${errorMsg}. Starting with a new deck.`);
+                    clearDeck(false); 
+                    return;
+                }
+
+                const deckFromServer = data.deck;
+                currentDeck = []; 
+                if (deckFromServer.cards && Array.isArray(deckFromServer.cards)) {
+                    deckFromServer.cards.forEach(cardInfoFromServer => {
+                        const fullCardData = allCards.find(c => c.id === cardInfoFromServer.id); 
+                        if (fullCardData) {
+                            currentDeck.push(fullCardData);
+                        }
+                    });
+                }
+
+                selectedDeckEnergies = deckFromServer.deck_types || [];
+                selectedCoverCardIds = (deckFromServer.cover_card_ids || []).map(id => String(id)); 
+
+                if (isCopyOperation) {
+                    document.getElementById('deck-name').value = `Copy of ${deckFromServer.name || 'Unnamed Deck'}`;
+                    loadedDeckId = null;
+                    deckSaved = false;
+                } else {
+                    document.getElementById('deck-name').value = deckFromServer.name || '';
+                    loadedDeckId = deckFromServer.id;
+                    deckSaved = true; 
+                }
+                
+                // This call updates the entire UI after the data is loaded.
+                updateAllDeckUI(); 
+            })
+            .catch(error => {
+                console.error(`loadDeckData: Error loading source deck ID '${deckIdToLoad}':`, error);
+                alert(`Could not load data for deck '${deckIdToLoad}'. ${error.message}. Starting with a new deck.`);
+                clearDeck(false);
+            });
+    }
+    
+    function updateAllDeckUI() {
+        // 1. Update the deck list on the right and other UI elements
+        updateDeckDisplay();
+        setCoverCardStarVisuals();
+        updateDeckEnergyIconsVisualState();
+        updateEnergyCounter();
+
+        // 2. Update all card visuals in the main collection view
+        // This loops through every card element and calls your existing update function,
+        // which correctly handles adding OR removing badges and styles.
+        document.querySelectorAll('.card-item').forEach(cardElement => {
+            const cardId = cardElement.dataset.cardId;
+            if (cardId) {
+                updateCardStateInCollection(cardId);
+            }
+        });
+    }
+
+    function updateDeckEnergyIconsVisualState() { // Example helper
+        document.querySelectorAll('.energy-selection-bar .energy-icon-wrapper.deck-energy').forEach(icon => {
+            const energyType = icon.getAttribute('data-type');
+            icon.classList.toggle('active', selectedDeckEnergies.includes(energyType));
+        });
+    }
+
+    function setCoverCardStarVisuals() {
+    const deckSlotsContainer = document.getElementById('current-deck');
+    if (!deckSlotsContainer) {
+        console.error("setCoverCardStarVisuals: Deck container 'current-deck' not found!");
+        return;
+    }
+
+    const starButtons = deckSlotsContainer.querySelectorAll('.btn-favorite'); // These are the star buttons in your rendered deck slots
+    let activeStarHasBeenSetThisPass = false; // Renamed for clarity
+
+    starButtons.forEach(starBtn => {
+        const cardIdInSlot = starBtn.dataset.cardId; // This is the master ID like 'sv1-1' from the card in this slot
+
+        if (selectedCoverCardIds !== null && cardIdInSlot && parseInt(cardIdInSlot, 10) === selectedCoverCardIds && !activeStarHasBeenSetThisPass) {
+            // This slot's card IS the cover card, AND we haven't set an active star yet in this rendering pass
+            starBtn.classList.add('active');
+            const icon = starBtn.querySelector('i');
+            if (icon) {
+                icon.classList.remove('bi-star');
+                icon.classList.add('bi-star-fill');
+            }
+            starBtn.setAttribute('aria-label', 'Unset as cover card');
+            activeStarHasBeenSetThisPass = true; // Mark that THE one active star for this cover card ID has been applied
+        } else {
+            // This slot's card is NOT the cover card, OR the active star for this cover card ID was already applied to an earlier slot
+            starBtn.classList.remove('active');
+            const icon = starBtn.querySelector('i');
+            if (icon) {
+                icon.classList.remove('bi-star-fill');
+                icon.classList.add('bi-star');
+            }
+            starBtn.setAttribute('aria-label', 'Set as cover card');
+        }
+    });
+
+    if (selectedCoverCardIds !== null && !activeStarHasBeenSetThisPass) {
+        // This case should ideally not happen if selectedCoverCardIds refers to a card actually in the currentDeck.
+        // It means selectedCoverCardIds is set, but no card in the rendered slots matched it (or matched it first).
+        // This might happen if selectedCoverCardIds points to a card that was removed from the deck.
+        console.warn("setCoverCardStarVisuals: selectedCoverCardIds is set to", selectedCoverCardIds, "but no matching card was found to star in the current deck display, or it was already set. This might indicate the cover card was removed from the deck.");
+        // Optionally, you could try to auto-select a new cover card here or clear selectedCoverCardIds if the card is truly gone.
+        // For now, just ensure all are unstarred if no valid one is found.
+    }
+    // console.log("setCoverCardStarVisuals: Visuals updated. Current Cover Card ID:", selectedCoverCardIds);
+    }
+
+    function updateDropdownDisplays() {
+        // Card Type dropdown - just show the selected value without a label
+        document.getElementById('cardTypeDropdown').textContent =
+            selectedFilters.cardType === 'All' ? 'All' : selectedFilters.cardType;
+
+        // Stage/Trainer Type dropdown - just show the selected value without a label
+        document.getElementById('stageTypeDropdown').textContent =
+            selectedFilters.stageType === 'All' ? 'All' : selectedFilters.stageType;
+
+        // Rarity dropdown - just show the selected value without a label
+        document.getElementById('rarityDropdown').textContent =
+            selectedFilters.rarity === 'All' ? 'All' : selectedFilters.rarity;
+
+        // Set dropdown - just show the selected value without a label
+        document.getElementById('setDropdown').textContent =
+            selectedFilters.set === 'All' ? 'All' : selectedFilters.set;
+    }
+
+    function loadExistingDeck(filename) {
+        console.log('Loading existing deck:', filename);
+
+        // Optional: Show loading indicator
+        // const deckContainer = document.getElementById('current-deck');
+        // if(deckContainer) deckContainer.innerHTML = '<div class="text-center p-3"><span class="spinner-border spinner-border-sm"></span> Loading deck...</div>';
+
+        fetch(`/api/decks/${filename}`) // Ensure this route exists and returns JSON
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log("Loaded deck data:", data);
+                document.getElementById('deck-name').value = data.name;
+
+                // Clear current state before loading
+                currentDeck = [];
+                selectedDeckEnergies = []; // Assuming you also have this array
+                selectedCoverCardIds = null; // Reset cover card ID before loading from data
+                document.querySelectorAll('.energy-selection-bar .energy-icon-wrapper.active').forEach(icon => icon.classList.remove('active'));
+
+                // Load cards into the deck
+                if (data.cards && Array.isArray(data.cards)) {
+                    data.cards.forEach(deckCardInfo => {
+                        // Find the full card details from the master 'allCards' list
+                        const fullCard = allCards.find(c => c.id === deckCardInfo.id);
+                        if (fullCard) {
+                            currentDeck.push(fullCard);
+                        } else {
+                            console.warn(`Card ID ${deckCardInfo.id} from saved deck not found in loaded card list.`);
+                            // Optionally, add placeholder or skip
+                        }
+                    });
+                } else {
+                    console.warn("Deck data did not contain \"cards\" array or it was empty.");
+                }
+
+            // Load deck energy types
+                if (data.deck_types && Array.isArray(data.deck_types)) {
+                    selectedDeckEnergies = [...data.deck_types]; // Use new array
+                    document.querySelectorAll('.energy-selection-bar .energy-icon-wrapper').forEach(icon => {
+                        const energyType = icon.getAttribute('data-type');
+                        if (selectedDeckEnergies.includes(energyType)) {
+                            icon.classList.add('active');
+                        }
+                    });
+                } else {
+                    console.warn("Deck data did not contain 'deck_types' array.");
+                    selectedDeckEnergies = []; // Ensure it's an empty array if missing
+                }
+
+                // Load cover card ID from saved data
+                selectedCoverCardIds = data.cover_card_ids || null; // Use null if missing or explicitly null
+                console.log("Loaded cover card ID:", selectedCoverCardIds);
+                // Note: If cover_card_ids is null, the backend's default logic likely sets one when saving/displaying if needed.
+
+                // Update displays (updateDeckDisplay will now use selectedCoverCardIds to set the star correctly)
+                updateDeckDisplay();
+                updateCardDisplay(); // Refresh collection view (grey out added cards)
+                updateEnergyCounter();
+                deckSaved = true; // Mark as saved after loading
+            })
+            .catch(error => {
+                console.error('Error loading deck:', error);
+                alert(`Failed to load deck '${filename}'. ${error.message}. Please check the console and try again.`);
+                // Optional: Clear the possibly partial loading indicator
+                // if(deckContainer) deckContainer.innerHTML = '<div class="alert alert-danger">Failed to load deck.</div>';
+            });
+    }
+
+    function populateDropdown(dropdownId, options) {
+        const dropdown = document.getElementById(dropdownId);
+        if (!dropdown) {
+            console.warn(`Dropdown element with ID '${dropdownId}' not found.`);
+            return;
+        }
+        dropdown.innerHTML = ''; // Clear existing items
+
+        options.forEach((option, index) => {
+            const li = document.createElement('li');
+            const link = document.createElement('a');
+            link.className = 'dropdown-item';
+            if (index === 0) { // First item ("All") is active by default
+                link.classList.add('active');
+            }
+            link.href = '#';
+            link.dataset.value = option;
+
+            // Keep special handling for Crown Rare emoji in Rarity dropdown
+            if (option === 'Crown Rare' && dropdownId === 'rarity-dropdown') {
+                link.innerHTML = '👑';
+                // link.dataset.value remains 'Crown Rare'
+            } else {
+                link.textContent = option;
+            }
+            li.appendChild(link);
+            dropdown.appendChild(li);
+        });
+    }
+    function forceReflow(element) {
+        if (!element) return;
+        // Reading offsetHeight is a common way to trigger reflow
+        void element.offsetHeight;
+    }
+
+    function setupDropdownListeners() {
+        const dropdownConfig = {
+            'card-type-dropdown': { property: 'cardType', labelId: 'cardTypeDropdown' },
+            'stage-type-dropdown': { property: 'stageType', labelId: 'stageTypeDropdown' },
+            'rarity-dropdown': { property: 'rarity', labelId: 'rarityDropdown' },
+            'set-dropdown': { property: 'set', labelId: 'setDropdown' } // Ensure this is here
+        };
+
+        Object.entries(dropdownConfig).forEach(([dropdownId, config]) => {
+            const dropdown = document.getElementById(dropdownId);
+            if (!dropdown) return;
+
+            dropdown.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A' && e.target.classList.contains('dropdown-item')) {
+                    e.preventDefault();
+                    const selectedValue = e.target.dataset.value;
+                    selectedFilters[config.property] = selectedValue;
+                    resetAddCardsScroll();
+
+                    // --- START: New Logic to Reset Energy Filters ---
+                    if (config.property === 'stageType' && 
+                        ['Item', 'Supporter', 'Tool'].includes(selectedValue)) {
+                        
+                        console.log(`Stage/Trainer type selected: ${selectedValue}. Resetting energy filters.`);
+                        selectedFilters.energyTypes = []; // Clear the internal array
+
+                        // Deactivate all energy filter icons visually
+                        // This will also be handled by applyFilters() if it correctly updates
+                        // the UI based on selectedFilters.energyTypes, but doing it here explicitly
+                        // can be good for immediate UI feedback if applyFilters() is complex.
+                        // However, if applyFilters() reliably updates the energy icon UI from selectedFilters.energyTypes,
+                        // just clearing the array above is sufficient before calling applyFilters().
+                        document.querySelectorAll('.filter-bar .energy-icons .energy-icon-wrapper.active').forEach(activeIcon => {
+                            activeIcon.classList.remove('active');
+                        });
+                    }
+
+                    this.querySelectorAll('a.dropdown-item.active').forEach(activeA => activeA.classList.remove('active'));
+                    e.target.classList.add('active');
+
+                    const button = document.getElementById(config.labelId);
+                    if (button) {
+                        // Use textContent for most, but handle emoji for Crown Rare
+                        if (selectedValue === 'Crown Rare' && config.property === 'rarity') {
+                            button.textContent = e.target.innerHTML; // To get the emoji
+                        } else {
+                            button.textContent = e.target.textContent;
+                        }
+                    }
+                    applyFilters();
+                }
+            });
+        });
+    }
+
+    function setupEventListeners() {
+        // Search input
+        document.getElementById('search-input').addEventListener('input', function() {
+            rawSearchText = this.value.toLowerCase(); // Use rawSearchText variable
+            resetAddCardsScroll();
+            applyFilters();
+        });
+
+        // Dropdown listeners (using the helper function for filter dropdowns)
+        setupDropdownListeners(); // Handles cardType, stageType, rarity, set dropdowns
+
+        // --- FINAL: Filter and Deck Energy Icons (using pointerdown) ---
+
+        // 1. Handler for the FILTER energy icons
+        const handleFilterEnergySelect = function(event) {
+            const icon = event.currentTarget;
+            const energyType = icon.getAttribute('data-type');
+            resetAddCardsScroll();
+
+            icon.classList.toggle('active');
+
+            if (icon.classList.contains('active')) {
+                if (!selectedFilters.energyTypes.includes(energyType)) {
+                    selectedFilters.energyTypes.push(energyType);
+                }
+            } else {
+                selectedFilters.energyTypes = selectedFilters.energyTypes.filter(type => type !== energyType);
+            }
+            applyFilters();
+        };
+
+        document.querySelectorAll('.filter-bar .energy-icon-wrapper').forEach(icon => {
+            icon.addEventListener('pointerdown', handleFilterEnergySelect);
+        });
+
+        // 2. Handler for the DECK energy icons
+        const handleDeckEnergySelect = function(event) {
+            const icon = event.currentTarget;
+            const energyType = icon.getAttribute('data-type');
+
+            if (icon.classList.contains('active')) {
+                icon.classList.remove('active');
+                selectedDeckEnergies = selectedDeckEnergies.filter(type => type !== energyType);
+                deckSaved = false;
+            } else {
+                if (selectedDeckEnergies.length < 3) {
+                    icon.classList.add('active');
+                    if (!selectedDeckEnergies.includes(energyType)) {
+                        selectedDeckEnergies.push(energyType);
+                    }
+                    deckSaved = false;
+                }
+            }
+            updateEnergyCounter();
+        };
+
+        document.querySelectorAll('.energy-selection-bar .deck-energy').forEach(icon => {
+            icon.addEventListener('pointerdown', handleDeckEnergySelect);
+        });
+
+        // --- Correctly placed and singular Sort Dropdown Click Handler ---
+        const sortDropdownMenu = document.getElementById('sort-options-dropdown');
+        if (sortDropdownMenu) {
+            sortDropdownMenu.addEventListener('click', function(e) {
+                const link = e.target.closest('a.dropdown-item');
+                if (link && link.dataset.sortType) {
+                    e.preventDefault();
+                    const clickedSortType = link.dataset.sortType;
+                    if (clickedSortType === currentSortType) {
+                        sortTypeDirections[currentSortType] = (sortTypeDirections[currentSortType] === 'asc') ? 'desc' : 'asc';
+                        currentSortDirection = sortTypeDirections[currentSortType];
+                    } else {
+                        currentSortType = clickedSortType;
+                        currentSortDirection = sortTypeDirections[currentSortType];
+                    }
+                    updateSortDropdownUI();
+                    applyFilters();
+                    const sortButton = document.getElementById('sortDropdownButton');
+                    if (sortButton && typeof bootstrap !== 'undefined' && bootstrap.Dropdown) {
+                        const bsDropdownInstance = bootstrap.Dropdown.getInstance(sortButton);
+                        if (bsDropdownInstance) {
+                            bsDropdownInstance.hide();
+                        }
+                    }
+                }
+            });
+        }
+        // --- End of Sort Dropdown Click Handler ---
+
+        // Consolidated Click Listener using Event Delegation
+        document.addEventListener('click', function(e) {
+
+            // --- Handle Deck Card Remove Button (-) ---
+            const removeBtn = e.target.closest('.btn-remove');
+            if (removeBtn) {
+                // --- ADDED FOR MOBILE TAP ANIMATION ---
+                removeBtn.classList.add('is-tapping');
+                setTimeout(() => removeBtn.classList.remove('is-tapping'), 170);
+                // --- END ANIMATION CODE ---
+
+                e.stopPropagation();
+                const cardSlot = removeBtn.closest('.card-slot');
+                const cardImage = cardSlot ? cardSlot.querySelector('img') : null;
+                const cardContainer = cardSlot ? cardSlot.querySelector('.card-slot-container') : null;
+
+                if (cardSlot && cardImage && cardContainer && cardContainer.dataset.cardId) {
+                    const slotIndex = Array.from(cardSlot.parentNode.children).indexOf(cardSlot);
+                    const removedCardId = parseInt(cardContainer.dataset.cardId, 10);
+
+                    if (slotIndex !== -1 && slotIndex < currentDeck.length) {
+                        currentDeck.splice(slotIndex, 1);
+                        deckSaved = false;
+
+                        if (removedCardId === selectedCoverCardIds) {
+                            selectedCoverCardIds = null;
+                        }
+                        updateDeckDisplay();
+                        updateCardStateInCollection(removedCardId);
+                    }
+                }
+                return;
+            }
+
+            // --- Handle Collection Card Remove Button (-) ---
+            const removeSmallBtn = e.target.closest('.btn-remove-small');
+            if (removeSmallBtn) {
+                // --- ADDED FOR MOBILE TAP ANIMATION ---
+                removeSmallBtn.classList.add('is-tapping');
+                setTimeout(() => removeSmallBtn.classList.remove('is-tapping'), 170);
+                // --- END ANIMATION CODE ---
+
+                e.stopPropagation();
+                const cardItem = removeSmallBtn.closest('.card-item');
+                if (cardItem && cardItem.dataset.cardId) {
+                    const cardIdToRemove = parseInt(cardItem.dataset.cardId, 10);
+                    const indexToRemove = currentDeck.findIndex(card => card.id === cardIdToRemove);
+
+                    if (indexToRemove !== -1) {
+                        currentDeck.splice(indexToRemove, 1);
+                        deckSaved = false;
+                        updateDeckDisplay();
+                        updateCardStateInCollection(cardIdToRemove);
+                    }
+                }
+                return;
+            }
+
+            // --- Handle Favorite Button (Star) Click ---
+            const favoriteBtn = e.target.closest('.btn-favorite');
+            if (favoriteBtn) {
+                e.stopPropagation(); 
+                const clickedCardIdStr = favoriteBtn.dataset.cardId;
+                if (!clickedCardIdStr) { return; }
+                const clickedCardId = clickedCardIdStr;
+                const idIndex = selectedCoverCardIds.indexOf(clickedCardId);
+                if (idIndex > -1) {
+                    selectedCoverCardIds.splice(idIndex, 1);
+                } else {
+                    if (selectedCoverCardIds.length < 3) {
+                        selectedCoverCardIds.push(clickedCardId);
+                    } else {
+                        if (window.showGlobalToast) {
+                            window.showGlobalToast("You can only select up to 3 cover cards.", "default");
+                        } else {
+                            alert("You can only select up to 3 cover cards.");
+                        }
+                        return;
+                    }
+                }
+                deckSaved = false;
+                setCoverCardStarVisuals();
+                return;
+            }
+
+            // --- Handle Collection Card Add Click ---
+            const cardImage = e.target.closest('.card-item img');
+            if (cardImage && !e.target.closest('.btn-remove-small')) {
+                const cardItem = cardImage.closest('.card-item');
+                const cardContainer = cardItem ? cardItem.querySelector('.position-relative') : null;
+
+                if (cardItem && cardItem.dataset.cardId && cardContainer) {
+                    if (cardContainer.classList.contains('max-copies')) {
+                        const cardName = cardItem.dataset.cardName;
+                        if (window.showGlobalToast) {
+                            window.showGlobalToast(`Max 2 copies of '${cardName}' allowed.`, "default");
+                        }
+                    } else {
+                        addCardToDeck(cardItem.dataset.cardId, cardItem);
+                    }
+                }
+                return;
+            }
+
+        }); // End of consolidated delegated click listener
+
+        // Clear deck button
+        document.getElementById('clear-deck-btn').addEventListener('click', clearDeck);
+
+        // Save deck button
+        document.getElementById('save-deck-btn').addEventListener('click', saveDeck);
+
+        // Deck name input changes -> mark as unsaved
+        document.getElementById('deck-name').addEventListener('input', () => { deckSaved = false; });
+
+        // Card hover zoom
+        setupCardZoom();
+
+        if (window.matchMedia("(hover: none)").matches) {
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'hidden' && !deckSaved && loadedDeckId === null && currentDeck.length > 0) {
+                    console.log('Unsaved changes detected on mobile. Saving deck...');
+                    const deckData = {
+                        name: document.getElementById('deck-name').value,
+                        cards: currentDeck.map(c => ({ id: c.id })),
+                        deck_types: selectedDeckEnergies,
+                        cover_card_ids: selectedCoverCardIds
+                    };
+                    sessionStorage.setItem('autoSavedDeck', JSON.stringify(deckData));
+                }
+            });
+        } else {
+            window.addEventListener('beforeunload', function(e) {
+                if (!deckSaved && !isDeckPristineOrEmpty()) {
+                    e.preventDefault();
+                    e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+                }
+            });
+        }
+    }
+
+    function updateEnergyCounter() {
+        const counterElem = document.querySelector('.selected-energies-info');
+        if (counterElem) {
+            counterElem.textContent = `${selectedDeckEnergies.length}/3 energy types selected`;
+        }
+    }
+
+    function setupCardZoom() {
+        // Check if the primary input method can hover. If not (it's a touch device),
+        // do not set up any zoom listeners and exit the function immediately.
+        if (window.matchMedia("(hover: none)").matches) {
+            return;
+        }
+
+        // Variables to track mouse movement
+        let isScrolling = false;
+        let hasMouseMoved = false;
+        let lastMouseX = 0;
+        let lastMouseY = 0;
+
+        // Detect scrolling
+        window.addEventListener('scroll', function() {
+            // Set scrolling flag to true and hide zoom
+            isScrolling = true;
+            hasMouseMoved = false;
+            hideCardZoom();
+        });
+
+        // Track mouse movement to detect when user moves mouse after scrolling
+        document.addEventListener('mousemove', function(e) {
+            // Check if the mouse has moved significantly from last position
+            const mouseMoved = Math.abs(e.clientX - lastMouseX) > 5 || Math.abs(e.clientY - lastMouseY) > 5;
+
+            // If scrolling and mouse has moved, we can enable zoom again
+            if (isScrolling && mouseMoved) {
+                isScrolling = false;
+                hasMouseMoved = true;
+            }
+
+            // Update last mouse position
+            lastMouseX = e.clientX;
+            lastMouseY = e.clientY;
+
+            // Only show zoom if not scrolling
+            if (!isScrolling) {
+                // First check if the target itself is an image
+                if (e.target.tagName === 'IMG') {
+                    const cardElement = e.target.closest(".card-item") || e.target.closest(".card-slot-container.filled");
+                    if (cardElement) {
+                        showCardZoom(e.target, e); // Pass the hovered <img> element
+                        return;
+                    }
+                }
+
+                // If we get here, no image was hovered, so hide zoom
+                hideCardZoom();
+            }
+        });
+
+        // Hide zoom when mouse leaves any card image
+        document.addEventListener('mouseout', function(e) {
+            if (e.target.tagName === 'IMG' &&
+                (e.target.closest('.card-item') || e.target.closest('.card-slot-container.filled'))) {
+                hideCardZoom();
+            }
+        });
+    }
+
+    function showCardZoom(hoveredImgElement, event) {
+        const cardElement = hoveredImgElement.closest('.card-item') || hoveredImgElement.closest('.card-slot-container.filled');
+        if (!cardElement) return;
+
+        const highResSrc = cardElement.dataset.highResSrc;
+        const lowResSrc = hoveredImgElement.src;
+
+        const zoomContainer = document.getElementById('card-zoom-container');
+        if (!zoomContainer) return;
+
+        let zoomImg = zoomContainer.querySelector('img');
+        if (!zoomImg) {
+            zoomImg = document.createElement('img');
+            zoomContainer.appendChild(zoomImg);
+        }
+
+        // Always clear any pending high-res download from a previous hover.
+        clearTimeout(highResLoadTimeout);
+        zoomContainer.dataset.intendedSrc = highResSrc;
+
+        if (highResImageCache.has(highResSrc)) {
+            // If cached, show high-res instantly.
+            zoomImg.src = highResSrc;
+        } else {
+            // If not cached, show low-res instantly.
+            zoomImg.src = lowResSrc;
+            
+            // Schedule the high-res download to start after a delay.
+            highResLoadTimeout = setTimeout(() => {
+                const highResImage = new Image();
+                highResImage.src = highResSrc;
+                highResImage.onload = () => {
+                    highResImageCache.add(highResSrc);
+                    if (zoomContainer.style.display === 'block' && zoomContainer.dataset.intendedSrc === highResSrc) {
+                        zoomImg.src = highResSrc;
+                    }
+                };
+                highResImage.onerror = () => {
+                    console.error("High-res image failed to load:", highResSrc);
+                };
+            }, 250); 
+        }
+
+        // Positioning logic remains the same...
+        const cardRect = cardElement.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        const isSmallScreen = window.innerWidth <= 800;
+        const cssZoomMaxWidth = isSmallScreen ? 260 : 340;
+        const cssZoomMaxHeight = viewportHeight * 0.90;
+        let calculatedZoomWidth = cssZoomMaxWidth;
+        let calculatedZoomHeight = cssZoomMaxWidth / (63 / 88);
+        if (calculatedZoomHeight > cssZoomMaxHeight) {
+            calculatedZoomHeight = cssZoomMaxHeight;
+            calculatedZoomWidth = calculatedZoomHeight * (63 / 88);
+        }
+        calculatedZoomWidth = Math.min(calculatedZoomWidth, cssZoomMaxWidth);
+        const cardCenterX = cardRect.left + cardRect.width / 2;
+        const cardCenterY = cardRect.top + cardRect.height / 2;
+        const margin = 15;
+        let zoomLeft, zoomTop;
+        if (isSmallScreen) {
+            const spaceRightAvailable = viewportWidth - cardRect.right - margin;
+            const spaceLeftAvailable = cardRect.left - margin;
+            if (cardCenterX < viewportWidth / 2) {
+                if (spaceRightAvailable >= calculatedZoomWidth) {
+                    zoomLeft = cardRect.right + margin;
+                } else if (spaceLeftAvailable >= calculatedZoomWidth) {
+                    zoomLeft = cardRect.left - calculatedZoomWidth - margin;
+                } else {
+                    zoomLeft = (viewportWidth - calculatedZoomWidth) / 2;
+                }
+            } else {
+                if (spaceLeftAvailable >= calculatedZoomWidth) {
+                    zoomLeft = cardRect.left - calculatedZoomWidth - margin;
+                } else if (spaceRightAvailable >= calculatedZoomWidth) {
+                    zoomLeft = cardRect.right + margin;
+                } else {
+                    zoomLeft = (viewportWidth - calculatedZoomWidth) / 2;
+                }
+            }
+        } else {
+            const isInDeck = cardElement.closest('.current-deck-wrapper') !== null;
+            if (isInDeck) {
+                zoomLeft = cardRect.left - calculatedZoomWidth - margin;
+                if (zoomLeft < margin) {
+                    zoomLeft = cardRect.right + margin;
+                    if (zoomLeft + calculatedZoomWidth > viewportWidth - margin) {
+                        zoomLeft = (viewportWidth - calculatedZoomWidth) / 2;
+                    }
+                }
+            } else {
+                zoomLeft = cardRect.right + margin;
+                if (zoomLeft + calculatedZoomWidth > viewportWidth - margin) {
+                    zoomLeft = cardRect.left - calculatedZoomWidth - margin;
+                    if (zoomLeft < margin) {
+                        zoomLeft = (viewportWidth - calculatedZoomWidth) / 2;
+                    }
+                }
+            }
+        }
+        zoomLeft = Math.max(margin, zoomLeft);
+        zoomLeft = Math.min(zoomLeft, viewportWidth - calculatedZoomWidth - margin);
+        zoomTop = cardCenterY - (calculatedZoomHeight / 2);
+        if (zoomTop < margin) {
+            zoomTop = margin;
+        } else if (zoomTop + calculatedZoomHeight > viewportHeight - margin) {
+            zoomTop = viewportHeight - calculatedZoomHeight - margin;
+        }
+        zoomTop = Math.max(margin, zoomTop);
+        zoomContainer.style.top = zoomTop + 'px';
+        zoomContainer.style.left = zoomLeft + 'px';
+        zoomContainer.style.display = 'block';
+    }
+
+    function hideCardZoom() {
+        const zoomContainer = document.getElementById('card-zoom-container');
+        if (zoomContainer) {
+            zoomContainer.style.display = 'none';
+            zoomContainer.dataset.intendedSrc = '';
+            // Cancel any pending high-res download.
+            clearTimeout(highResLoadTimeout);
+        }
+    }
+
+    document.getElementById('search-input').addEventListener('input', function() {
+        rawSearchText = this.value.toLowerCase();
+        resetAddCardsScroll();
+        applyFilters();
+    });
+
+    function applyFilters() {
+        // Define keyword mappings
+        const energyTypeKeywords = {
+            'grass': 'Grass', 'fire': 'Fire', 'water': 'Water',
+            'lightning': 'Lightning', 'electric': 'Lightning', 'psychic': 'Psychic',
+            'fighting': 'Fighting', 'darkness': 'Darkness', 'dark': 'Darkness',
+            'metal': 'Metal', 'steel': 'Metal', 'dragon': 'Dragon',
+            'colorless': 'Colorless', 'normal': 'Colorless'
+        };
+        const cardTypeKeywords = {'trainer': 'Trainer', 'pokémon': 'Pokémon', 'pokemon': 'Pokémon'};
+        // MODIFIED: Separated multi-word keywords from single-word ones.
+        const singleWordStageTypeKeywords = {'item': 'Item', 'tool': 'Tool', 'supporter': 'Supporter', 'basic': 'Basic', 'ex': 'EX', 'stage1': 'Stage 1', 'stage2': 'Stage 2'};
+        const multiWordStageTypeKeywords = {'stage 1': 'Stage 1', 'stage 2': 'Stage 2', 'ultra beast': 'Ultra Beast'};
+        const rarityKeywords = {
+            'shiny': ['✵', '✵✵'],
+            'crown': ['Crown Rare']
+        };
+        const setKeywords = {'promo': 'Promo-A'};
+
+
+        let currentRawSearch = rawSearchText.toLowerCase().trim();
+
+        // --- Ephemeral Filters from Search Text ---
+        let ephemeralEnergyTypes = [];
+        let ephemeralCardType = 'All';
+        let ephemeralStageType = 'All';
+        let ephemeralSet = 'All';
+        let ephemeralRarities = [];
+        let excludeEx = false;
+
+        // --- NEW: Process multi-word keywords first ---
+        // This ensures phrases like "ultra beast" are caught before the string is split.
+        for (const phrase in multiWordStageTypeKeywords) {
+            if (currentRawSearch.includes(phrase)) {
+                ephemeralStageType = multiWordStageTypeKeywords[phrase];
+                currentRawSearch = currentRawSearch.replace(phrase, ''); // Remove the phrase
+            }
+        }
+
+
+        // Process search terms and remove keywords
+        const terms = currentRawSearch.split(/\s+/).filter(term => term.length > 0);
+        let nonKeywordTerms = [];
+
+        for (const term of terms) {
+            let isKeyword = false;
+
+            if (term === 'noex') {
+                excludeEx = true;
+                isKeyword = true;
+            }
+            if (energyTypeKeywords[term]) {
+                ephemeralEnergyTypes.push(energyTypeKeywords[term]);
+                isKeyword = true;
+            }
+            if (cardTypeKeywords[term]) {
+                ephemeralCardType = cardTypeKeywords[term];
+                isKeyword = true;
+            }
+            // MODIFIED: Check against the new single-word stage keywords object
+            if (singleWordStageTypeKeywords[term]) {
+                ephemeralStageType = singleWordStageTypeKeywords[term];
+                isKeyword = true;
+            }
+            if (rarityKeywords[term]) {
+                ephemeralRarities.push(...rarityKeywords[term]);
+                isKeyword = true;
+            }
+            if (setKeywords[term]) {
+                ephemeralSet = setKeywords[term];
+                isKeyword = true;
+            }
+
+            if (!isKeyword) {
+                nonKeywordTerms.push(term);
+            }
+        }
+
+        // Rebuild nameSearchTerm from the terms that were NOT keywords
+        let nameSearchTerm = nonKeywordTerms.join(' ');
+        nameSearchTerm = nameSearchTerm.replace(/\s\s+/g, ' ').trim();
+        
+        const originalTermsWereAllKeywords = nonKeywordTerms.length === 0 && terms.length > 0;
+        const originalSearchWasJustNoex = nonKeywordTerms.length === 0 && terms.length === 1 && terms[0] === 'noex';
+        // This check needs to account for the new multi-word pre-check
+        const searchHadKeywords = ephemeralCardType !== 'All' || ephemeralEnergyTypes.length > 0 || ephemeralRarities.length > 0 || ephemeralSet !== 'All' || ephemeralStageType !== 'All' || excludeEx;
+
+        if (nonKeywordTerms.length === 0 && searchHadKeywords) {
+            nameSearchTerm = '';
+        }
+
+
+        // --- Determine Final Effective Filters to Apply ---
+        const finalEffectiveEnergyTypes = [...new Set([...selectedFilters.energyTypes, ...ephemeralEnergyTypes])];
+
+        let finalEffectiveRarities = [];
+        let impossibleRarityFilter = false;
+        if (selectedFilters.rarity !== 'All') {
+            finalEffectiveRarities.push(selectedFilters.rarity);
+            if (ephemeralRarities.length > 0 && !ephemeralRarities.includes(selectedFilters.rarity)) {
+                impossibleRarityFilter = true;
+            }
+        } else if (ephemeralRarities.length > 0) {
+            finalEffectiveRarities = ephemeralRarities;
+        }
+
+        const finalEffectiveCardType = selectedFilters.cardType !== 'All' ? selectedFilters.cardType : ephemeralCardType;
+        const finalEffectiveStageType = selectedFilters.stageType !== 'All' ? selectedFilters.stageType : ephemeralStageType;
+        const finalEffectiveSet = selectedFilters.set !== 'All' ? selectedFilters.set : ephemeralSet;
+
+
+        if (impossibleRarityFilter) {
+            console.log("Impossible filter combination detected. Results will be empty.");
+            filteredCards = [];
+        } else {
+            // --- Filter Cards ---
+            filteredCards = allCards.filter(card => {
+
+                // 1. Set Filter
+                if (finalEffectiveSet !== 'All' && (!card.set_name || card.set_name !== finalEffectiveSet)) {
+                    return false;
+                }
+                // 2. Card Type Filter
+                if (finalEffectiveCardType !== 'All' && (!card.card_type || !card.card_type.includes(finalEffectiveCardType))) {
+                    return false;
+                }
+                // 3. Stage Type Filter (and EX Pokémon logic)
+                const nameLower = card.name.toLowerCase();
+                const cardTypeLower = card.card_type ? card.card_type.toLowerCase() : "";
+                
+                const isExPokemon = (nameLower.endsWith(' ex') && !nameLower.endsWith(' - ex (ultra beast)')) || cardTypeLower.includes('pokemon - ex');
+
+                if (finalEffectiveStageType !== 'All') {
+                    if (finalEffectiveStageType === 'EX') {
+                        if (!isExPokemon) return false;
+                    } else {
+                         // This now correctly checks for "Ultra Beast", "Stage 1", etc.
+                        if (!card.card_type || !card.card_type.includes(finalEffectiveStageType)) {
+                            return false;
+                        }
+                    }
+                }
+                
+                // 4. Energy Type Filter
+                if (finalEffectiveEnergyTypes.length > 0) {
+                    if (!card.energy_type || !finalEffectiveEnergyTypes.includes(card.energy_type)) {
+                        return false;
+                    }
+                }
+                
+                // 5. Rarity Filter
+                if (finalEffectiveRarities.length > 0) {
+                    let cardPassesRarityFilter = false;
+                    if (card.rarity && finalEffectiveRarities.includes(card.rarity)) {
+                        cardPassesRarityFilter = true;
+                    }
+                    if (!cardPassesRarityFilter && (finalEffectiveRarities.includes('✵') || finalEffectiveRarities.includes('✵✵'))) {
+                        const cardNameLower = card.name ? card.name.toLowerCase() : "";
+                        if (cardNameLower === 'mewtwo ex' && card.set_code && card.set_code.toUpperCase() === 'P-A' && card.card_number_str && card.card_number_str === '50') { 
+                            cardPassesRarityFilter = true;
+                        }
+                    }
+                    if (!cardPassesRarityFilter) {
+                        return false;
+                    }
+                }
+
+                // 6. Name Filter and "noex" exclusion
+                const punctuationRegex = /[’'?!:.,]/g; // Regex to find and remove common punctuation
+
+                const normalizedNameForSearch = nameLower.replace(punctuationRegex, '').replace(/poké/g, 'poke');
+                const normalizedSearchTerm = nameSearchTerm.toLowerCase().replace(punctuationRegex, '').replace(/poké/g, 'poke');
+
+                if (nameSearchTerm && !normalizedNameForSearch.includes(normalizedSearchTerm)) {
+                    return false;
+                }
+
+                if (excludeEx && isExPokemon) {
+                    return false; 
+                }
+                
+                return true;
+            });
+        }
+
+
+        // --- SORTING ---
+        sortFilteredCards();
+
+        // --- Update UI Filter Controls (Reflect intended selections) ---
+        document.querySelectorAll('.filter-bar .energy-icons .energy-icon-wrapper').forEach(icon => {
+            const energyType = icon.getAttribute('data-type');
+            icon.classList.toggle('active', finalEffectiveEnergyTypes.includes(energyType));
+        });
+
+        document.getElementById('cardTypeDropdown').textContent = finalEffectiveCardType;
+        document.querySelectorAll('#card-type-dropdown a').forEach(a => {
+            a.classList.toggle('active', a.dataset.value === selectedFilters.cardType);
+        });
+
+        document.getElementById('stageTypeDropdown').textContent = finalEffectiveStageType;
+        document.querySelectorAll('#stage-type-dropdown a').forEach(a => {
+            a.classList.toggle('active', a.dataset.value === selectedFilters.stageType);
+        });
+
+        const rarityButton = document.getElementById('rarityDropdown');
+        if (rarityButton) {
+            const displayRarityValue = selectedFilters.rarity === 'Crown Rare' ? '👑' : selectedFilters.rarity;
+            rarityButton.textContent = displayRarityValue;
+        }
+        document.querySelectorAll('#rarity-dropdown a').forEach(a => {
+            a.classList.toggle('active', a.dataset.value === selectedFilters.rarity);
+        });
+
+        const setButton = document.getElementById('setDropdown');
+        if(setButton) setButton.textContent = finalEffectiveSet;
+        document.querySelectorAll('#set-dropdown a').forEach(a => {
+            a.classList.toggle('active', a.dataset.value === selectedFilters.set);
+        });
+
+
+        // --- Update Card Display & Count ---
+        updateCardDisplay();
+        const count = filteredCards.length;
+        const cardText = (count === 1) ? 'card' : 'cards';
+        document.getElementById('card-count-search').textContent = `${count} ${cardText}`;
+    }
+
+    function resetAddCardsScroll() {
+        const cardCollectionDiv = document.getElementById('card-collection');
+        if (cardCollectionDiv) {
+            cardCollectionDiv.scrollTop = 0;
+        }
+    }
+
+    function updateCardDisplay() {
+        const cardCollection = document.getElementById('card-collection');
+        if (!cardCollection) return;
+
+        if (!cardCollection.dataset.isBuilt) {
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'row g-2';
+
+            const noResultsDiv = document.createElement('div');
+            noResultsDiv.className = 'col-12 text-center p-5 no-results-message';
+
+            const message = document.createElement('p');
+            message.className = 'mb-4';
+            message.textContent = 'No cards found with the current filters.';
+            const resetButton = document.createElement('button');
+            resetButton.className = 'btn btn-primary';
+            resetButton.textContent = 'Reset All Filters';
+            resetButton.addEventListener('click', resetAllFilters);
+            noResultsDiv.appendChild(message);
+            noResultsDiv.appendChild(resetButton);
+
+            allCards.forEach(card => {
+                const colDiv = document.createElement('div');
+                colDiv.className = 'col-4 col-sm-4 col-md-4 col-lg-3 col-xl-2 mb-3 card-item';
+                colDiv.dataset.cardId = card.id;
+                colDiv.dataset.cardName = card.name;
+                const highResPath = card.display_image_path.replace('/cards/', '/high_res_cards/');
+                colDiv.dataset.highResSrc = highResPath;
+                const cardContainer = document.createElement('div');
+                cardContainer.className = 'position-relative clickable-card is-loading';
+
+                const img = document.createElement('img');
+                img.alt = card.name;
+                img.className = 'img-fluid rounded';
+                img.setAttribute('data-card-name', card.name);
+                img.setAttribute('data-src', card.display_image_path);
+
+                cardContainer.appendChild(img);
+                colDiv.appendChild(cardContainer);
+                rowDiv.appendChild(colDiv);
+
+                if (cardObserver) {
+                    cardObserver.observe(colDiv);
+                }
+            });
+            
+            cardCollection.innerHTML = '';
+            cardCollection.appendChild(rowDiv);
+            cardCollection.appendChild(noResultsDiv);
+            cardCollection.dataset.isBuilt = 'true';
+        }
+
+        if (deckWasRestored) {
+            console.log("Updating collection visuals after deck restore...");
+            const uniqueCardIdsInDeck = [...new Set(currentDeck.map(card => card.id))];
+            uniqueCardIdsInDeck.forEach(cardId => {
+                updateCardStateInCollection(cardId);
+            });
+            deckWasRestored = false;
+        }
+
+        const allCardElements = cardCollection.querySelectorAll('.card-item');
+        const noResultsMessage = cardCollection.querySelector('.no-results-message');
+        if (!noResultsMessage) return;
+
+        const visibleCardIds = new Set(filteredCards.map(c => c.id.toString()));
+
+        allCardElements.forEach(element => {
+            if (visibleCardIds.has(element.dataset.cardId)) {
+                element.style.display = '';
+            } else {
+                element.style.display = 'none';
+            }
+        });
+
+        filteredCards.forEach((sortedCard, index) => {
+            const element = cardCollection.querySelector(`.card-item[data-card-id="${sortedCard.id}"]`);
+            if (element) {
+                element.style.order = index;
+            }
+        });
+
+        const visibleCount = filteredCards.length;
+        noResultsMessage.style.display = visibleCount === 0 ? 'block' : 'none';
+        document.getElementById('card-count-search').textContent = `${visibleCount} ${visibleCount === 1 ? 'card' : 'cards'}`;
+    }
+    
+    function updateCardStateInCollection(cardId) {
+        const cardData = allCards.find(c => c.id == cardId);
+        if (!cardData) return;
+        const cardName = cardData.name;
+
+        const cardElements = document.querySelectorAll(`.card-item[data-card-name="${cardName}"]`);
+        if (cardElements.length === 0) return;
+
+        const copiesInDeckByName = currentDeck.filter(deckCard => deckCard.name === cardName).length;
+        const isMaxedOut = copiesInDeckByName >= 2;
+
+        cardElements.forEach(cardEl => {
+            const cardContainer = cardEl.querySelector('.position-relative');
+            if (!cardContainer) return;
+
+            // More explicit class management
+            if (isMaxedOut) {
+                cardContainer.classList.add('max-copies');
+                cardContainer.classList.remove('clickable-card');
+            } else {
+                cardContainer.classList.remove('max-copies');
+                cardContainer.classList.add('clickable-card');
+            }
+
+            // The rest of your badge and remove button logic is perfect and can stay as-is.
+            const specificCardId = cardEl.dataset.cardId;
+            const exactCopiesOfThisIdInDeck = currentDeck.filter(c => c.id.toString() === specificCardId).length;
+
+            let badge = cardContainer.querySelector('.badge');
+            if (exactCopiesOfThisIdInDeck > 0) {
+                if (!badge) {
+                    badge = document.createElement('div');
+                    badge.className = 'position-absolute top-0 start-0 badge bg-primary rounded-circle m-1';
+                    cardContainer.appendChild(badge);
+                }
+                badge.textContent = `${exactCopiesOfThisIdInDeck}/2`;
+            } else if (badge) {
+                badge.remove();
+            }
+
+            let removeBtn = cardContainer.querySelector('.btn-remove-small');
+            if (exactCopiesOfThisIdInDeck > 0) {
+                if (!removeBtn) {
+                    removeBtn = document.createElement('button');
+                    removeBtn.className = 'btn-remove-small';
+                    removeBtn.innerHTML = '-';
+                    cardContainer.appendChild(removeBtn);
+                }
+            } else if (removeBtn) {
+                removeBtn.remove();
+            }
+        });
+    }
+
+    function resetAllFilters() {
+        console.log("Resetting all filters..."); // For debugging
+
+        // 1. Reset internal filter state
+        rawSearchText = '';
+        selectedFilters = {
+            cardType: 'All',
+            stageType: 'All',
+            rarity: 'All',
+            set: 'All',
+            energyTypes: []
+        };
+
+        // 2. Reset UI controls directly
+        // Reset search input field
+        document.getElementById('search-input').value = '';
+
+        // Reset dropdowns (button text and active menu item)
+        const dropdownConfig = {
+            'cardTypeDropdown': { menuId: 'card-type-dropdown', property: 'cardType' },
+            'stageTypeDropdown': { menuId: 'stage-type-dropdown', property: 'stageType' },
+            'rarityDropdown': { menuId: 'rarity-dropdown', property: 'rarity' },
+            'setDropdown': { menuId: 'set-dropdown', property: 'set' }
+        };
+
+        Object.entries(dropdownConfig).forEach(([buttonId, config]) => {
+            const button = document.getElementById(buttonId);
+            const menu = document.getElementById(config.menuId);
+            const resetValue = 'All'; // The value to reset to
+
+            if (button) {
+                // Find the text content corresponding to the 'All' value to set button text
+                const allOption = menu ? menu.querySelector(`a[data-value="${resetValue}"]`) : null;
+                button.textContent = allOption ? allOption.textContent : resetValue;
+            }
+            if (menu) {
+                menu.querySelectorAll('a.dropdown-item').forEach(a => {
+                    if (a.dataset.value === resetValue) {
+                        a.classList.add('active');
+                    } else {
+                        a.classList.remove('active');
+                    }
+                });
+            }
+        });
+
+        // Reset energy filter icons (remove active class)
+        document.querySelectorAll('.filter-bar .energy-icons .energy-icon-wrapper.active').forEach(icon => {
+            icon.classList.remove('active');
+        });
+
+        console.log("Filter controls UI reset."); // For debugging
+
+        // 3. IMPORTANT: Apply the filters again now that state and UI are reset
+        // This will update filteredCards and call updateCardDisplay
+        applyFilters();
+
+        console.log("applyFilters() called after reset."); // For debugging
+    }
+
+    function countCardCopiesInDeck(cardId) {
+        // First, find the card name using the ID
+        const cardName = allCards.find(card => card.id === cardId)?.name;
+
+        if (!cardName) return 0;
+
+        // Then count all cards in the deck with that name
+        return currentDeck.filter(card => card.name === cardName).length;
+    }
+    
+    function addCardToDeck(cardId, clickedElement = null) {
+        const cardItem = clickedElement;
+        // --- NEW: Cooldown Check ---
+        if (!cardItem || cardItem.dataset.isAnimating === 'true') {
+            return;
+        }
+
+        const cardToAdd = allCards.find(c => c.id.toString() === cardId);
+        if (!cardToAdd) { return; }
+
+        const copiesInDeck = currentDeck.filter(c => c.name === cardToAdd.name).length;
+        if (copiesInDeck >= 2) {
+            return;
+        }
+        if (currentDeck.length >= 20) {
+            if (window.showGlobalToast) {
+                window.showGlobalToast("Your deck is full (20 cards max).", "default");
+            }
+            return;
+        }
+
+        // --- NEW: Set Cooldown Flag ---
+        cardItem.dataset.isAnimating = 'true';
+
+        const isMobile = window.matchMedia("(hover: none)").matches;
+
+        const performImmediateStateUpdate = () => {
+            currentDeck.push(cardToAdd);
+            deckSaved = false;
+            updateDeckDisplay();
+        };
+
+        if (isMobile) {
+            const clickableContainer = cardItem.querySelector('.clickable-card');
+            if (clickableContainer) {
+                clickableContainer.classList.add('tapped-mobile');
+                performImmediateStateUpdate();
+                setTimeout(() => {
+                    updateCardStateInCollection(cardId);
+                    clickableContainer.classList.remove('tapped-mobile');
+                    // --- NEW: Remove Cooldown Flag ---
+                    cardItem.dataset.isAnimating = 'false';
+                }, 150);
+            } else {
+                // --- NEW: Failsafe ---
+                cardItem.dataset.isAnimating = 'false';
+            }
+        } else { // Desktop logic
+            cardItem.classList.add('is-clicking');
+            performImmediateStateUpdate();
+            setTimeout(() => {
+                updateCardStateInCollection(cardId);
+                cardItem.classList.remove('is-clicking');
+                // --- NEW: Remove Cooldown Flag ---
+                cardItem.dataset.isAnimating = 'false';
+            }, 60);
+        }
+    }
+
+    function updateDeckDisplay() {
+        const deckContainer = document.getElementById('current-deck');
+        if (!deckContainer) {
+            console.error("updateDeckDisplay: Deck container 'current-deck' not found!");
+            return;
+        }
+
+        const deckCountBadge = document.querySelector('.deck-counter');
+        if (deckCountBadge) {
+            const count = currentDeck.length;
+            deckCountBadge.textContent = `${count}/20`;
+            deckCountBadge.classList.toggle('full', count === 20);
+        }
+
+        deckContainer.innerHTML = ''; // Clear previous slots
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'row g-2';
+
+        // Keep track of which selected cover card IDs have already had their number displayed
+        // to handle multiple instances of the same card type in the deck.
+        let numberedStarsPlaced = {}; // e.g., { "card_id_as_cover1": true, "card_id_as_cover2": true }
+
+        for (let i = 0; i < 20; i++) {
+            const cardInSlot = i < currentDeck.length ? currentDeck[i] : null; // Get the specific card object for this slot
+            const colDiv = document.createElement('div');
+            colDiv.className = 'col-3 mb-2 card-slot'; // Ensure this class matches your layout needs
+            const cardContainer = document.createElement('div');
+            cardContainer.className = 'position-relative card-slot-container';
+
+            if (cardInSlot) { // Check if there's a card for this slot
+                cardContainer.classList.add('filled');
+                cardContainer.dataset.cardId = cardInSlot.id;
+
+                const highResPath = cardInSlot.display_image_path.replace('/cards/', '/high_res_cards/');
+                cardContainer.dataset.highResSrc = highResPath;
+
+                const img = document.createElement('img');
+                // Use the display_image_path of the specific card instance
+                img.src = cardInSlot.display_image_path; 
+                img.alt = cardInSlot.name; // Use the name of the specific card instance
+                img.className = 'img-fluid rounded';
+                img.dataset.cardImage = 'true'; // Keep if used elsewhere
+                cardContainer.appendChild(img);
+
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'btn btn-sm btn-danger position-absolute top-0 end-0 m-1 rounded-circle btn-remove';
+                removeBtn.innerHTML = '-';
+                removeBtn.title = `Remove ${cardInSlot.name}`;
+                // removeBtn.dataset.slotIndex = i; // Optional: if remove logic needs the slot index directly
+                cardContainer.appendChild(removeBtn);
+
+                const starBtn = document.createElement('button');
+                starBtn.className = 'btn-favorite';
+                starBtn.type = 'button';
+                // The star button should also reference the unique ID of the card in this slot
+                starBtn.dataset.cardId = cardInSlot.id; 
+                starBtn.setAttribute('aria-label', 'Set as cover card');
+
+                const starIcon = document.createElement('i');
+                starIcon.className = 'bi bi-star'; 
+
+                const numberSpan = document.createElement('span');
+                numberSpan.className = 'cover-card-number';
+                
+                starBtn.appendChild(starIcon);
+                starBtn.appendChild(numberSpan);
+                cardContainer.appendChild(starBtn);
+
+            } else {
+                cardContainer.classList.add('empty');
+                const emptySlotDiv = document.createElement('div');
+                emptySlotDiv.className = 'empty-slot d-flex align-items-center justify-content-center h-100';
+                emptySlotDiv.innerHTML = '<div class="empty-slot-text">EMPTY</div>';
+                cardContainer.appendChild(emptySlotDiv);
+            }
+            colDiv.appendChild(cardContainer);
+            rowDiv.appendChild(colDiv);
+        }
+        deckContainer.appendChild(rowDiv);
+
+        // After rendering all slots, call setCoverCardStarVisuals to apply active states and numbers
+        setCoverCardStarVisuals(); 
+        console.log("updateDeckDisplay: Deck display refreshed.");
+    }
+
+    function clearDeck() {
+        if (currentDeck.length > 0) {
+            // Only show confirmation if there are cards in the deck
+            if (confirm('Are you sure you want to clear your deck?')) {
+                // Clear the deck cards
+                currentDeck = [];
+
+                document.getElementById('deck-name').value = '';
+
+                // Clear the selected energy types too
+                selectedDeckEnergies = [];
+
+                selectedCoverCardIds = [];
+
+                // Reset the energy icon visual states
+                document.querySelectorAll('.energy-selection-bar .energy-icon-wrapper').forEach(icon => {
+                    icon.classList.remove('active');
+                });
+
+                deckSaved = false;
+
+                document.querySelectorAll('.card-item').forEach(cardEl => {
+                    const cardContainer = cardEl.querySelector('.position-relative');
+                    if (cardContainer) {
+                        // Make the card clickable again
+                        cardContainer.classList.remove('max-copies');
+                        cardContainer.classList.add('clickable-card');
+
+                        // Remove any existing count badge
+                        const badge = cardContainer.querySelector('.badge');
+                        if (badge) badge.remove();
+
+                        // Remove any existing remove button
+                        const removeBtn = cardContainer.querySelector('.btn-remove-small');
+                        if (removeBtn) removeBtn.remove();
+                    }
+                });
+
+                // Update the energy counter if it exists
+                updateEnergyCounter();
+
+                // Update displays
+                updateDeckDisplay();
+                updateCardDisplay();
+                
+            }
+        } else {
+            // If there are no cards, just clear energies without confirmation
+            selectedDeckEnergies = [];
+
+            document.getElementById('deck-name').value = '';
+
+            // Reset the energy icon visual states
+            document.querySelectorAll('.energy-selection-bar .energy-icon-wrapper').forEach(icon => {
+                icon.classList.remove('active');
+            });
+
+            // Update the energy counter if it exists
+            updateEnergyCounter();
+        }
+    }
+
+    function getStageRank(cardTypes) {
+        if (Array.isArray(cardTypes)) {
+            for (const stage in stageOrder) {
+                if (cardTypes.includes(stage)) {
+                    return stageOrder[stage];
+                }
+            }
+        }
+        return stageOrder['default']; // Return default if cardTypes is not an array or no known stage is found
+    }
+
+    
+
+    async function saveDeck() {
+        const authStatus = await checkUserAuthentication();
+
+        const deckNameValue = document.getElementById('deck-name').value.trim(); // Get name early for validation
+
+        // Define a helper function to check for Basic Pokémon
+        const hasBasicPokemon = () => {
+            const pokemonCards = currentDeck.filter(card => card.card_type && card.card_type.includes('Pokémon'));
+            return pokemonCards.some(card => card.card_type.includes('Basic'));
+        };
+
+        // --- Handle Unauthenticated User ---
+        if (!authStatus.isAuthenticated) {
+            console.log("User not authenticated. Checking if deck is savable before prompting.");
+
+            // Validate deck before saving to sessionStorage and prompting
+            if (currentDeck.length === 0) {
+                alert('Your deck is empty! Please add some cards before trying to save.');
+                return;
+            }
+            if (selectedDeckEnergies.length === 0) {
+                alert('Please select at least one energy type for your deck.');
+                // Optionally, highlight the energy selection area
+                return;
+            }
+            // NEW VALIDATION: Check for Basic Pokémon
+            if (!hasBasicPokemon()) {
+                alert('Your deck must contain at least one Basic Pokémon before saving.');
+                return;
+            }
+            if (!deckNameValue && currentDeck.length > 0) { // Prompt for name if deck has cards but no name
+                alert('Please enter a name for your deck before saving.');
+                document.getElementById('deck-name').focus();
+                return;
+            }
+
+            // Deck is valid enough to save temporarily, store it
+            const pendingDeck = {
+                name: deckNameValue,
+                cards: currentDeck.map(card => ({ id: card.id })), // Store card IDs
+                deck_types: selectedDeckEnergies,
+                cover_card_ids: selectedCoverCardIds,
+            };
+            try {
+                sessionStorage.setItem(PENDING_DECK_KEY, JSON.stringify(pendingDeck));
+                sessionStorage.setItem(ACTION_AFTER_AUTH_KEY, 'savePendingDeck');
+                console.log("Pending deck saved to sessionStorage.");
+
+                // Show the modal to prompt login/signup
+                showLoginToSaveModal();
+
+            } catch (e) {
+                console.error("Error saving deck to sessionStorage:", e);
+                alert("Could not temporarily save your deck. Browser storage might be full or disabled.");
+            }
+            return; // Stop further execution of saveDeck
+        }
+
+        // --- User IS Authenticated: Proceed with Server Save ---
+        console.log("User is authenticated. Proceeding with deck save.");
+
+        // Re-check validations for authenticated save
+        if (currentDeck.length === 0) {
+            alert('Your deck is empty! Please add some cards before saving.');
+            return;
+        }
+        if (selectedDeckEnergies.length === 0) {
+            alert('Please select at least one energy type for your deck before saving.');
+            return;
+        }
+        // NEW VALIDATION: Check for Basic Pokémon
+        if (!hasBasicPokemon()) {
+            alert('Your deck must contain at least one Basic Pokémon before saving.');
+            return;
+        }
+        if (!deckNameValue) {
+            alert('Please enter a name for your deck.');
+            document.getElementById('deck-name').focus();
+            return;
+        }
+
+        // Auto-assign cover card logic (same as before)
+        let autoAssignedCoverCardId = selectedCoverCardIds;
+        if (autoAssignedCoverCardId === null && currentDeck.length > 0) {
+            let candidateCard = null;
+            const pokemonCards = currentDeck.filter(card => card.card_type && card.card_type.includes('Pokémon'));
+            if (pokemonCards.length > 0) {
+                const highestRarityRank = Math.min(...pokemonCards.map(card => getRank(card.rarity, rarityOrder)));
+                const highestRarityPokemon = pokemonCards.filter(card => getRank(card.rarity, rarityOrder) === highestRarityRank);
+                const highestStageRank = Math.min(...highestRarityPokemon.map(card => getStageRank(card.card_type)));
+                const bestPokemonCandidates = highestRarityPokemon.filter(card => getStageRank(card.card_type) === highestStageRank);
+                if (bestPokemonCandidates.length > 0) candidateCard = bestPokemonCandidates[0];
+            }
+            if (candidateCard === null) {
+                if (currentDeck.length > 0) {
+                    const highestRarityRankAll = Math.min(...currentDeck.map(card => getRank(card.rarity, rarityOrder)));
+                    const highestRarityAllCards = currentDeck.filter(card => getRank(card.rarity, rarityOrder) === highestRarityRankAll);
+                    if (highestRarityAllCards.length > 0) candidateCard = highestRarityAllCards[0];
+                }
+            }
+            if (candidateCard !== null) autoAssignedCoverCardId = candidateCard.id;
+            else if (currentDeck.length > 0) autoAssignedCoverCardId = currentDeck[0].id;
+            console.log("Auto-assigned cover card ID:", autoAssignedCoverCardId);
+        }
+
+        const deckData = {
+            name: deckNameValue, // Use validated name
+            cards: currentDeck.map(card => ({ id: card.id })),
+            deck_types: selectedDeckEnergies,
+            cover_card_ids: autoAssignedCoverCardId
+        };
+
+        console.log("Final deck data to be saved:", JSON.stringify(deckData));
+
+        const isUpdating = !!loadedDeckId;
+        const url = isUpdating ? `/api/decks/${loadedDeckId}` : '/api/decks'; // Ensure API endpoint is correct
+        const method = isUpdating ? 'PUT' : 'POST';
+
+        // Fetch call (same as before)
+        fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json', /* Add CSRF token header if needed */ },
+            body: JSON.stringify(deckData)
+        })
+        .then(response => {
+            if (!response.ok) { // Improved error handling
+                return response.json().then(err => { throw (err || {error: `HTTP error! Status: ${response.status}`}); });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                deckSaved = true;
+                if (data.filename && !isUpdating) {
+                    loadedDeckId = data.filename;
+                }
+                if (data.cover_card_ids) {
+                    selectedCoverCardIds = data.cover_card_ids;
+                }
+                window.location.href = '/collection'; // Redirect after save
+            } else {
+                // Use server's error message if available
+                alert(`Error saving deck: ${data.error || 'Unknown server error'}`);
+            }
+        })
+        .catch(error => {
+            console.error('Error saving deck:', error);
+            // Display the error message from the server if present, otherwise generic
+            alert(`Error saving deck: ${error.error || 'An unexpected network or server error occurred.'}`);
+        });
+    }
+
+    function getRank(value, orderMap) {
+        return orderMap[value] ?? orderMap['default']; // Use default if value not in map
+    }
+
+    function getSortComparisonFunction(sortType, sortDirection) {
+        const directionMultiplier = sortDirection === 'asc' ? 1 : -1;
+
+        switch (sortType) {
+            case 'name':
+                return (a, b) => a.name.localeCompare(b.name) * directionMultiplier;
+
+            case 'rarity':
+                return (a, b) => {
+                    const rankA = getRank(a.rarity, rarityOrder);
+                    const rankB = getRank(b.rarity, rarityOrder);
+                    if (rankA !== rankB) {
+                        return (rankA - rankB) * directionMultiplier;
+                    }
+
+                    // Secondary sort: Set (newness), respecting primary sort direction.
+                    const indexA = orderedSetNamesForSort.indexOf(a.set_name);
+                    const indexB = orderedSetNamesForSort.indexOf(b.set_name);
+                    const effectiveIndexA = indexA === -1 ? Infinity : indexA;
+                    const effectiveIndexB = indexB === -1 ? Infinity : indexB;
+
+                    if (effectiveIndexA !== effectiveIndexB) {
+                        return (effectiveIndexA - effectiveIndexB) * directionMultiplier;
+                    }
+
+                    // Tertiary sort: by global integer card ID (ascending) for stability.
+                    const idA = a.id || 0;
+                    const idB = b.id || 0;
+                    return idA - idB;
+                };
+
+            case 'set':
+                return (a, b) => {
+                    const promoSetName = "Promo-A"; // Or your exact promo set name
+
+                    // Handle Promo-A always being last
+                    const isAPromo = (a.set_name === promoSetName);
+                    const isBPromo = (b.set_name === promoSetName);
+                    if (isAPromo && !isBPromo) return 1;  // A is promo, B is not -> A comes last
+                    if (!isAPromo && isBPromo) return -1; // B is promo, A is not -> B comes last
+                    if (isAPromo && isBPromo) { // Both are promo, sort by card number
+                        const numA = parseInt(a.card_number, 10) || 0;
+                        const numB = parseInt(b.card_number, 10) || 0;
+                        // Promo sort direction might be independent, but let's follow main direction
+                        return (numA - numB) * directionMultiplier;
+                    }
+
+                    const indexA = orderedSetNamesForSort.indexOf(a.set_name);
+                    const indexB = orderedSetNamesForSort.indexOf(b.set_name);
+
+                    const effectiveIndexA = indexA === -1 ? Infinity : indexA;
+                    const effectiveIndexB = indexB === -1 ? Infinity : indexB;
+
+                    if (effectiveIndexA !== effectiveIndexB) {
+                        return (effectiveIndexA - effectiveIndexB) * directionMultiplier;
+                    }
+
+                    const idA = a.id || 0;
+                    const idB = b.id || 0;
+                    return idA - idB;
+                };
+
+            case 'type':
+                return (a, b) => {
+                    const typeA_val = a.card_type.includes('Trainer') ? 'Trainer' : (a.energy_type || 'default');
+                    const typeB_val = b.card_type.includes('Trainer') ? 'Trainer' : (b.energy_type || 'default');
+                    const rankA_type = getRank(typeA_val, typeOrder);
+                    const rankB_type = getRank(typeB_val, typeOrder);
+
+                    if (rankA_type !== rankB_type) {
+                        return (rankA_type - rankB_type) * directionMultiplier;
+                    }
+
+                    // --- Types are the same, proceed to tie-breaking ---
+                    // Tie-breaker 1: Set (newness, using orderedSetNamesForSort)
+                    const promoSetName = "Promo-A"; 
+                    const isAPromo = (a.set_name === promoSetName);
+                    const isBPromo = (b.set_name === promoSetName);
+
+                    if (isAPromo && !isBPromo) return 1 * directionMultiplier;
+                    if (!isAPromo && isBPromo) return -1 * directionMultiplier;
+                    
+                    if (!(isAPromo && isBPromo)) { // If not both promos, compare by set order
+                        const indexA = orderedSetNamesForSort.indexOf(a.set_name);
+                        const indexB = orderedSetNamesForSort.indexOf(b.set_name);
+                        const effectiveIndexA = indexA === -1 ? Infinity : indexA;
+                        const effectiveIndexB = indexB === -1 ? Infinity : indexB;
+
+                        if (effectiveIndexA !== effectiveIndexB) {
+                            return (effectiveIndexA - effectiveIndexB) * directionMultiplier;
+                        }
+                    }
+                    // If sets are also the same (or both are promos and thus set order is same for this check),
+                    // or if one/both sets were not in orderedSetNamesForSort (Infinity vs Infinity)
+                    // then tie-break by global integer card ID (ascending).
+                    const idA = a.id || 0;
+                    const idB = b.id || 0;
+                    if (idA !== idB) {
+                        // Ascending ID sort is usually desired as a final numeric tie-breaker
+                        return idA - idB; 
+                    }
+
+                    // Ultimate fallback: name (if IDs were somehow identical, though they should be unique)
+                    return a.name.localeCompare(b.name) * directionMultiplier;
+                };default: // Default to name ascending
+                return (a, b) => a.name.localeCompare(b.name);
+        }
+    }
+
+    function sortFilteredCards() {
+        if (filteredCards && filteredCards.length > 0) {
+            const compareFn = getSortComparisonFunction(currentSortType, currentSortDirection);
+            filteredCards.sort(compareFn);
+        }
+    }
+
+    function updateSortDropdownUI() {
+        const sortButton = document.getElementById('sortDropdownButton'); // Gets the main sort button
+        const sortDropdownMenu = document.getElementById('sort-options-dropdown'); // Gets the dropdown menu UL
+        if (!sortButton || !sortDropdownMenu) return;
+
+        let buttonBaseText = "Sort By"; // Default text if no active sort is found (shouldn't happen if currentSortType is valid)
+        let foundActive = false; // Flag to confirm we found the active sort type in the menu
+
+        console.log("updateSortDropdownUI running. currentSortType:", currentSortType, "currentSortDirection:", currentSortDirection);
+
+        // Loop through each link (sort option) in the dropdown menu
+        sortDropdownMenu.querySelectorAll('a.dropdown-item').forEach(a => {
+            const type = a.dataset.sortType; // Get the sort type from the data attribute
+
+            // Find or create the span element for the arrow within the menu item
+            let arrowSpan = a.querySelector('.sort-arrow');
+            if (!arrowSpan) {
+                arrowSpan = document.createElement('span');
+                arrowSpan.className = 'sort-arrow';
+                a.appendChild(document.createTextNode(' ')); // Add a space before the arrow span
+                a.appendChild(arrowSpan);
+            }
+
+            // --- Reset the visual state of this menu item ---
+            a.classList.remove('active'); // Remove active highlighting
+            arrowSpan.innerHTML = ''; // Clear any existing arrow icon
+
+            // --- Check if this menu item corresponds to the currently active sort ---
+            if (type === currentSortType) {
+                foundActive = true; // We found the active sort type
+
+                // --- Update the visual state of the active menu item ---
+                a.classList.add('active'); // Add active highlighting
+                // Set the correct arrow icon for the dropdown menu item (flipped logic: down for asc, up for desc)
+                arrowSpan.innerHTML = currentSortDirection === 'asc' ? '<i class="bi bi-arrow-down"></i>' : '<i class="bi bi-arrow-up"></i>';
+
+                // --- Extract the base text for the main sort button from this active menu item ---
+                // Try to get the text content of the first child node (the text before the arrow span)
+                buttonBaseText = a.firstChild?.textContent?.trim() || '';
+                // Fallback in case firstChild isn't a text node or is empty, by replacing arrow text
+                if (buttonBaseText === '') {
+                    buttonBaseText = a.textContent.replace(arrowSpan.textContent, '').trim();
+                }
+
+                console.log("Match found for sort type:", type, "Link textContent:", a.textContent, "Extracted buttonBaseText:", buttonBaseText);
+            }
+        });
+
+        // --- Set the HTML content of the main sort button ---
+        // Include the extracted base text and the correct arrow icon (using the flipped logic)
+        const buttonArrowHtml = currentSortDirection === 'asc' ? '<i class="bi bi-arrow-down"></i>' : '<i class="bi bi-arrow-up"></i>';
+        console.log("Setting main button HTML:", `${buttonBaseText} ${buttonArrowHtml}`);
+        sortButton.innerHTML = `${buttonBaseText} ${buttonArrowHtml}`;
+
+        // Optional: If foundActive is false, it means currentSortType isn't a valid option in the menu.
+        // For this application, currentSortType is initialized to 'set' which is in the menu,
+        // and sort clicks only set it to other valid menu options, so this case should ideally not be reached.
+        if (!foundActive) {
+            console.warn("Current sort type '" + currentSortType + "' does not match any dropdown menu item.");
+        }
+    }
+
+    async function checkUserAuthentication() {
+        // Ensure these window variables are being set by your Flask template
+        if (typeof window.IS_USER_AUTHENTICATED !== 'undefined') {
+            // Directly return the values (no need for Promise if immediately available)
+            return {
+                isAuthenticated: window.IS_USER_AUTHENTICATED === true,
+                user: window.IS_USER_AUTHENTICATED ? window.CURRENT_USER_DATA : null
+            };
+        } else {
+            // Fallback or error if the global variables aren't set
+            console.warn("Authentication status global variables (window.IS_USER_AUTHENTICATED) not found. Assuming user is not authenticated. Ensure Flask injects this into the page.");
+            return { isAuthenticated: false, user: null }; // Assume not authenticated if check fails
+        }
+    }
+
+    function showLoginToSaveModal() {
+        const modal = document.getElementById('loginToSaveModal');
+        const closeBtn = modal.querySelector('.auth-modal-close-btn');
+        const googleSignInBtn = document.getElementById('loginToSaveModal_googleBtn');
+
+        if (!modal || !closeBtn || !googleSignInBtn) {
+            console.error("Login to Save Modal elements not found!");
+            // Fallback to a simple confirm if modal is somehow broken
+            if (confirm("You need to sign in with Google to save your deck. Your deck progress has been remembered. Proceed to Google Sign-In?")) {
+                deckSaved = true; // Temporarily mark as saved to bypass unload warning
+                const nextUrl = window.location.pathname + window.location.search;
+                // Assumes google_bp is registered with url_prefix="/login" in Flask
+                window.location.href = `/login/google?next=${encodeURIComponent(nextUrl)}`;
+            }
+            return;
+        }
+
+        // Function to close the modal and clean up window click listener
+        const closeModalAndCleanup = () => {
+            modal.style.display = 'none';
+            window.removeEventListener('click', windowClickHandlerForModal); // Remove the specific listener
+        };
+
+        // Handler for clicking outside the modal content to close it
+        const windowClickHandlerForModal = (event) => {
+            if (event.target == modal) {
+                closeModalAndCleanup();
+            }
+        };
+
+        // Attach event listeners (these are set each time modal is shown)
+        closeBtn.onclick = closeModalAndCleanup;
+
+        googleSignInBtn.onclick = function() {
+        console.log("Modal 'Sign in with Google & Save' button clicked.");
+        deckSaved = true; // To bypass the beforeunload warning
+
+        const currentDeckBuilderUrl = window.location.pathname + window.location.search;
+        console.log("[MODAL_DEBUG] Current deck builder URL to be stored:", currentDeckBuilderUrl);
+
+        // Step 1: Asynchronously store the currentDeckBuilderUrl in the session via our new endpoint
+        fetch('/auth/store-intended-redirect', { // Path to your new Flask route
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                // If you use CSRF protection for POST requests, you'll need to include the CSRF token here.
+                // For example: 'X-CSRFToken': getCsrfToken() // (you'd need a getCsrfToken function)
+            },
+            body: JSON.stringify({ next_url: currentDeckBuilderUrl })
+        })
+        .then(response => {
+            if (!response.ok) {
+                // If response is not OK, throw an error to be caught by .catch()
+                return response.json().then(err => { throw err; });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                console.log("[MODAL_DEBUG] Successfully stored intended redirect URL in session.");
+                // Step 2: Now redirect to Google login.
+                // The `?next=` parameter on this Google login URL is now less critical for *your* app's redirect logic,
+                // as `custom_login_next_url` is set. However, it's good practice to still include it,
+                // as Flask-Dance might use it for its own internal state or if its behavior changes.
+                const googleLoginUrl = `/login/google?next=${encodeURIComponent(currentDeckBuilderUrl)}`;
+                console.log("[MODAL_DEBUG] Redirecting to Google login:", googleLoginUrl);
+                window.location.href = googleLoginUrl;
+            } else {
+                console.error("[MODAL_DEBUG] Failed to store intended redirect URL:", data.error || "Unknown error");
+                alert("Could not prepare for login. You may be redirected to the homepage after signing in.");
+                // Fallback: proceed to Google login anyway, hoping for the best or default redirect.
+                const googleLoginUrl = `/login/google?next=${encodeURIComponent(currentDeckBuilderUrl)}`;
+                window.location.href = googleLoginUrl;
+            }
+        })
+        .catch(error => {
+            console.error("[MODAL_DEBUG] Error calling /auth/store-intended-redirect:", error);
+            alert("An error occurred while preparing for login. You might be redirected to the homepage after signing in.");
+            // Fallback redirect in case of network error etc.
+            const googleLoginUrl = `/login/google?next=${encodeURIComponent(currentDeckBuilderUrl)}`;
+            window.location.href = googleLoginUrl;
+            });
+        };
+
+        // Add window click listener specifically for closing this modal when it's open
+        // Remove any old one first to prevent multiple listeners if modal is shown repeatedly
+        window.removeEventListener('click', windowClickHandlerForModal);
+        window.addEventListener('click', windowClickHandlerForModal);
+
+        modal.style.display = 'block'; // Show the modal
+    }
+
+    function isDeckPristineOrEmpty() {
+        const deckName = document.getElementById('deck-name').value.trim();
+        const hasNoCards = currentDeck.length === 0;
+        const hasNoName = deckName === '';
+        const hasNoEnergies = selectedDeckEnergies.length === 0;
+
+        // A deck is considered pristine/empty if it has no cards, no name, and no energies selected.
+        // This typically represents the initial state of a new deck or a completely cleared deck.
+        if (hasNoCards && hasNoName && hasNoEnergies) {
+            console.log("isDeckPristineOrEmpty: Deck is considered pristine or empty.");
+            return true;
+        }
+        console.log("isDeckPristineOrEmpty: Deck has content or a name/energies.");
+        return false;
+    }
+
+    // In your Deck Builder's JavaScript
+    function setCoverCardStarVisuals() {
+        const deckSlotsContainer = document.getElementById('current-deck');
+        if (!deckSlotsContainer) {
+            console.error("setCoverCardStarVisuals: Deck container 'current-deck' not found!");
+            return;
+        }
+
+        const starButtons = deckSlotsContainer.querySelectorAll('.btn-favorite'); // These are the star buttons in your rendered deck slots
+        
+        // Iterate through each star button in the deck display
+        starButtons.forEach(starBtn => {
+            const cardIdInSlot = starBtn.dataset.cardId; // The master ID of the card in this slot
+            const numberSpan = starBtn.querySelector('.cover-card-number');
+            const icon = starBtn.querySelector('i');
+
+            if (!cardIdInSlot) { // Should ideally not happen if slots are rendered correctly
+                starBtn.classList.remove('active');
+                if (icon) icon.className = 'bi bi-star';
+                if (numberSpan) numberSpan.textContent = '';
+                starBtn.setAttribute('aria-label', 'Set as cover card');
+                return; // Move to the next star button
+            }
+
+            // Check if this card's ID is in our list of selected cover card IDs
+            // Ensure consistent type for indexOf, assuming selectedCoverCardIds stores strings
+            const indexOfThisCardInSelection = selectedCoverCardIds.indexOf(cardIdInSlot.toString()); 
+
+            if (indexOfThisCardInSelection > -1) {
+                // This card IS one of the selected cover cards.
+                // It gets an active star and its corresponding order number.
+                starBtn.classList.add('active');
+                if (icon) {
+                    icon.classList.remove('bi-star');
+                    icon.classList.add('bi-star-fill');
+                }
+                
+                const orderNumber = indexOfThisCardInSelection + 1; // This will be 1, 2, or 3
+                if (numberSpan) {
+                    numberSpan.textContent = orderNumber.toString();
+                }
+                starBtn.setAttribute('aria-label', `Cover Card ${orderNumber} - Unset`);
+            } else {
+                // This card is NOT a selected cover card. Reset it to default.
+                starBtn.classList.remove('active');
+                if (icon) {
+                    icon.classList.remove('bi-star-fill');
+                    icon.classList.add('bi-star');
+                }
+                if (numberSpan) {
+                    numberSpan.textContent = '';
+                }
+                starBtn.setAttribute('aria-label', 'Set as cover card');
+            }
+        });
+
+        // console.log("setCoverCardStarVisuals: Visuals updated. Selected IDs:", selectedCoverCardIds);
+    }
+
+    
+</script>
+{% endblock %}

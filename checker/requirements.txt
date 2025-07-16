@@ -1,0 +1,6 @@
+google-api-python-client
+google-auth-httplib2
+firebase-admin
+google-cloud-run
+requests
+beautifulsoup4
