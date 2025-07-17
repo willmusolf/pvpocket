@@ -187,8 +187,8 @@
         }
         
         .card-slot {
-            aspect-ratio: 2.5/3.5;
-            border-radius: 6px;
+            aspect-ratio: 63/88;
+            border-radius: 3.5%;
             overflow: hidden;
             position: relative;
             background: var(--card-bg);
@@ -200,7 +200,10 @@
         
         .card-slot.empty {
             background: var(--empty-card-bg);
-            border: 1px dashed var(--empty-card-border);
+            border: 2px dashed var(--empty-card-border);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            opacity: 0.8;
+            box-sizing: border-box;
         }
         
         .card-image {
@@ -208,7 +211,7 @@
             height: 100%;
             object-fit: cover;
             display: block;
-            border-radius: 6px;
+            border-radius: 3.5%;
         }
         
         
@@ -319,7 +322,7 @@
 
         .is-export-clone .card-slot {
             width: 110px !important;
-            height: 154px !important; /* Maintain aspect ratio */
+            height: 154px !important; /* Maintain 63/88 aspect ratio: 110 * (88/63) = 153.65 ≈ 154 */
         }
 
         /* --- 5x4 Export Prep --- */
@@ -688,7 +691,7 @@
                                  data-original-src="{{ image_url }}"
                                  crossorigin="anonymous"
                                  onerror="handleImageError(this)"
-                                 style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 6px;">
+                                 style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 3.5%;">
                         </div>
                     {% else %}
                         <div class="card-slot empty"></div>
@@ -1155,7 +1158,7 @@
             cardSlots.forEach(slot => {
                 slot.style.width = `${bestCardWidth}px`;
                 slot.style.maxWidth = `${bestCardWidth}px`;
-                slot.style.height = `${bestCardWidth * 1.4}px`; // Maintain aspect ratio
+                slot.style.height = `${bestCardWidth * (88/63)}px`; // Maintain 63/88 aspect ratio
             });
             
             // Update grid gap
@@ -1261,7 +1264,7 @@
             cardSlots.forEach(slot => {
                 slot.style.width = `${bestCardWidth}px`;
                 slot.style.maxWidth = `${bestCardWidth}px`;
-                slot.style.height = `${bestCardWidth * 1.4}px`; // Maintain aspect ratio
+                slot.style.height = `${bestCardWidth * (88/63)}px`; // Maintain 63/88 aspect ratio
             });
             
             // Calculate total grid width
