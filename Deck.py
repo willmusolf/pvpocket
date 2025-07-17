@@ -689,3 +689,25 @@ class Deck:
         """Make deck private."""
         self.is_public = False
         self.shared_at = None
+
+    def get_ordered_cards(self) -> List[Card]:
+        """Get cards ordered by type and name for display purposes."""
+        pokemon = []
+        trainers = []
+        
+        for card in self.cards:
+            if card.is_pokemon:
+                pokemon.append(card)
+            elif card.is_trainer:
+                trainers.append(card)
+        
+        # Sort Pokemon by evolution stage, then by name
+        pokemon.sort(key=lambda card: (
+            0 if card.evolution_stage is None else card.evolution_stage,
+            card.name
+        ))
+        
+        # Sort Trainers by name
+        trainers.sort(key=lambda card: card.name)
+        
+        return pokemon + trainers

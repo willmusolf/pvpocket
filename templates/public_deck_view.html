@@ -236,6 +236,10 @@
                        class="btn btn-outline-primary">
                         <i class="bi bi-download"></i> Export as JSON
                     </a>
+                    <a href="{{ url_for('decks.export_deck', deck_id=deck.id, format='image') }}" 
+                       class="btn btn-outline-primary" target="_blank">
+                        <i class="bi bi-image"></i> Export as Image
+                    </a>
                     {% if is_owner %}
                     <button class="btn btn-warning" onclick="togglePrivacy()">
                         <i class="bi bi-eye-slash"></i> Make Private

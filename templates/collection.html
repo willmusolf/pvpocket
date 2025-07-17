@@ -693,7 +693,7 @@
 
         function confirmImageExport(deckId, deckName) {
             if (confirm(`Export "${deckName}" as image?`)) {
-                window.open(`/deck/${deckId}/export/image`, '_blank');
+                window.open(`/deck/${deckId}/export?format=image`, '_blank');
             }
         }
         

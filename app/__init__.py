@@ -82,6 +82,19 @@ def create_app(config_name="default"):
     )
     app_config = config[config_name]
     app.config.from_object(app_config)
+    
+    # Disable request logging for proxy-image endpoint
+    import logging
+    werkzeug_logger = logging.getLogger('werkzeug')
+    
+    # Create a custom filter to suppress proxy-image logs
+    class ProxyImageFilter(logging.Filter):
+        def filter(self, record):
+            # Suppress logs containing /api/proxy-image
+            return '/api/proxy-image' not in record.getMessage()
+    
+    # Add the filter to werkzeug logger
+    werkzeug_logger.addFilter(ProxyImageFilter())
 
     if not app.config.get("SECRET_KEY"):
         raise ValueError(

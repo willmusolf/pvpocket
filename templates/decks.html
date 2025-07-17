@@ -416,7 +416,7 @@
         padding: 0 12px;
         flex-grow: 1;
     }
-    #save-deck-btn, #clear-deck-btn {
+    #save-deck-btn, #clear-deck-btn, #export-deck-btn {
         height: 45px;
         display: flex;
         align-items: center;
@@ -993,7 +993,7 @@
         .btn-remove-small.is-tapping {
             animation: mobile-card-tap-animation 0.17s ease-in-out;
         }
-        #save-deck-btn, #clear-deck-btn {
+        #save-deck-btn, #clear-deck-btn, #export-deck-btn {
             -webkit-tap-highlight-color: transparent;
         }
         #save-deck-btn:hover,
@@ -1011,8 +1011,17 @@
             background-color: transparent !important;
             color: #dc3545 !important;
         }
+        #export-deck-btn:hover,
+        #export-deck-btn:active {
+            transform: none !important;
+            box-shadow: none !important;
+            background-color: #0d6efd !important;
+            border-color: #0d6efd !important;
+            color: white !important;
+        }
         #save-deck-btn:focus,
-        #clear-deck-btn:focus {
+        #clear-deck-btn:focus,
+        #export-deck-btn:focus {
             box-shadow: none !important;
         }
         .btn-outline-secondary:hover,
@@ -1096,6 +1105,9 @@
         .current-deck-container .card-header .deck-counter {
             border-top-right-radius: 8px !important;
             border-bottom-right-radius: 8px !important;
+        }
+        .current-deck-container .card-header #export-deck-btn {
+            border-radius: 0 !important;
         }
         .col-md-8.mb-4 .card-header .dropdown {
             width: 75px;
@@ -1298,6 +1310,7 @@
                             <div class="input-group mb-2">
                                 <input type="text" id="deck-name" class="form-control" placeholder="Enter Deck Name" autocomplete="off">
                                 <button id="save-deck-btn" class="btn btn-success">Save</button>
+                                <button id="export-deck-btn" class="btn btn-outline-primary" style="display: none;">Export</button>
                                 <button id="clear-deck-btn" class="btn btn-outline-danger">Clear</button>
                                 <span class="deck-counter">0/20</span>
                             </div>
@@ -1710,7 +1723,15 @@
         updateDeckEnergyIconsVisualState();
         updateEnergyCounter();
 
-        // 2. Update all card visuals in the main collection view
+        // 2. Update export button visibility
+        const exportButton = document.getElementById('export-deck-btn');
+        if (loadedDeckId && deckSaved) {
+            exportButton.style.display = 'inline-block';
+        } else {
+            exportButton.style.display = 'none';
+        }
+
+        // 3. Update all card visuals in the main collection view
         // This loops through every card element and calls your existing update function,
         // which correctly handles adding OR removing badges and styles.
         document.querySelectorAll('.card-item').forEach(cardElement => {
@@ -2155,6 +2176,9 @@
 
         // Save deck button
         document.getElementById('save-deck-btn').addEventListener('click', saveDeck);
+
+        // Export deck button
+        document.getElementById('export-deck-btn').addEventListener('click', exportDeck);
 
         // Deck name input changes -> mark as unsaved
         document.getElementById('deck-name').addEventListener('input', () => { deckSaved = false; });
@@ -3200,6 +3224,22 @@
             // Display the error message from the server if present, otherwise generic
             alert(`Error saving deck: ${error.error || 'An unexpected network or server error occurred.'}`);
         });
+    }
+
+    function exportDeck() {
+        if (!loadedDeckId) {
+            alert('Please save your deck first before exporting.');
+            return;
+        }
+        
+        if (currentDeck.length === 0) {
+            alert('Your deck is empty! Please add some cards before exporting.');
+            return;
+        }
+        
+        // Open the export page in a new window
+        const exportUrl = `/deck/${loadedDeckId}/export`;
+        window.open(exportUrl, '_blank');
     }
 
     function getRank(value, orderMap) {
