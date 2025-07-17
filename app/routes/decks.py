@@ -1079,6 +1079,66 @@ def export_deck(deck_id, format):
         response.headers["Content-Disposition"] = f"attachment; filename={deck.name}_deck.txt"
         return response
     
+    elif format == "image":
+        # Export as image - render special template for image capture
+        
+        # Sort cards: Pokemon first, then trainers, with duplicates grouped together
+        pokemon_cards = []
+        trainer_cards = []
+        
+        for card in deck.cards:
+            if hasattr(card, 'is_pokemon') and card.is_pokemon:
+                pokemon_cards.append(card)
+            elif hasattr(card, 'is_trainer') and card.is_trainer:
+                trainer_cards.append(card)
+        
+        # Group cards by name to handle duplicates
+        def group_cards_by_name(cards):
+            grouped = {}
+            for card in cards:
+                if card.name not in grouped:
+                    grouped[card.name] = []
+                grouped[card.name].append(card)
+            return grouped
+        
+        pokemon_grouped = group_cards_by_name(pokemon_cards)
+        trainer_grouped = group_cards_by_name(trainer_cards)
+        
+        # Create ordered list with duplicates adjacent
+        ordered_cards = []
+        
+        # Add pokemon cards (grouped by name)
+        for card_name in sorted(pokemon_grouped.keys()):
+            ordered_cards.extend(pokemon_grouped[card_name])
+        
+        # Add trainer cards (grouped by name)
+        for card_name in sorted(trainer_grouped.keys()):
+            ordered_cards.extend(trainer_grouped[card_name])
+        
+        # Ensure we have exactly 20 cards (pad if necessary)
+        while len(ordered_cards) < 20:
+            ordered_cards.append(None)  # Placeholder for empty slots
+        
+        # Get owner info for creator attribution
+        owner_info = None
+        if deck.owner_id:
+            owner_doc = db.collection("users").document(deck.owner_id).get()
+            if owner_doc.exists:
+                owner_data = owner_doc.to_dict()
+                owner_info = {
+                    "username": owner_data.get("username", "Unknown"),
+                    "profile_icon": owner_data.get("profile_icon", "")
+                }
+        
+        return render_template(
+            "deck_image_export.html",
+            deck=deck,
+            ordered_cards=ordered_cards,
+            deck_types=deck.deck_types,
+            owner_info=owner_info,
+            config=current_app.config
+        )
+    
     else:
         flash("Invalid export format.", "error")
         return redirect(url_for("decks.list_decks"))

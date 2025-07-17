@@ -86,8 +86,10 @@ def view_collection():
                 session['display_toast_once'] = {"message": "You can only copy public decks.", "type": "error"}
                 return redirect(url_for("collection_bp.view_collection"))
 
-            # 3. Create a temporary deck object to get card/type data
-            temp_deck_obj = Deck.from_firestore_doc(original_deck_doc, card_collection)
+            # 3. Extract data directly from original deck without creating temp object
+            original_card_ids = original_deck_data.get("card_ids", [])
+            original_deck_types = original_deck_data.get("deck_types", [])
+            original_cover_card_ids = original_deck_data.get("cover_card_ids", [])
             
             # 4. Find a unique name for the copy
             original_name = original_deck_data.get("name", "Unnamed Deck")
@@ -104,11 +106,11 @@ def view_collection():
                 "name": new_deck_name,
                 "name_lowercase": new_deck_name.lower(),
                 "owner_id": current_user_id,
-                "card_ids": [str(card.id) for card in temp_deck_obj.cards],
-                "deck_types": temp_deck_obj.deck_types,
+                "card_ids": original_card_ids,  # Copy directly from original
+                "deck_types": original_deck_types,  # Copy directly from original
                 "is_public": False,
                 "description": original_deck_data.get("description", ""),
-                "cover_card_ids": original_deck_data.get("cover_card_ids", []), # Force-set from original
+                "cover_card_ids": original_cover_card_ids,  # Copy directly from original without auto-selection
                 "created_at": firestore.SERVER_TIMESTAMP,
                 "updated_at": firestore.SERVER_TIMESTAMP,
                 "shared_at": None,
@@ -196,9 +198,10 @@ def get_user_decks_api():
 
             resolved_cover_cards = []
             cover_card_ids_from_db = deck_data.get("cover_card_ids", [])
+            seen_card_ids = set()
             if card_collection_obj and isinstance(cover_card_ids_from_db, list):
                 for c_id_str in cover_card_ids_from_db:
-                    if c_id_str:
+                    if c_id_str and c_id_str not in seen_card_ids:
                         try:
                             card_obj = card_collection_obj.get_card_by_id(int(c_id_str))
                             if card_obj:
@@ -210,6 +213,10 @@ def get_user_decks_api():
                                         ),
                                     }
                                 )
+                                seen_card_ids.add(c_id_str)
+                                # Limit to 3 cover cards maximum
+                                if len(resolved_cover_cards) >= 3:
+                                    break
                         except (ValueError, TypeError):
                             pass
 

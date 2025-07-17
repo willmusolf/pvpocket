@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Layout Test</title>
+    <!-- Bootstrap CSS for grid system -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { padding: 20px; font-family: Arial, sans-serif; }
+        .test-container { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .card-slot { aspect-ratio: 63/88; background: #ddd; border-radius: 6px; margin-bottom: 8px; }
+        .cards-grid-5x4 { background: #e9ecef; padding: 8px; border-radius: 8px; }
+        .cards-grid-2x10 { background: #e9ecef; padding: 8px; border-radius: 8px; overflow-x: auto; white-space: nowrap; }
+        .cards-grid-2x10 .cards-row { display: inline-flex; flex-direction: column; gap: 4px; min-width: max-content; }
+        .cards-grid-2x10 .cards-columns { display: flex; gap: 4px; }
+        .cards-grid-2x10 .card-slot { width: 110px; height: 154px; flex-shrink: 0; }
+        .d-none { display: none !important; }
+        .btn { margin: 5px; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .active { background: #28a745 !important; }
+    </style>
+</head>
+<body>
+    <h1>Layout Test</h1>
+    
+    <div>
+        <button class="btn btn-secondary active" id="layout-auto" onclick="toggleLayout('auto')">Auto</button>
+        <button class="btn btn-secondary" id="layout-2x10" onclick="toggleLayout('2x10')">2×10</button>
+        <button class="btn btn-secondary" id="layout-5x4" onclick="toggleLayout('5x4')">5×4</button>
+    </div>
+
+    <div class="test-container">
+        <h3>Current Layout</h3>
+        <div class="cards-container" id="cards-container">
+            <!-- 5x4 Bootstrap Grid Layout -->
+            <div class="cards-grid-5x4 d-none" id="cards-grid-5x4">
+                <div class="row">
+                    <div class="col-3 mb-2 card-slot"><div class="card-slot">1</div></div>
+                    <div class="col-3 mb-2 card-slot"><div class="card-slot">2</div></div>
+                    <div class="col-3 mb-2 card-slot"><div class="card-slot">3</div></div>
+                    <div class="col-3 mb-2 card-slot"><div class="card-slot">4</div></div>
+                    <div class="col-3 mb-2 card-slot"><div class="card-slot">5</div></div>
+                    <div class="col-3 mb-2 card-slot"><div class="card-slot">6</div></div>
+                    <div class="col-3 mb-2 card-slot"><div class="card-slot">7</div></div>
+                    <div class="col-3 mb-2 card-slot"><div class="card-slot">8</div></div>
+                    <div class="col-3 mb-2 card-slot"><div class="card-slot">9</div></div>
+                    <div class="col-3 mb-2 card-slot"><div class="card-slot">10</div></div>
+                    <div class="col-3 mb-2 card-slot"><div class="card-slot">11</div></div>
+                    <div class="col-3 mb-2 card-slot"><div class="card-slot">12</div></div>
+                    <div class="col-3 mb-2 card-slot"><div class="card-slot">13</div></div>
+                    <div class="col-3 mb-2 card-slot"><div class="card-slot">14</div></div>
+                    <div class="col-3 mb-2 card-slot"><div class="card-slot">15</div></div>
+                    <div class="col-3 mb-2 card-slot"><div class="card-slot">16</div></div>
+                    <div class="col-3 mb-2 card-slot"><div class="card-slot">17</div></div>
+                    <div class="col-3 mb-2 card-slot"><div class="card-slot">18</div></div>
+                    <div class="col-3 mb-2 card-slot"><div class="card-slot">19</div></div>
+                    <div class="col-3 mb-2 card-slot"><div class="card-slot">20</div></div>
+                </div>
+            </div>
+            
+            <!-- 2x10 Horizontal Scroll Layout -->
+            <div class="cards-grid-2x10 d-none" id="cards-grid-2x10">
+                <div class="cards-row">
+                    <div class="cards-columns">
+                        <div class="cards-column">
+                            <div class="card-slot">1</div>
+                            <div class="card-slot">2</div>
+                        </div>
+                        <div class="cards-column">
+                            <div class="card-slot">3</div>
+                            <div class="card-slot">4</div>
+                        </div>
+                        <div class="cards-column">
+                            <div class="card-slot">5</div>
+                            <div class="card-slot">6</div>
+                        </div>
+                        <div class="cards-column">
+                            <div class="card-slot">7</div>
+                            <div class="card-slot">8</div>
+                        </div>
+                        <div class="cards-column">
+                            <div class="card-slot">9</div>
+                            <div class="card-slot">10</div>
+                        </div>
+                        <div class="cards-column">
+                            <div class="card-slot">11</div>
+                            <div class="card-slot">12</div>
+                        </div>
+                        <div class="cards-column">
+                            <div class="card-slot">13</div>
+                            <div class="card-slot">14</div>
+                        </div>
+                        <div class="cards-column">
+                            <div class="card-slot">15</div>
+                            <div class="card-slot">16</div>
+                        </div>
+                        <div class="cards-column">
+                            <div class="card-slot">17</div>
+                            <div class="card-slot">18</div>
+                        </div>
+                        <div class="cards-column">
+                            <div class="card-slot">19</div>
+                            <div class="card-slot">20</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Layout preference
+        window.userLayoutPreference = 'auto';
+
+        function toggleLayout(layout) {
+            console.log('User selected layout:', layout);
+            
+            const buttons = document.querySelectorAll('#layout-auto, #layout-2x10, #layout-5x4');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            
+            // Store user preference
+            window.userLayoutPreference = layout;
+            document.getElementById('layout-' + layout).classList.add('active');
+            
+            if (layout === 'auto') {
+                checkAndApplyAutoLayout();
+            } else {
+                applySpecificLayout(layout, true);
+            }
+        }
+
+        function applySpecificLayout(layoutType, isForced = false) {
+            const grid5x4 = document.getElementById('cards-grid-5x4');
+            const grid2x10 = document.getElementById('cards-grid-2x10');
+            
+            // Hide both layouts first
+            grid5x4.classList.add('d-none');
+            grid2x10.classList.add('d-none');
+            
+            // Show the selected layout
+            if (layoutType === '5x4') {
+                grid5x4.classList.remove('d-none');
+            } else if (layoutType === '2x10') {
+                grid2x10.classList.remove('d-none');
+            }
+            
+            console.log(`Applied specific layout: ${layoutType}${isForced ? ' (forced)' : ''}`);
+        }
+
+        function checkAndApplyAutoLayout() {
+            if (window.userLayoutPreference !== 'auto') {
+                return;
+            }
+            
+            const containerWidth = window.innerWidth;
+            const breakpoint = 1200;
+            
+            console.log('Auto-check - Container width:', containerWidth);
+            
+            if (containerWidth >= breakpoint) {
+                applySpecificLayout('2x10', false);
+                console.log('Auto-selected 2x10 layout (desktop)');
+            } else {
+                applySpecificLayout('5x4', false);
+                console.log('Auto-selected 5x4 layout (mobile)');
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            toggleLayout('auto');
+        });
+
+        // Handle resize
+        window.addEventListener('resize', function() {
+            if (window.userLayoutPreference === 'auto') {
+                checkAndApplyAutoLayout();
+            }
+        });
+    </script>
+</body>
+</html>

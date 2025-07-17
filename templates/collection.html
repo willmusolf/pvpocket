@@ -485,6 +485,9 @@
                                     <li><a class="dropdown-item" href="${deckCopyUrl}"><i class="bi bi-files me-2"></i>Make a copy</a></li>
                                     <li><a class="dropdown-item" href="${pageData.battle_sim_url}"><i class="bi bi-joystick me-2"></i>Load into Battle Sim</a></li>
                                     <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="#" onclick="confirmTextExport('${escapeHTML(deck.deck_id)}', '${escapeHTML(deck.name)}'); return false;"><i class="bi bi-download me-2"></i>Export as Text</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="confirmImageExport('${escapeHTML(deck.deck_id)}', '${escapeHTML(deck.name)}'); return false;"><i class="bi bi-image me-2"></i>Export as Image</a></li>
+                                    <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item deck-action-privacy" href="#" data-deck-id="${escapeHTML(deck.deck_id)}" data-deck-name="${escapeHTML(deck.name)}" data-is-public="${deck.is_public || false}">
                                         <i class="bi ${deck.is_public ? 'bi-eye-slash' : 'bi-eye'} me-2"></i>
                                         ${deck.is_public ? 'Make Private' : 'Make Public'}
@@ -681,6 +684,18 @@
                 toggleDeckPrivacy(deckId, deckName, isPublic);
             }
         });
+        
+        function confirmTextExport(deckId, deckName) {
+            if (confirm(`Export "${deckName}" as text file?`)) {
+                window.open(`/deck/${deckId}/export/text`, '_blank');
+            }
+        }
+
+        function confirmImageExport(deckId, deckName) {
+            if (confirm(`Export "${deckName}" as image?`)) {
+                window.open(`/deck/${deckId}/export/image`, '_blank');
+            }
+        }
         
         async function toggleDeckPrivacy(deckId, deckName, isCurrentlyPublic) {
             const action = isCurrentlyPublic ? 'private' : 'public';

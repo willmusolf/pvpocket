@@ -268,6 +268,29 @@ def view_friend_decks(user_id):
     for deck_doc in decks_query.stream():
         try:
             deck = Deck.from_firestore_doc(deck_doc, card_collection)
+            
+            # Resolve cover cards similar to collection.py with deduplication
+            resolved_cover_cards = []
+            seen_card_ids = set()
+            if deck.cover_card_ids and card_collection:
+                for c_id_str in deck.cover_card_ids:
+                    if c_id_str and c_id_str not in seen_card_ids:
+                        try:
+                            card_obj = card_collection.get_card_by_id(int(c_id_str))
+                            if card_obj:
+                                resolved_cover_cards.append({
+                                    "name": getattr(card_obj, "name", "N/A"),
+                                    "firebase_image_url": getattr(card_obj, "firebase_image_url", None),
+                                })
+                                seen_card_ids.add(c_id_str)
+                                # Limit to 3 cover cards maximum
+                                if len(resolved_cover_cards) >= 3:
+                                    break
+                        except (ValueError, TypeError):
+                            pass
+            
+            # Add resolved cover cards to the deck object
+            deck.resolved_cover_cards = resolved_cover_cards
             friend_decks.append(deck)
         except Exception as e:
             current_app.logger.error(f"Error loading deck {deck_doc.id}: {e}")

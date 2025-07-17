@@ -78,6 +78,8 @@
         align-items: center;
         min-height: 110px; 
         margin-bottom: 0.25rem;
+        gap: 3px; 
+        position: relative; 
         border-radius: 5px; 
         overflow: hidden; 
         transition: all 0.15s ease-out;
@@ -154,8 +156,11 @@
                                     <li><a class="dropdown-item" href="{{ url_for('collection_bp.view_collection') }}?copy_from_friend_deck={{ deck.id }}">
                                         <i class="bi bi-files me-2"></i>Make a copy
                                     </a></li>
-                                    <li><a class="dropdown-item" href="{{ url_for('decks.export_deck', deck_id=deck.id, format='text') }}">
+                                    <li><a class="dropdown-item" href="#" onclick="confirmTextExport('{{ deck.id }}', '{{ deck.name|e }}'); return false;">
                                         <i class="bi bi-download me-2"></i>Export as Text
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="confirmImageExport('{{ deck.id }}', '{{ deck.name|e }}'); return false;">
+                                        <i class="bi bi-image me-2"></i>Export as Image
                                     </a></li>
                                 </ul>
                             </div>
@@ -170,18 +175,23 @@
                         </div>
                         
                         <div class="deck-cover-cards-area">
-                            {% for card in deck.cards[:3] %}
+                            {% for cover in deck.resolved_cover_cards %}
                             <div class="cover-card-image-wrapper">
-                                <img src="{{ card.firebase_image_url or '/static/placeholder.png' }}" alt="{{ card.name }}" title="{{ card.name }}">
+                                <img src="{{ cover.firebase_image_url or '/static/placeholder.png' }}" alt="{{ cover.name }}" title="{{ cover.name }}">
                             </div>
                             {% endfor %}
                         </div>
                         
-                        <h5 class="card-title mt-2">{{ deck.name }}</h5>
-                        
-                        {% if deck.description %}
-                        <p class="text-muted small mb-2">{{ deck.description }}</p>
-                        {% endif %}
+                        <h5 class="card-title mt-2">
+                            {{ deck.name }}
+                            {% if deck.description %}
+                            <i class="bi bi-info-circle ms-1 text-muted" 
+                               style="font-size: 0.8em; cursor: help;" 
+                               title="{{ deck.description }}"
+                               data-bs-toggle="tooltip" 
+                               data-bs-placement="bottom"></i>
+                            {% endif %}
+                        </h5>
                         
                         {% if deck.shared_at %}
                         <p class="text-muted small mb-0">Shared {{ deck.shared_at.strftime('%m/%d/%Y') }}</p>
@@ -203,4 +213,26 @@
         <a href="{{ url_for('friends.friends_page') }}" class="btn btn-secondary">← Back to Friends</a>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Bootstrap tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+
+function confirmTextExport(deckId, deckName) {
+    if (confirm(`Export "${deckName}" as text file?`)) {
+        window.open(`{{ url_for('decks.export_deck', deck_id='DECK_ID', format='text') }}`.replace('DECK_ID', deckId), '_blank');
+    }
+}
+
+function confirmImageExport(deckId, deckName) {
+    if (confirm(`Export "${deckName}" as image?`)) {
+        window.open(`{{ url_for('decks.export_deck', deck_id='DECK_ID', format='image') }}`.replace('DECK_ID', deckId), '_blank');
+    }
+}
+</script>
 {% endblock %}

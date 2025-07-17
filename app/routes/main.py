@@ -2,10 +2,14 @@ from flask import (
     Blueprint,
     render_template,
     current_app,
+    request,
+    jsonify,
+    Response,
 ) 
 from flask_login import (
     current_user as flask_login_current_user,
 )
+import requests
 main_bp = Blueprint("main", __name__)
 
 
@@ -111,3 +115,47 @@ def index():
             else None
         ),
     )
+
+
+@main_bp.route("/api/proxy-image")
+def proxy_image():
+    """Proxy route to handle CORS issues with Firebase Storage images"""
+    try:
+        image_url = request.args.get('url')
+        if not image_url:
+            return jsonify({"error": "No URL provided"}), 400
+        
+        # Validate URL is from expected domains
+        allowed_domains = [
+            'storage.googleapis.com',
+            'firebasestorage.googleapis.com'
+        ]
+        
+        if not any(domain in image_url for domain in allowed_domains):
+            return jsonify({"error": "Invalid domain"}), 400
+        
+        # Fetch the image
+        response = requests.get(image_url, timeout=10)
+        response.raise_for_status()
+        
+        # Get content type
+        content_type = response.headers.get('content-type', 'image/png')
+        
+        # Return the image with CORS headers
+        return Response(
+            response.content,
+            mimetype=content_type,
+            headers={
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET',
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Cache-Control': 'public, max-age=3600'
+            }
+        )
+        
+    except requests.exceptions.RequestException as e:
+        current_app.logger.error(f"Error fetching image: {e}")
+        return jsonify({"error": "Failed to fetch image"}), 500
+    except Exception as e:
+        current_app.logger.error(f"Error in proxy_image: {e}")
+        return jsonify({"error": "Internal server error"}), 500

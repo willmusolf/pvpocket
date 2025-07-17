@@ -1,0 +1,1638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ deck.name }} - Deck Export</title>
+    <style>
+        :root {
+            /* Dark theme variables */
+            --bg-color: #2d3436;
+            --container-bg: #34495e;
+            --text-color: #ddd;
+            --title-color: #ecf0f1;
+            --border-color: #5a6c7d;
+            --grid-bg: #2c3e50;
+            --card-bg: #34495e;
+            --card-border: #5a6c7d;
+            --empty-card-bg: #2c3e50;
+            --empty-card-border: #7f8c8d;
+            --description-color: #bdc3c7;
+            --button-bg: #7f8c8d;
+            --button-primary: #3498db;
+            --button-text: #ecf0f1;
+        }
+        
+        body.light-theme {
+            /* Light theme variables */
+            --bg-color: #f5f5f5;
+            --container-bg: #ffffff;
+            --text-color: #333;
+            --title-color: #333;
+            --border-color: #e0e0e0;
+            --grid-bg: #fafafa;
+            --card-bg: #fff;
+            --card-border: #ddd;
+            --empty-card-bg: #f8f8f8;
+            --empty-card-border: #ccc;
+            --description-color: #666;
+            --button-bg: #495057;
+            --button-primary: #007bff;
+            --button-text: #fff;
+        }
+
+        body {
+            margin: 0;
+            padding: 15px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-color);
+            min-height: 100vh;
+            height: auto;
+            color: var(--text-color);
+        }
+        
+        .export-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: var(--container-bg);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            min-height: fit-content;
+            overflow: visible;
+        }
+        
+        .deck-header {
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 15px;
+        }
+        
+        .deck-title {
+            font-size: 1.8em;
+            font-weight: 600;
+            color: var(--title-color);
+            margin: 0 0 8px 0;
+        }
+        
+        .deck-info {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin: 10px 0;
+        }
+        
+        .deck-creator {
+            text-align: center;
+            color: var(--description-color);
+            font-size: 0.85em;
+            margin: 8px 0;
+        }
+        
+        .deck-description {
+            margin-top: 20px;
+            margin-bottom: 10px;
+            color: var(--description-color);
+            font-size: 0.9em;
+            line-height: 1.4;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            white-space: normal;
+            word-break: break-word;
+        }
+        
+        .deck-types {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .energy-badge {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 1px solid var(--border-color);
+        }
+        
+        .card-count {
+            background: #95a5a6;
+            color: #2c3e50;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-weight: 500;
+            font-size: 0.8em;
+        }
+        
+        .cards-container {
+            margin: 15px 0;
+            padding: clamp(8px, 2vw, 16px); /* Smooth responsive padding */
+            background: var(--grid-bg);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: visible;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        /* Special scrolling behavior for 2x10 layout only */
+        .cards-container.layout-2x10-container {
+            overflow-x: auto;
+            overflow-y: hidden;
+            max-width: calc(100vw - 80px); /* Back to original - this was perfect before */
+            width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+            justify-content: center;
+            padding: 16px; /* Increased and even padding for better spacing */
+        }
+        
+        /* Ensure the grid inside scrollable container has proper spacing */
+        .cards-container.layout-2x10-container .cards-grid {
+            margin: 0 auto;
+            min-width: fit-content;
+        }
+        
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: 8px;
+            justify-items: center;
+            align-items: center;
+            width: fit-content;
+            max-width: 480px;
+        }
+        
+        .cards-grid.layout-2x10 {
+            grid-template-columns: repeat(10, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            max-width: 1174px;
+            gap: 8px;
+            width: fit-content;
+        }
+        
+        .cards-grid.layout-5x4 {
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            max-width: min(580px, 90vw); /* Smooth scaling based on viewport */
+            gap: clamp(6px, 1.5vw, 8px); /* Smooth gap scaling */
+            width: fit-content;
+        }
+        
+        /* Scale card slots in 5x4 layout to fit container */
+        .cards-grid.layout-5x4 .card-slot {
+            max-width: clamp(90px, calc((90vw - 60px) / 4), 110px); /* Smooth responsive scaling */
+            width: clamp(90px, calc((90vw - 60px) / 4), 110px);
+        }
+        
+        /* Default 5x4 layout when no specific layout class */
+        .cards-grid:not(.layout-2x10):not(.layout-5x4) {
+            max-width: min(580px, 90vw); /* Match layout-5x4 smooth scaling */
+            justify-items: center;
+            width: fit-content;
+            gap: clamp(6px, 1.5vw, 8px); /* Match layout-5x4 smooth gap */
+        }
+        
+        .cards-grid:not(.layout-2x10):not(.layout-5x4) .card-slot {
+            max-width: clamp(90px, calc((90vw - 60px) / 4), 110px); /* Match layout-5x4 smooth scaling */
+            width: clamp(90px, calc((90vw - 60px) / 4), 110px);
+        }
+        
+        .card-slot {
+            aspect-ratio: 2.5/3.5;
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+            background: var(--card-bg);
+            border: none;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            max-width: 110px;
+        }
+        
+        .card-slot.empty {
+            background: var(--empty-card-bg);
+            border: 1px dashed var(--empty-card-border);
+        }
+        
+        .card-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            border-radius: 6px;
+        }
+        
+        
+        .section-divider {
+            grid-column: 1 / -1;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #ddd, transparent);
+            margin: 10px 0;
+        }
+        
+        .controls {
+            text-align: center;
+            margin-bottom: 25px;
+            padding: 15px;
+            background: var(--container-bg);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            max-width: 1600px;
+            margin: 0 auto 25px auto;
+        }
+        
+        .toggle-section {
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .toggle-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .toggle-label {
+            font-size: 0.9em;
+            color: var(--text-color);
+        }
+        
+        .toggle-button {
+            background: var(--button-bg);
+            color: var(--button-text);
+            border: none;
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .toggle-button.active {
+            background: var(--button-primary);
+        }
+        
+        .export-button {
+            background: var(--button-bg);
+            color: var(--button-text);
+            border: none;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 0 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .export-button.primary {
+            background: var(--button-primary);
+        }
+        
+        .export-button:disabled {
+            background: #5a6c7d;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        
+        /* Ensure close button is visible in light theme */
+        body.light-theme .export-button {
+            color: var(--button-text);
+        }
+        
+        /* Make close button more visible in light theme */
+        body.light-theme .export-button:not(.primary) {
+            color: #333 !important;
+            background: #e9ecef !important;
+        }
+        
+        /* Ensure consistent card dimensions across layouts */
+        .cards-grid .card-slot {
+            max-width: 110px;
+            width: 110px;
+        }
+        
+        /* Responsive design - containers adapt but layouts switch via JavaScript */
+        @media (max-width: 1300px) {
+            .export-container {
+                max-width: 95%;
+                margin: 0 auto;
+                padding: clamp(12px, 2vw, 20px); /* Smooth padding transition */
+            }
+        }
+        
+        /* Intermediate breakpoint for smoother transitions */
+        @media (max-width: 1000px) {
+            .export-container {
+                padding: clamp(10px, 1.8vw, 15px);
+            }
+        }
+        
+        @media (max-width: 800px) {
+            .export-container {
+                padding: clamp(8px, 1.5vw, 12px); /* Smooth transition instead of fixed 10px */
+            }
+            
+            .cards-container {
+                padding: clamp(6px, 1.2vw, 10px); /* Smooth responsive padding */
+            }
+            
+            .cards-grid {
+                gap: clamp(4px, 1vw, 6px); /* Smooth gap scaling */
+            }
+            
+            /* Mobile-specific improvements */
+            .deck-description {
+                font-size: 0.8em;
+                line-height: 1.3;
+                padding: 10px;
+                margin-top: 15px;
+                background: var(--card-bg);
+                border-radius: 8px;
+                border: 1px solid var(--border-color);
+            }
+            
+            .deck-title {
+                font-size: 1.5em;
+            }
+            
+            .deck-creator {
+                font-size: 0.8em;
+            }
+            
+            .controls {
+                padding: 10px;
+                margin: 0 auto 15px auto;
+            }
+            
+            .toggle-section {
+                gap: 10px;
+            }
+            
+            .toggle-button {
+                padding: 8px 12px;
+                font-size: 11px;
+            }
+            
+            .export-button {
+                padding: 10px 16px;
+                font-size: 13px;
+                margin: 0 4px;
+            }
+        }
+        
+        /* Auto-switch styles - these will be dynamically applied */
+        .cards-grid.auto-mobile {
+            /* Applied when auto-switching to mobile */
+            max-width: 580px;
+        }
+        
+        .cards-grid.auto-desktop {
+            /* Applied when auto-switching to desktop */
+            max-width: 1174px;
+        }
+        
+        /* Download modal styles */
+        .download-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        body.light-theme .download-modal {
+            background: rgba(0,0,0,0.5);
+        }
+        
+        .modal-content {
+            background: var(--container-bg);
+            color: var(--text-color);
+            padding: 20px;
+            border-radius: 12px;
+            max-width: 400px;
+            margin: 20px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            border: 1px solid var(--border-color);
+        }
+        
+        .modal-title {
+            color: var(--title-color);
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .modal-buttons .export-button {
+            flex: 1;
+        }
+        
+        .modal-cancel {
+            width: 100%;
+        }
+        
+        @media (max-width: 800px) {
+            .modal-content {
+                margin: 10px;
+                padding: 15px;
+                max-width: calc(100% - 20px);
+            }
+            
+            .modal-title {
+                font-size: 1.1em;
+                margin-bottom: 15px;
+            }
+            
+            .modal-buttons {
+                gap: 10px;
+                margin: 15px 0;
+            }
+            
+            .modal-buttons .export-button {
+                padding: 12px 8px;
+                font-size: 12px;
+            }
+        }
+        
+        /* Print styles for cleaner image output */
+        @media print {
+            body { background: var(--bg-color); padding: 0; }
+            .controls { display: none; }
+            .export-container { box-shadow: none; margin: 0; }
+            .download-modal { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Controls moved to top -->
+    <div class="controls">
+        <div class="toggle-section">
+            <div class="toggle-group">
+                <span class="toggle-label">Layout:</span>
+                <button class="toggle-button active" id="layout-auto" onclick="toggleLayout('auto')">
+                    Auto
+                </button>
+                <button class="toggle-button" id="layout-2x10" onclick="toggleLayout('2x10')">
+                    2×10
+                </button>
+                <button class="toggle-button" id="layout-5x4" onclick="toggleLayout('5x4')">
+                    5×4
+                </button>
+            </div>
+            <div class="toggle-group">
+                <span class="toggle-label">Theme:</span>
+                <button class="toggle-button active" id="theme-dark" onclick="toggleTheme('dark')">
+                    Dark
+                </button>
+                <button class="toggle-button" id="theme-light" onclick="toggleTheme('light')">
+                    Light
+                </button>
+            </div>
+            <div class="toggle-group">
+                <span class="toggle-label">Quality:</span>
+                <button class="toggle-button" id="quality-standard" onclick="toggleQuality('standard')">
+                    Standard
+                </button>
+                <button class="toggle-button active" id="quality-high" onclick="toggleQuality('high')">
+                    High
+                </button>
+                <button class="toggle-button" id="quality-ultra" onclick="toggleQuality('ultra')">
+                    Ultra
+                </button>
+            </div>
+        </div>
+        <button id="downloadBtn" class="export-button primary" onclick="showDownloadOptions()">
+            📷 Download Image
+        </button>
+        <button id="cancelBtn" class="export-button" onclick="cancelDownload()" style="display: none;">
+            ✖️ Cancel
+        </button>
+        <button class="export-button" onclick="window.close()">
+            ✖️ Close
+        </button>
+        
+        <!-- Download format selection modal -->
+        <div id="downloadModal" class="download-modal">
+            <div class="modal-content">
+                <h3 class="modal-title">Choose Download Format</h3>
+                <div class="modal-buttons">
+                    <button class="export-button primary" onclick="downloadWithFormat('2x10')">
+                        📷 2×10 Layout
+                    </button>
+                    <button class="export-button primary" onclick="downloadWithFormat('5x4')">
+                        📷 5×4 Layout
+                    </button>
+                </div>
+                <button class="export-button modal-cancel" onclick="hideDownloadOptions()">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="export-container" id="deck-export">
+        <div class="deck-header">
+            <h1 class="deck-title">{{ deck.name }}</h1>
+            {% if owner_info %}
+            <div class="deck-creator">
+                Created by {{ owner_info.username }} on pvpocket.xyz
+            </div>
+            {% endif %}
+            <div class="deck-info">
+                {% if deck_types %}
+                <div class="deck-types">
+                    {% for deck_type in deck_types %}
+                    {% set energy_url = config.ENERGY_ICON_URLS.get(deck_type) %}
+                    {% if energy_url and ('storage.googleapis.com' in energy_url or 'firebasestorage.googleapis.com' in energy_url) %}
+                        {% set energy_proxy_url = '/api/proxy-image?url=' + energy_url|urlencode %}
+                    {% else %}
+                        {% set energy_proxy_url = energy_url %}
+                    {% endif %}
+                    <img src="{{ energy_proxy_url }}" 
+                         alt="{{ deck_type }}" 
+                         class="energy-badge"
+                         title="{{ deck_type }}"
+                         data-original-src="{{ energy_url }}"
+                         crossorigin="anonymous">
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <div class="card-count">{{ ordered_cards|length - ordered_cards.count(None) }}/20 Cards</div>
+            </div>
+        </div>
+        
+        <div class="cards-container">
+            <div class="cards-grid" id="cards-grid">
+                {% for card in ordered_cards %}
+                    {% if card %}
+                        <div class="card-slot">
+                            {% set image_url = card.display_image_path or card.firebase_image_url %}
+                            {% if image_url and ('storage.googleapis.com' in image_url or 'firebasestorage.googleapis.com' in image_url) %}
+                                {% set proxy_url = '/api/proxy-image?url=' + image_url|urlencode %}
+                            {% else %}
+                                {% set proxy_url = image_url or 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTEwIiBoZWlnaHQ9IjE1NCIgdmlld0JveD0iMCAwIDExMCAxNTQiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJhIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMCI+PHN0b3Agc3RvcC1jb2xvcj0iIzM0NDk1ZSIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzJjM2U1MCIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMTAiIGhlaWdodD0iMTU0IiBmaWxsPSJ1cmwoI2EpIiByeD0iNiIvPjx0ZXh0IHg9IjU1IiB5PSI3NyIgZmlsbD0iIzk1YTVhNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkNhcmQ8L3RleHQ+PC9zdmc+' %}
+                            {% endif %}
+                            <img src="{{ proxy_url }}" 
+                                 alt="{{ card.name }}" 
+                                 class="card-image"
+                                 title="{{ card.name }}"
+                                 data-fallback-src="{{ proxy_url }}"
+                                 data-original-src="{{ image_url }}"
+                                 crossorigin="anonymous"
+                                 onerror="handleImageError(this)">
+                        </div>
+                    {% else %}
+                        <div class="card-slot empty"></div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        
+        {% if deck.description and deck.description.strip() %}
+        <div class="deck-description">
+            <strong>Description:</strong> {{ deck.description|e }}
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Hidden containers for download formats -->
+    <div style="position: fixed; top: -10000px; left: -10000px; visibility: hidden; pointer-events: none;" id="hidden-containers">
+        <!-- 2x10 download format -->
+        <div class="export-container" id="download-2x10">
+            <div class="deck-header">
+                <h1 class="deck-title">{{ deck.name }}</h1>
+                {% if owner_info %}
+                <div class="deck-creator">
+                    Created by {{ owner_info.username }} on pvpocket.xyz
+                </div>
+                {% endif %}
+                <div class="deck-info">
+                    {% if deck_types %}
+                    <div class="deck-types">
+                        {% for deck_type in deck_types %}
+                        {% set energy_url = config.ENERGY_ICON_URLS.get(deck_type) %}
+                        {% if energy_url and ('storage.googleapis.com' in energy_url or 'firebasestorage.googleapis.com' in energy_url) %}
+                            {% set energy_proxy_url = '/api/proxy-image?url=' + energy_url|urlencode %}
+                        {% else %}
+                            {% set energy_proxy_url = energy_url %}
+                        {% endif %}
+                        <img src="{{ energy_proxy_url }}" 
+                             alt="{{ deck_type }}" 
+                             class="energy-badge"
+                             title="{{ deck_type }}"
+                             data-original-src="{{ energy_url }}"
+                             crossorigin="anonymous">
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    <div class="card-count">{{ ordered_cards|length - ordered_cards.count(None) }}/20 Cards</div>
+                </div>
+            </div>
+            
+            <div class="cards-grid layout-2x10">
+                {% for card in ordered_cards %}
+                    {% if card %}
+                        <div class="card-slot">
+                            {% set image_url = card.display_image_path or card.firebase_image_url %}
+                            {% if image_url and ('storage.googleapis.com' in image_url or 'firebasestorage.googleapis.com' in image_url) %}
+                                {% set proxy_url = '/api/proxy-image?url=' + image_url|urlencode %}
+                            {% else %}
+                                {% set proxy_url = image_url or 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTEwIiBoZWlnaHQ9IjE1NCIgdmlld0JveD0iMCAwIDExMCAxNTQiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJhIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMCI+PHN0b3Agc3RvcC1jb2xvcj0iIzM0NDk1ZSIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzJjM2U1MCIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMTAiIGhlaWdodD0iMTU0IiBmaWxsPSJ1cmwoI2EpIiByeD0iNiIvPjx0ZXh0IHg9IjU1IiB5PSI3NyIgZmlsbD0iIzk1YTVhNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkNhcmQ8L3RleHQ+PC9zdmc+' %}
+                            {% endif %}
+                            <img src="{{ proxy_url }}" 
+                                 alt="{{ card.name }}" 
+                                 class="card-image"
+                                 title="{{ card.name }}"
+                                 data-fallback-src="{{ proxy_url }}"
+                                 data-original-src="{{ image_url }}"
+                                 crossorigin="anonymous"
+                                 onerror="handleImageError(this)">
+                        </div>
+                    {% else %}
+                        <div class="card-slot empty"></div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            
+            {% if deck.description and deck.description.strip() %}
+            <div class="deck-description">
+                <strong>Description:</strong> {{ deck.description|e }}
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- 5x4 download format -->
+        <div class="export-container" id="download-5x4">
+            <div class="deck-header">
+                <h1 class="deck-title">{{ deck.name }}</h1>
+                {% if owner_info %}
+                <div class="deck-creator">
+                    Created by {{ owner_info.username }} on pvpocket.xyz
+                </div>
+                {% endif %}
+                <div class="deck-info">
+                    {% if deck_types %}
+                    <div class="deck-types">
+                        {% for deck_type in deck_types %}
+                        {% set energy_url = config.ENERGY_ICON_URLS.get(deck_type) %}
+                        {% if energy_url and ('storage.googleapis.com' in energy_url or 'firebasestorage.googleapis.com' in energy_url) %}
+                            {% set energy_proxy_url = '/api/proxy-image?url=' + energy_url|urlencode %}
+                        {% else %}
+                            {% set energy_proxy_url = energy_url %}
+                        {% endif %}
+                        <img src="{{ energy_proxy_url }}" 
+                             alt="{{ deck_type }}" 
+                             class="energy-badge"
+                             title="{{ deck_type }}"
+                             data-original-src="{{ energy_url }}"
+                             crossorigin="anonymous">
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    <div class="card-count">{{ ordered_cards|length - ordered_cards.count(None) }}/20 Cards</div>
+                </div>
+            </div>
+            
+            <div class="cards-grid layout-5x4">
+                {% for card in ordered_cards %}
+                    {% if card %}
+                        <div class="card-slot">
+                            {% set image_url = card.display_image_path or card.firebase_image_url %}
+                            {% if image_url and ('storage.googleapis.com' in image_url or 'firebasestorage.googleapis.com' in image_url) %}
+                                {% set proxy_url = '/api/proxy-image?url=' + image_url|urlencode %}
+                            {% else %}
+                                {% set proxy_url = image_url or 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTEwIiBoZWlnaHQ9IjE1NCIgdmlld0JveD0iMCAwIDExMCAxNTQiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJhIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMCI+PHN0b3Agc3RvcC1jb2xvcj0iIzM0NDk1ZSIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzJjM2U1MCIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMTAiIGhlaWdodD0iMTU0IiBmaWxsPSJ1cmwoI2EpIiByeD0iNiIvPjx0ZXh0IHg9IjU1IiB5PSI3NyIgZmlsbD0iIzk1YTVhNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkNhcmQ8L3RleHQ+PC9zdmc+' %}
+                            {% endif %}
+                            <img src="{{ proxy_url }}" 
+                                 alt="{{ card.name }}" 
+                                 class="card-image"
+                                 title="{{ card.name }}"
+                                 data-fallback-src="{{ proxy_url }}"
+                                 data-original-src="{{ image_url }}"
+                                 crossorigin="anonymous"
+                                 onerror="handleImageError(this)">
+                        </div>
+                    {% else %}
+                        <div class="card-slot empty"></div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            
+            {% if deck.description and deck.description.strip() %}
+            <div class="deck-description">
+                <strong>Description:</strong> {{ deck.description|e }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- dom-to-image Library with proper fallback -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script>
+        // Load dom-to-image with multiple CDN sources and retry logic
+        (function() {
+            let domToImageLoaded = false;
+            let html2canvasLoaded = typeof html2canvas !== 'undefined';
+            let currentCdnIndex = 0;
+            let retryCount = 0;
+            const maxRetries = 2;
+            
+            // Multiple CDN sources for better reliability
+            const cdnSources = [
+                'https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/0.4.17/dom-to-image.min.js',
+                'https://cdn.jsdelivr.net/npm/dom-to-image@0.4.17/dist/dom-to-image.min.js',
+                'https://unpkg.com/dom-to-image@0.4.17/dist/dom-to-image.min.js'
+            ];
+            
+            console.log('Initializing image export libraries...');
+            console.log('html2canvas available:', html2canvasLoaded);
+            console.log('Available CDN sources:', cdnSources.length);
+            
+            function tryLoadFromCDN() {
+                if (currentCdnIndex >= cdnSources.length) {
+                    console.warn('All CDN sources failed, setting up fallback');
+                    setupFallback();
+                    return;
+                }
+                
+                const script = document.createElement('script');
+                script.src = cdnSources[currentCdnIndex];
+                
+                script.onload = function() {
+                    domToImageLoaded = true;
+                    console.log(`dom-to-image loaded successfully from CDN ${currentCdnIndex + 1}:`, script.src);
+                    window.exportLibraryStatus = 'domtoimage';
+                };
+                
+                script.onerror = function() {
+                    console.warn(`CDN ${currentCdnIndex + 1} failed:`, script.src);
+                    currentCdnIndex++;
+                    retryCount++;
+                    
+                    if (retryCount < maxRetries) {
+                        console.log(`Retrying with CDN ${currentCdnIndex + 1}... (attempt ${retryCount + 1}/${maxRetries})`);
+                        setTimeout(tryLoadFromCDN, 1000); // Wait 1 second before retry
+                    } else {
+                        console.warn('Max retries reached, setting up fallback');
+                        setupFallback();
+                    }
+                };
+                
+                document.head.appendChild(script);
+            }
+            
+            // Start loading process
+            tryLoadFromCDN();
+            
+            // Setup fallback if CDN fails
+            function setupFallback() {
+                console.log('Setting up fallback system...');
+                window.exportLibraryStatus = 'fallback';
+                
+                if (html2canvasLoaded) {
+                    console.log('Using html2canvas fallback');
+                    window.domtoimage = {
+                        toPng: function(element, options) {
+                            return new Promise((resolve, reject) => {
+                                try {
+                                    const qualitySettings = getQualitySettings();
+                                    console.log(`html2canvas fallback using ${qualitySettings.description}`);
+                                    
+                                    html2canvas(element, {
+                                        backgroundColor: options.bgcolor || '#2d3436',
+                                        scale: qualitySettings.scale,
+                                        useCORS: true,
+                                        allowTaint: true,
+                                        width: element.offsetWidth,
+                                        height: element.offsetHeight,
+                                        scrollX: 0,
+                                        scrollY: 0,
+                                        windowWidth: element.offsetWidth,
+                                        windowHeight: element.offsetHeight,
+                                        logging: false,
+                                        imageTimeout: qualitySettings.timeout,
+                                        removeContainer: true
+                                    }).then(canvas => {
+                                        resolve(canvas.toDataURL('image/png'));
+                                    }).catch(reject);
+                                } catch (e) {
+                                    console.error('html2canvas error:', e);
+                                    reject(new Error('Image export failed: ' + e.message));
+                                }
+                            });
+                        }
+                    };
+                } else {
+                    console.error('No fallback library available');
+                    window.domtoimage = {
+                        toPng: function() {
+                            return Promise.reject(new Error('No image export library available. Please refresh the page.'));
+                        }
+                    };
+                }
+            }
+            
+            // Check if library loaded after timeout (increased for multiple retries)
+            setTimeout(() => {
+                if (typeof domtoimage === 'undefined') {
+                    console.warn('dom-to-image still not loaded after extended timeout, forcing fallback');
+                    setupFallback();
+                }
+            }, 15000); // Increased timeout to account for retries
+        })();
+    </script>
+    
+    <script>
+        let allImagesLoaded = false;
+        
+        // Initialize global variables
+        window.selectedQuality = 'standard'; // Default quality setting (changed from high)
+        window.exportLibraryStatus = 'loading';
+        window.currentDownloadProcess = null; // Track current download for cancellation
+        
+        // Quality settings function - defined early to avoid temporal dead zone
+        function getQualitySettings(quality = window.selectedQuality || 'high') {
+            const settings = {
+                'standard': { scale: 2, timeout: 10000, description: 'Standard Quality (2x)' },
+                'high': { scale: 3, timeout: 15000, description: 'High Quality (3x)' },
+                'ultra': { scale: 4, timeout: 20000, description: 'Ultra Quality (4x)' }
+            };
+            
+            return settings[quality] || settings.high;
+        }
+        
+        // Wait for all images to load before allowing download
+        function checkAllImagesLoaded() {
+            const images = document.querySelectorAll('.card-image');
+            const energyImages = document.querySelectorAll('.energy-badge');
+            const allImages = [...images, ...energyImages];
+            let loadedCount = 0;
+            const totalImages = allImages.length;
+            
+            if (totalImages === 0) {
+                allImagesLoaded = true;
+                document.getElementById('downloadBtn').textContent = '📷 Download Image';
+                document.getElementById('downloadBtn').disabled = false;
+                document.getElementById('downloadBtn').focus();
+                return;
+            }
+            
+            function imageLoaded() {
+                loadedCount++;
+                if (loadedCount === totalImages) {
+                    allImagesLoaded = true;
+                    document.getElementById('downloadBtn').textContent = '📷 Download Image';
+                    document.getElementById('downloadBtn').disabled = false;
+                    document.getElementById('downloadBtn').focus();
+                }
+            }
+            
+            // Set initial button state
+            document.getElementById('downloadBtn').textContent = '⏳ Loading Images...';
+            document.getElementById('downloadBtn').disabled = true;
+            
+            // Check all images including energy badges
+            allImages.forEach(img => {
+                if (img.complete && (img.naturalWidth !== 0 || img.src.includes('placeholder'))) {
+                    imageLoaded();
+                } else {
+                    img.onload = imageLoaded;
+                    img.onerror = imageLoaded; // Count failed loads too
+                }
+            });
+            
+            // Safety timeout to prevent perpetual loading
+            setTimeout(() => {
+                if (!allImagesLoaded) {
+                    allImagesLoaded = true;
+                    document.getElementById('downloadBtn').textContent = '📷 Download Image';
+                    document.getElementById('downloadBtn').disabled = false;
+                    document.getElementById('downloadBtn').focus();
+                }
+            }, 10000); // 10 second timeout
+        }
+        
+        // Initial check after page load
+        window.addEventListener('load', function() {
+            // Wait a bit for high-res images to load
+            setTimeout(checkAllImagesLoaded, 1000);
+        });
+
+        // New download functions for format selection
+        function showDownloadOptions() {
+            const modal = document.getElementById('downloadModal');
+            modal.style.display = 'flex';
+        }
+        
+        function hideDownloadOptions() {
+            const modal = document.getElementById('downloadModal');
+            modal.style.display = 'none';
+        }
+        
+        function cancelDownload() {
+            if (window.currentDownloadProcess) {
+                window.currentDownloadProcess.cancelled = true;
+                console.log('Download cancelled by user');
+            }
+            
+            // Reset UI
+            const downloadBtn = document.getElementById('downloadBtn');
+            const cancelBtn = document.getElementById('cancelBtn');
+            
+            downloadBtn.textContent = '📷 Download Image';
+            downloadBtn.disabled = false;
+            cancelBtn.style.display = 'none';
+            
+            hideDownloadOptions();
+        }
+        
+        async function downloadWithFormat(format) {
+            console.log('Starting download with format:', format);
+            
+            // Hide modal and show cancel button
+            hideDownloadOptions();
+            const downloadBtn = document.getElementById('downloadBtn');
+            const cancelBtn = document.getElementById('cancelBtn');
+            
+            downloadBtn.style.display = 'none';
+            cancelBtn.style.display = 'inline-block';
+            
+            // Create download process tracker
+            window.currentDownloadProcess = { cancelled: false };
+            
+            try {
+                await downloadAsImage(format);
+            } finally {
+                // Reset UI regardless of success/failure
+                downloadBtn.style.display = 'inline-block';
+                cancelBtn.style.display = 'none';
+                window.currentDownloadProcess = null;
+            }
+        }
+        
+        async function downloadAsImage(downloadFormat = null) {
+            console.log('=== DOWNLOAD DEBUG START ===');
+            console.log('All images loaded:', allImagesLoaded);
+            console.log('Export library status:', window.exportLibraryStatus);
+            console.log('domtoimage available:', typeof domtoimage);
+            
+            if (!allImagesLoaded) {
+                alert('Please wait for all images to load before downloading.');
+                return;
+            }
+            
+            // Check if dom-to-image is available
+            if (typeof domtoimage === 'undefined' || !domtoimage.toPng) {
+                console.error('domtoimage not available');
+                alert('Image export library failed to load. Please refresh the page and try again.');
+                return;
+            }
+            
+            const button = document.getElementById('downloadBtn');
+            const originalText = button.textContent;
+            
+            // Show loading state with progress
+            button.textContent = '⏳ Preparing Export...';
+            button.disabled = true;
+            
+            try {
+                // Get quality settings for progress estimation
+                const qualitySettings = getQualitySettings();
+                console.log(`Starting export with ${qualitySettings.description}`);
+                
+                // Step 1: Convert images in the chosen container to avoid CORS issues
+                const cancelBtn = document.getElementById('cancelBtn');
+                cancelBtn.textContent = '⏳ Converting Images...';
+                console.log('Converting images to avoid CORS issues...');
+                const conversionResult = await convertImagesToDataURLs(element);
+                
+                // Step 2: Wait for final loading
+                button.textContent = '⏳ Optimizing Quality...';
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Step 3: Generate image
+                cancelBtn.textContent = `⏳ Generating ${qualitySettings.description}...`;
+                
+                // Check if download was cancelled
+                if (window.currentDownloadProcess && window.currentDownloadProcess.cancelled) {
+                    console.log('Download cancelled, aborting');
+                    return;
+                }
+                
+                // Choose the right container based on download format
+                let element;
+                let isHiddenContainer = false;
+                
+                if (downloadFormat === '2x10') {
+                    element = document.getElementById('download-2x10');
+                    isHiddenContainer = true;
+                    console.log('Using 2x10 download format');
+                } else if (downloadFormat === '5x4') {
+                    element = document.getElementById('download-5x4');
+                    isHiddenContainer = true;
+                    console.log('Using 5x4 download format');
+                } else {
+                    // Fallback to visible container (legacy support)
+                    element = document.getElementById('deck-export');
+                    console.log('Using visible container (legacy mode)');
+                }
+                
+                // Temporarily make hidden container visible for capture
+                let originalStyles = {};
+                if (isHiddenContainer) {
+                    const hiddenContainer = document.getElementById('hidden-containers');
+                    originalStyles.hiddenContainer = {
+                        position: hiddenContainer.style.position,
+                        top: hiddenContainer.style.top,
+                        left: hiddenContainer.style.left,
+                        visibility: hiddenContainer.style.visibility
+                    };
+                    
+                    // Make it visible but off-screen
+                    hiddenContainer.style.position = 'absolute';
+                    hiddenContainer.style.top = '0px';
+                    hiddenContainer.style.left = '0px';
+                    hiddenContainer.style.visibility = 'visible';
+                    
+                    console.log('Temporarily made hidden container visible for capture');
+                }
+                const currentTheme = document.body.classList.contains('light-theme') ? 'light' : 'dark';
+                const bgColor = currentTheme === 'light' ? '#f5f5f5' : '#2d3436';
+                
+                console.log('Element dimensions:', element.offsetWidth, 'x', element.offsetHeight);
+                console.log('Background color:', bgColor);
+                console.log('Using library:', window.exportLibraryStatus);
+                console.log('Image conversion result:', conversionResult);
+                
+                // Use dom-to-image with quality-based settings
+                const scaleFactor = qualitySettings.scale;
+                
+                console.log(`Using ${qualitySettings.description} for export`);
+                
+                const dataUrl = await domtoimage.toPng(element, {
+                    quality: 1.0,
+                    bgcolor: bgColor,
+                    width: element.offsetWidth * scaleFactor,
+                    height: element.offsetHeight * scaleFactor,
+                    style: {
+                        transform: `scale(${scaleFactor})`,
+                        transformOrigin: 'top left',
+                        imageRendering: scaleFactor >= 4 ? 'crisp-edges' : 'auto' // Use crisp-edges for ultra quality
+                    },
+                    filter: function(node) {
+                        // Skip script tags and other non-visual elements
+                        return node.tagName !== 'SCRIPT' && node.tagName !== 'STYLE';
+                    },
+                    cacheBust: true // Ensure fresh images
+                });
+                
+                console.log('Image generated successfully, data URL length:', dataUrl.length);
+                
+                // Step 4: Prepare download
+                cancelBtn.textContent = '⏳ Preparing Download...';
+                
+                // Convert data URL to blob and download
+                const response = await fetch(dataUrl);
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const formatSuffix = downloadFormat ? `_${downloadFormat}` : '';
+                const deckName = '{{ deck.name|replace(" ", "_") }}';
+                a.download = `${deckName}_deck_export${formatSuffix}.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                console.log('Download triggered successfully');
+                
+                // Step 5: Success feedback
+                cancelBtn.textContent = '✅ Downloaded!';
+                
+                // Restore hidden container styles
+                if (isHiddenContainer && originalStyles.hiddenContainer) {
+                    const hiddenContainer = document.getElementById('hidden-containers');
+                    hiddenContainer.style.position = originalStyles.hiddenContainer.position;
+                    hiddenContainer.style.top = originalStyles.hiddenContainer.top;
+                    hiddenContainer.style.left = originalStyles.hiddenContainer.left;
+                    hiddenContainer.style.visibility = originalStyles.hiddenContainer.visibility;
+                    console.log('Restored hidden container styles');
+                }
+                
+                setTimeout(() => {
+                    // Reset will be handled by downloadWithFormat finally block
+                }, 1000); // Brief success message
+                
+            } catch (error) {
+                console.error('=== DOWNLOAD ERROR ===');
+                console.error('Error details:', error);
+                console.error('Error stack:', error.stack);
+                console.error('Library status:', window.exportLibraryStatus);
+                
+                // Restore hidden container styles if needed
+                if (isHiddenContainer && originalStyles.hiddenContainer) {
+                    const hiddenContainer = document.getElementById('hidden-containers');
+                    hiddenContainer.style.position = originalStyles.hiddenContainer.position;
+                    hiddenContainer.style.top = originalStyles.hiddenContainer.top;
+                    hiddenContainer.style.left = originalStyles.hiddenContainer.left;
+                    hiddenContainer.style.visibility = originalStyles.hiddenContainer.visibility;
+                    console.log('Restored hidden container styles after error');
+                }
+                
+                alert('Error generating image: ' + error.message + '. Check console for details.');
+                
+                // Reset buttons (will also be handled by downloadWithFormat finally block)
+                const downloadBtn = document.getElementById('downloadBtn');
+                const cancelBtn = document.getElementById('cancelBtn');
+                downloadBtn.textContent = '📷 Download Image';
+                downloadBtn.disabled = false;
+                cancelBtn.textContent = '✖️ Cancel';
+            }
+            
+            console.log('=== DOWNLOAD DEBUG END ===');
+        }
+        
+        // Store current layout preference
+        window.userLayoutPreference = 'auto'; // 'auto' = automatic, '2x10' = force 2x10, '5x4' = force 5x4
+        
+        function toggleLayout(layout) {
+            console.log('=== LAYOUT DEBUG ===');
+            console.log('User selected layout:', layout);
+            
+            try {
+                const buttons = document.querySelectorAll('#layout-auto, #layout-2x10, #layout-5x4');
+                buttons.forEach(btn => btn.classList.remove('active'));
+                
+                // Store user preference
+                window.userLayoutPreference = layout;
+                document.getElementById('layout-' + layout).classList.add('active');
+                
+                if (layout === 'auto') {
+                    // Enable automatic layout detection
+                    console.log('Enabling automatic layout detection');
+                    checkAndApplyAutoLayout();
+                } else {
+                    // Apply specific forced layout
+                    applySpecificLayout(layout);
+                }
+                
+                console.log(`${layout} layout activated`);
+            
+                // Debug grid dimensions
+                setTimeout(() => {
+                    const grid = document.getElementById('cards-grid');
+                    console.log('Grid dimensions after layout change:');
+                    console.log('Width:', grid.offsetWidth);
+                    console.log('Height:', grid.offsetHeight);
+                    console.log('Computed style width:', window.getComputedStyle(grid).width);
+                    console.log('Computed style max-width:', window.getComputedStyle(grid).maxWidth);
+                    console.log('Grid classes:', grid.className);
+                }, 100);
+                
+            } catch (error) {
+                console.error('Error in toggleLayout:', error);
+            }
+        }
+        
+        function applySpecificLayout(layoutType) {
+            const grid = document.getElementById('cards-grid');
+            const container = document.querySelector('.cards-container');
+            
+            // Remove all layout classes
+            grid.classList.remove('layout-2x10', 'layout-5x4', 'auto-mobile', 'auto-desktop');
+            container.classList.remove('layout-2x10-container');
+            
+            // Apply specific layout
+            grid.classList.add('layout-' + layoutType);
+            
+            // Add container scrolling for 2x10 layout
+            if (layoutType === '2x10') {
+                container.classList.add('layout-2x10-container');
+            }
+            
+            console.log(`Applied specific layout: ${layoutType}`);
+        }
+        
+        function checkAndApplyAutoLayout() {
+            // Only apply auto layout if user is in auto mode
+            if (window.userLayoutPreference !== 'auto') {
+                return; // User has forced a specific layout
+            }
+            
+            const grid = document.getElementById('cards-grid');
+            const container = document.querySelector('.cards-container');
+            const containerWidth = container ? container.offsetWidth : document.querySelector('.export-container').offsetWidth;
+            
+            // Calculate if 2x10 layout fits - be more generous with the threshold
+            const layout2x10Width = (10 * 110) + (9 * 8) + (2 * 24); // cards + gaps + container padding (more generous)
+            const layout5x4Width = (4 * 110) + (3 * 8) + (2 * 24);   // cards + gaps + container padding
+            
+            console.log('Auto-check - Container width:', containerWidth);
+            console.log('Export container width:', document.querySelector('.export-container').offsetWidth);
+            console.log('2x10 required width:', layout2x10Width);
+            console.log('5x4 required width:', layout5x4Width);
+            
+            // Remove all layout classes
+            grid.classList.remove('layout-2x10', 'layout-5x4', 'auto-mobile', 'auto-desktop');
+            container.classList.remove('layout-2x10-container');
+            
+            // Don't update layout buttons in auto mode - keep Auto active
+            const autoButton = document.getElementById('layout-auto');
+            const buttons = document.querySelectorAll('#layout-auto, #layout-2x10, #layout-5x4');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            autoButton.classList.add('active');
+            
+            // Use export container width for better calculation
+            const exportContainerWidth = document.querySelector('.export-container').offsetWidth;
+            
+            // Prefer 2x10 layout if it can reasonably fit (be more generous)
+            if (exportContainerWidth >= layout2x10Width * 0.9) { // 90% threshold for more generous 2x10
+                // Use 2x10 layout for desktop
+                grid.classList.add('layout-2x10', 'auto-desktop');
+                container.classList.add('layout-2x10-container');
+                console.log('Auto-selected 2x10 layout (desktop) - export container width:', exportContainerWidth);
+            } else {
+                // Use 5x4 layout for mobile
+                grid.classList.add('layout-5x4', 'auto-mobile');
+                console.log('Auto-selected 5x4 layout (mobile) - export container width:', exportContainerWidth);
+            }
+        }
+        
+        function toggleTheme(theme) {
+            try {
+                console.log('toggleTheme called with:', theme);
+                const body = document.body;
+                const buttons = document.querySelectorAll('#theme-dark, #theme-light');
+                
+                buttons.forEach(btn => btn.classList.remove('active'));
+                
+                if (theme === 'light') {
+                    body.classList.add('light-theme');
+                    document.getElementById('theme-light').classList.add('active');
+                } else {
+                    body.classList.remove('light-theme');
+                    document.getElementById('theme-dark').classList.add('active');
+                }
+                console.log('Theme changed successfully to:', theme);
+            } catch (error) {
+                console.error('Error in toggleTheme:', error);
+            }
+        }
+        
+        function toggleQuality(quality) {
+            try {
+                console.log('toggleQuality called with:', quality);
+                const buttons = document.querySelectorAll('#quality-standard, #quality-high, #quality-ultra');
+                
+                if (buttons.length === 0) {
+                    console.error('No quality buttons found!');
+                    return;
+                }
+                
+                buttons.forEach(btn => btn.classList.remove('active'));
+                const targetButton = document.getElementById('quality-' + quality);
+                
+                if (!targetButton) {
+                    console.error('Target quality button not found:', 'quality-' + quality);
+                    return;
+                }
+                
+                targetButton.classList.add('active');
+                
+                // Store quality setting for download function
+                window.selectedQuality = quality;
+                
+                console.log('Quality setting changed successfully to:', quality);
+            } catch (error) {
+                console.error('Error in toggleQuality:', error);
+            }
+        }
+        
+        // Handle high-res image loading with fallback
+        function handleImageError(img) {
+            const fallbackSrc = img.getAttribute('data-fallback-src');
+            const originalSrc = img.getAttribute('data-original-src');
+            
+            console.log('Image error for:', img.src);
+            console.log('Fallback src:', fallbackSrc);
+            console.log('Original src:', originalSrc);
+            
+            if (img.src !== fallbackSrc && fallbackSrc) {
+                console.log('Trying fallback src');
+                img.src = fallbackSrc;
+            } else if (originalSrc && originalSrc !== img.src) {
+                // Try original source through proxy
+                const proxySrc = '/api/proxy-image?url=' + encodeURIComponent(originalSrc);
+                console.log('Trying proxy src:', proxySrc);
+                img.src = proxySrc;
+            } else {
+                // If all fails, use inline SVG placeholder
+                console.log('Using placeholder');
+                img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTEwIiBoZWlnaHQ9IjE1NCIgdmlld0JveD0iMCAwIDExMCAxNTQiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJhIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMCI+PHN0b3Agc3RvcC1jb2xvcj0iIzM0NDk1ZSIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzJjM2U1MCIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMTAiIGhlaWdodD0iMTU0IiBmaWxsPSJ1cmwoI2EpIiByeD0iNiIvPjx0ZXh0IHg9IjU1IiB5PSI3NyIgZmlsbD0iIzk1YTVhNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkNhcmQ8L3RleHQ+PC9zdmc+';
+            }
+        }
+        
+        // Load all images through proxy system
+        function loadAllImagesWithProxy() {
+            console.log('Loading all images through proxy...');
+            const images = document.querySelectorAll('.card-image');
+            const energyIcons = document.querySelectorAll('.energy-badge');
+            
+            let imagesToLoad = images.length + energyIcons.length;
+            let imagesLoaded = 0;
+            
+            // Disable download button until all images are loaded
+            const downloadBtn = document.getElementById('downloadBtn');
+            downloadBtn.disabled = true;
+            downloadBtn.textContent = '⏳ Loading High-Res Images...';
+            
+            function imageLoaded() {
+                imagesLoaded++;
+                const percentage = Math.round((imagesLoaded / imagesToLoad) * 100);
+                downloadBtn.textContent = `⏳ Loading Images... ${percentage}%`;
+                
+                if (imagesLoaded === imagesToLoad) {
+                    downloadBtn.disabled = false;
+                    downloadBtn.textContent = '📷 Download Image';
+                    downloadBtn.focus();
+                    console.log('All images loaded successfully');
+                    allImagesLoaded = true;
+                }
+            }
+            
+            // Process card images
+            images.forEach(img => {
+                const originalSrc = img.getAttribute('data-original-src');
+                if (originalSrc && (originalSrc.includes('storage.googleapis.com') || originalSrc.includes('firebasestorage.googleapis.com'))) {
+                    // Try high-res version first
+                    const highResSrc = originalSrc.replace('/cards/', '/high_res_cards/');
+                    const highResProxy = `/api/proxy-image?url=${encodeURIComponent(highResSrc)}`;
+                    const regularProxy = `/api/proxy-image?url=${encodeURIComponent(originalSrc)}`;
+                    
+                    const testImg = new Image();
+                    testImg.onload = function() {
+                        img.src = highResProxy;
+                        console.log('Loaded high-res for:', img.alt);
+                        imageLoaded();
+                    };
+                    testImg.onerror = function() {
+                        // Fallback to regular resolution
+                        img.src = regularProxy;
+                        console.log('Loaded regular res for:', img.alt);
+                        imageLoaded();
+                    };
+                    testImg.src = highResProxy;
+                } else {
+                    imageLoaded();
+                }
+            });
+            
+            // Process energy icons
+            energyIcons.forEach(icon => {
+                const originalSrc = icon.getAttribute('data-original-src');
+                if (originalSrc && (originalSrc.includes('storage.googleapis.com') || originalSrc.includes('firebasestorage.googleapis.com'))) {
+                    const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(originalSrc)}`;
+                    icon.src = proxyUrl;
+                    console.log('Loaded energy icon through proxy');
+                }
+                imageLoaded();
+            });
+        }
+        
+        // Load high-res images with fallback
+        function loadHighResImages() {
+            const images = document.querySelectorAll('.card-image');
+            let imagesToLoad = 0;
+            let imagesLoaded = 0;
+            
+            images.forEach(img => {
+                const originalSrc = img.getAttribute('data-original-src');
+                if (originalSrc && originalSrc.includes('/cards/')) {
+                    imagesToLoad++;
+                    // Try high-res version first
+                    const highResSrc = originalSrc.replace('/cards/', '/high_res_cards/');
+                    const highResProxySrc = '/api/proxy-image?url=' + encodeURIComponent(highResSrc);
+                    
+                    const testImg = new Image();
+                    testImg.onload = function() {
+                        img.src = highResProxySrc;
+                        imagesLoaded++;
+                        if (imagesLoaded === imagesToLoad) {
+                            setTimeout(checkAllImagesLoaded, 500);
+                        }
+                    };
+                    testImg.onerror = function() {
+                        // Fallback to original (already proxied)
+                        imagesLoaded++;
+                        if (imagesLoaded === imagesToLoad) {
+                            setTimeout(checkAllImagesLoaded, 500);
+                        }
+                    };
+                    testImg.src = highResProxySrc;
+                }
+            });
+            
+            // If no images need high-res loading, check immediately
+            if (imagesToLoad === 0) {
+                setTimeout(checkAllImagesLoaded, 500);
+            }
+        }
+        
+        // Convert images to data URLs to avoid CORS taint - with progress tracking
+        async function convertImagesToDataURLs(containerElement = null) {
+            console.log('Converting images to data URLs...');
+            
+            // If a specific container is provided, only convert images in that container
+            const images = containerElement ? 
+                containerElement.querySelectorAll('img') : 
+                document.querySelectorAll('img');
+                
+            const totalImages = images.length;
+            let convertedCount = 0;
+            let failedCount = 0;
+            let processedCount = 0;
+            
+            console.log(`Converting ${totalImages} images for container:`, containerElement ? containerElement.id : 'all containers');
+            
+            // Get cancel button for progress updates (since download button is hidden)
+            const cancelBtn = document.getElementById('cancelBtn');
+            
+            for (let img of images) {
+                try {
+                    // Skip if already a data URL
+                    if (img.src.startsWith('data:')) {
+                        processedCount++;
+                        continue;
+                    }
+                    
+                    // Update progress
+                    const progress = Math.round((processedCount / totalImages) * 100);
+                    cancelBtn.textContent = `⏳ Converting Images... ${progress}%`;
+                    
+                    // Try to use a server-side proxy for CORS issues
+                    let proxyUrl = img.src;
+                    if (img.src.includes('storage.googleapis.com') || img.src.includes('firebasestorage.googleapis.com')) {
+                        // Use server-side proxy route to handle CORS
+                        proxyUrl = `/api/proxy-image?url=${encodeURIComponent(img.src)}`;
+                        console.log('Using proxy for:', img.src);
+                    }
+                    
+                    // Create a new image with CORS enabled
+                    const corsImg = new Image();
+                    corsImg.crossOrigin = 'anonymous';
+                    
+                    await new Promise((resolve, reject) => {
+                        corsImg.onload = () => {
+                            try {
+                                const canvas = document.createElement('canvas');
+                                const ctx = canvas.getContext('2d');
+                                canvas.width = corsImg.naturalWidth || corsImg.width;
+                                canvas.height = corsImg.naturalHeight || corsImg.height;
+                                ctx.drawImage(corsImg, 0, 0);
+                                const dataURL = canvas.toDataURL('image/png', 0.95); // Slight compression for better performance
+                                img.src = dataURL;
+                                convertedCount++;
+                                console.log('Converted image:', img.alt || 'unnamed');
+                                resolve();
+                            } catch (e) {
+                                console.warn('Canvas conversion failed for:', img.src, e);
+                                // Fallback to placeholder
+                                img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTEwIiBoZWlnaHQ9IjE1NCIgdmlld0JveD0iMCAwIDExMCAxNTQiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJhIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMCI+PHN0b3Agc3RvcC1jb2xvcj0iIzM0NDk1ZSIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzJjM2U1MCIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMTAiIGhlaWdodD0iMTU0IiBmaWxsPSJ1cmwoI2EpIiByeD0iNiIvPjx0ZXh0IHg9IjU1IiB5PSI3NyIgZmlsbD0iIzk1YTVhNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkNhcmQ8L3RleHQ+PC9zdmc+';
+                                failedCount++;
+                                resolve();
+                            }
+                        };
+                        
+                        corsImg.onerror = () => {
+                            console.warn('Failed to load CORS image:', proxyUrl);
+                            // Fallback to placeholder
+                            img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTEwIiBoZWlnaHQ9IjE1NCIgdmlld0JveD0iMCAwIDExMCAxNTQiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJhIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMCI+PHN0b3Agc3RvcC1jb2xvcj0iIzM0NDk1ZSIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzJjM2U1MCIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMTAiIGhlaWdodD0iMTU0IiBmaWxsPSJ1cmwoI2EpIiByeD0iNiIvPjx0ZXh0IHg9IjU1IiB5PSI3NyIgZmlsbD0iIzk1YTVhNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkNhcmQ8L3RleHQ+PC9zdmc+';
+                            failedCount++;
+                            resolve();
+                        };
+                        
+                        corsImg.src = proxyUrl;
+                    });
+                    
+                    processedCount++;
+                } catch (e) {
+                    console.warn('Could not convert image to data URL:', img.src, e);
+                    // Fallback to placeholder
+                    img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTEwIiBoZWlnaHQ9IjE1NCIgdmlld0JveD0iMCAwIDExMCAxNTQiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJhIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMCI+PHN0b3Agc3RvcC1jb2xvcj0iIzM0NDk1ZSIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzJjM2U1MCIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMTAiIGhlaWdodD0iMTU0IiBmaWxsPSJ1cmwoI2EpIiByeD0iNiIvPjx0ZXh0IHg9IjU1IiB5PSI3NyIgZmlsbD0iIzk1YTVhNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkNhcmQ8L3RleHQ+PC9zdmc+';
+                    failedCount++;
+                    processedCount++;
+                }
+            }
+            
+            // Final progress update
+            cancelBtn.textContent = '⏳ Images Ready!';
+            
+            console.log(`Image conversion complete: ${convertedCount} converted, ${failedCount} failed, ${processedCount} total processed`);
+            return { convertedCount, failedCount, totalProcessed: processedCount };
+        }
+        
+        // Initialize default state
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOMContentLoaded event fired');
+            
+            // Test if functions are accessible
+            console.log('toggleLayout function:', typeof toggleLayout);
+            console.log('toggleTheme function:', typeof toggleTheme);
+            console.log('toggleQuality function:', typeof toggleQuality);
+            
+            // Wait for dom-to-image to be fully loaded
+            setTimeout(function() {
+                console.log('Initializing default state...');
+                
+                try {
+                    // Start with automatic layout detection (Auto mode)
+                    console.log('Initializing with Auto mode as default');
+                    window.userLayoutPreference = 'auto'; // Start in auto mode
+                    toggleLayout('auto'); // This will trigger checkAndApplyAutoLayout
+                    
+                    // Detect parent window's theme preference
+                    let parentTheme = 'dark'; // Default to dark
+                    try {
+                        // Check if we can access parent window's theme
+                        if (window.opener && window.opener.document) {
+                            const parentHtmlElement = window.opener.document.documentElement;
+                            const parentThemeAttr = parentHtmlElement.getAttribute('data-theme');
+                            console.log('Parent data-theme attribute:', parentThemeAttr);
+                            
+                            if (parentThemeAttr === 'dark' || parentThemeAttr === null) {
+                                parentTheme = 'dark';
+                            } else {
+                                parentTheme = 'light';
+                            }
+                            console.log('Detected parent theme:', parentTheme);
+                        } else {
+                            // Fallback: check localStorage
+                            const savedTheme = localStorage.getItem('theme');
+                            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                            
+                            console.log('Fallback - savedTheme:', savedTheme, 'prefersDark:', prefersDark);
+                            
+                            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+                                parentTheme = 'dark';
+                            } else if (savedTheme === 'light') {
+                                parentTheme = 'light';
+                            }
+                            console.log('Used fallback theme detection:', parentTheme);
+                        }
+                    } catch (e) {
+                        console.log('Could not detect parent theme, using default dark theme');
+                    }
+                    
+                    console.log('Setting theme to', parentTheme);
+                    toggleTheme(parentTheme);
+                    
+                    console.log('Setting quality to standard');
+                    toggleQuality('standard'); // Set default quality to Standard
+                    
+                    console.log('Loading images with proxy');
+                    loadAllImagesWithProxy();
+                    
+                    console.log('Initialization complete');
+                } catch (error) {
+                    console.error('Error during initialization:', error);
+                }
+            }, 100);
+        });
+        
+        // Handle window resize to automatically switch layouts - immediate response
+        window.addEventListener('resize', function() {
+            console.log('Window resized, checking if layout needs to change');
+            
+            // Only auto-adjust if in auto mode
+            if (window.userLayoutPreference === 'auto') {
+                checkAndApplyAutoLayout();
+            }
+            // Forced layouts maintain their settings regardless of container size
+            // The cards grid will scroll horizontally if needed
+        });
+    </script>
+</body>
+</html>
