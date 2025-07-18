@@ -214,6 +214,15 @@
             border-radius: 3.5%;
         }
         
+        /* Export-specific card image styling for better fit */
+        .is-export-clone .card-image {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover !important;
+            display: block !important;
+            border-radius: 3.5% !important;
+        }
+        
         
         .section-divider {
             grid-column: 1 / -1;
@@ -309,50 +318,212 @@
             visibility: visible !important;
             box-shadow: none !important;
             max-width: none !important;
+            /* Override all responsive behaviors */
+            width: auto !important;
+            height: auto !important;
+            overflow: visible !important;
+            transform: none !important;
+            /* Ensure consistent rendering regardless of viewport */
+            min-width: 0 !important;
+            min-height: 0 !important;
+            flex-shrink: 0 !important;
+            flex-grow: 0 !important;
+            /* Debug: temporarily visible to check styling */
+            /* left: 50px !important; */
+            /* top: 50px !important; */
+            /* z-index: 10000 !important; */
         }
 
-        /* Base styles for any export */
+        /* Base styles for any export - override all responsive CSS */
         .is-export-clone,
         .is-export-clone .cards-container,
         .is-export-clone .cards-grid {
             width: fit-content !important;
             margin-left: auto !important;
             margin-right: auto !important;
+            /* Force disable all responsive behavior */
+            max-width: none !important;
+            min-width: 0 !important;
+            overflow: visible !important;
+            flex-shrink: 0 !important;
+            flex-grow: 0 !important;
         }
 
+        /* Override all responsive card sizing for export */
         .is-export-clone .card-slot {
             width: 110px !important;
             height: 154px !important; /* Maintain 63/88 aspect ratio: 110 * (88/63) = 153.65 ≈ 154 */
+            max-width: 110px !important;
+            min-width: 110px !important;
+            flex-shrink: 0 !important;
+            flex-grow: 0 !important;
+            padding: 4px !important; /* Add padding for better image fit */
+        }
+
+        /* Override all responsive container behavior for export */
+        .is-export-clone .cards-container {
+            padding: 8px !important;
+            margin: 15px auto !important;
+            overflow: visible !important;
+            max-width: none !important;
+            width: fit-content !important;
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+            /* Disable all scrolling behaviors */
+            overflow-x: visible !important;
+            overflow-y: visible !important;
+        }
+
+        /* Override all responsive grid behavior for export */
+        .is-export-clone .cards-grid {
+            gap: 8px !important;
+            width: fit-content !important;
+            max-width: none !important;
+            min-width: 0 !important;
+            margin: 0 !important;
+            overflow: visible !important;
+            flex-shrink: 0 !important;
+        }
+
+        /* Override ALL media queries for export clones */
+        @media (max-width: 1300px) {
+            .is-export-clone,
+            .is-export-clone .cards-container,
+            .is-export-clone .cards-grid,
+            .is-export-clone .card-slot {
+                /* Force maintain export dimensions regardless of screen size */
+                max-width: none !important;
+                min-width: initial !important;
+                width: auto !important;
+                padding: initial !important;
+                margin: initial !important;
+                overflow: visible !important;
+            }
+        }
+
+        @media (max-width: 1000px) {
+            .is-export-clone,
+            .is-export-clone .cards-container,
+            .is-export-clone .cards-grid,
+            .is-export-clone .card-slot {
+                /* Force maintain export dimensions regardless of screen size */
+                max-width: none !important;
+                min-width: initial !important;
+                width: auto !important;
+                padding: initial !important;
+                margin: initial !important;
+                overflow: visible !important;
+            }
+        }
+
+        @media (max-width: 800px) {
+            .is-export-clone,
+            .is-export-clone .cards-container,
+            .is-export-clone .cards-grid,
+            .is-export-clone .card-slot {
+                /* Force maintain export dimensions regardless of screen size */
+                max-width: none !important;
+                min-width: initial !important;
+                width: auto !important;
+                padding: initial !important;
+                margin: initial !important;
+                overflow: visible !important;
+            }
+            
+            .is-export-clone .cards-grid.layout-5x4 .card-slot {
+                /* Prevent mobile card resizing during export */
+                width: 110px !important;
+                max-width: 110px !important;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .is-export-clone,
+            .is-export-clone .cards-container,
+            .is-export-clone .cards-grid,
+            .is-export-clone .card-slot {
+                /* Force maintain export dimensions regardless of screen size */
+                max-width: none !important;
+                min-width: initial !important;
+                width: auto !important;
+                padding: initial !important;
+                margin: initial !important;
+                overflow: visible !important;
+            }
+            
+            .is-export-clone .cards-grid.layout-5x4 .card-slot {
+                /* Prevent mobile card resizing during export */
+                width: 110px !important;
+                max-width: 110px !important;
+            }
         }
 
         /* --- 5x4 Export Prep --- */
         .is-export-clone.export-prep-5x4 {
-            width: 500px !important;
-            padding: 10px !important;
+            width: 488px !important; /* Reduced for tighter fit */
+            padding: 10px !important; /* Reduced padding for tighter fit */
+            /* Force override all responsive behaviors */
+            max-width: none !important;
+            min-width: 488px !important;
+            overflow: visible !important;
+            box-sizing: border-box !important;
         }
         .is-export-clone.export-prep-5x4 .cards-container {
-            padding: 8px !important;
+            padding: 6px !important; /* Reduced internal padding */
+            width: 455px !important; /* 480px - 2*10px padding */
+            max-width: none !important;
+            min-width: 455px !important;
+            overflow: visible !important;
+            margin: 15px auto !important;
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
         }
         .is-export-clone.export-prep-5x4 .cards-grid {
             display: grid !important;
-            grid-template-columns: repeat(4, 110px) !important;
+            grid-template-columns: repeat(4, 105px) !important;
             grid-template-rows: repeat(5, auto) !important;
-            gap: 8px !important;
+            row-gap: 6px !important; /* Even tighter vertical spacing */
+            column-gap: 10px !important; /* Perfect horizontal spacing */
+            width: 450px !important; /* 4*105px + 3*10px = 450px */
+            max-width: none !important;
+            min-width: 444px !important;
+            overflow: visible !important;
+            margin: 0 auto !important; /* Perfect centering */
         }
 
         /* --- 2x10 Export Prep --- */
         .is-export-clone.export-prep-2x10 {
-            width: 1208px !important;
-            padding: 10px !important;
+            width: 1183px !important; /* Adjusted for 1163px container + 2*10px padding */
+            padding: 10px !important; /* Reduced padding for tighter fit */
+            /* Force override all responsive behaviors */
+            max-width: none !important;
+            min-width: 1196px !important;
+            overflow: visible !important;
+            box-sizing: border-box !important;
         }
         .is-export-clone.export-prep-2x10 .cards-container {
-            padding: 8px !important;
+            padding: 5px !important; /* Even padding on all sides like 5x4 */
+            width: 1163px !important; /* Keep original width for even appearance */
+            max-width: none !important;
+            min-width: 1163px !important;
+            overflow: visible !important;
+            margin: 15px auto !important;
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
         }
         .is-export-clone.export-prep-2x10 .cards-grid {
             display: grid !important;
-            grid-template-columns: repeat(10, 110px) !important;
+            grid-template-columns: repeat(10, 110.9px) !important; /* Added 2px total across all cards */
             grid-template-rows: repeat(2, auto) !important;
-            gap: 8px !important;
+            gap: 6px !important; /* Tight spacing between cards */
+            width: 1156px !important; /* 10*110.9px + 9*6px = 1156px */
+            max-width: none !important;
+            min-width: 1152px !important;
+            overflow: visible !important;
+            margin: 0 auto !important; /* Perfect centering */
         }
         
         /* Responsive design - containers adapt but layouts switch via JavaScript */
@@ -1300,31 +1471,300 @@
                 // Prepare the clone with the correct theme and export styles
                 document.body.appendChild(clone);
                 clone.classList.add('is-export-clone', `export-prep-${downloadFormat}`);
+                
+                // Apply theme to the clone by copying body classes
                 if (document.body.classList.contains('light-theme')) {
                     clone.classList.add('light-theme');
                 }
                 
-                // Handle title and description visibility
-                if (!includeTitle) {
-                    const deckHeader = clone.querySelector('.deck-header');
-                    if (deckHeader) {
+                // Ensure the main export container maintains its styling
+                const exportContainer = clone.querySelector('.export-container') || clone;
+                
+                // Get the current theme variables (declare once for the entire function)
+                const currentTheme = document.body.classList.contains('light-theme') ? 'light' : 'dark';
+                
+                if (exportContainer) {
+                    const sourceStyles = getComputedStyle(sourceElement);
+                    
+                    // Apply theme-specific colors directly
+                    if (currentTheme === 'light') {
+                        exportContainer.style.background = '#ffffff';
+                        exportContainer.style.color = '#333';
+                        exportContainer.style.setProperty('--bg-color', '#f5f5f5');
+                        exportContainer.style.setProperty('--container-bg', '#ffffff');
+                        exportContainer.style.setProperty('--text-color', '#333');
+                        exportContainer.style.setProperty('--title-color', '#333');
+                        exportContainer.style.setProperty('--border-color', '#e0e0e0');
+                        exportContainer.style.setProperty('--grid-bg', '#fafafa');
+                        exportContainer.style.setProperty('--card-bg', '#fff');
+                        exportContainer.style.setProperty('--card-border', '#ddd');
+                        exportContainer.style.setProperty('--empty-card-bg', '#f8f8f8');
+                        exportContainer.style.setProperty('--empty-card-border', '#ccc');
+                        exportContainer.style.setProperty('--description-color', '#666');
+                    } else {
+                        exportContainer.style.background = '#34495e';
+                        exportContainer.style.color = '#ddd';
+                        exportContainer.style.setProperty('--bg-color', '#2d3436');
+                        exportContainer.style.setProperty('--container-bg', '#34495e');
+                        exportContainer.style.setProperty('--text-color', '#ddd');
+                        exportContainer.style.setProperty('--title-color', '#ecf0f1');
+                        exportContainer.style.setProperty('--border-color', '#5a6c7d');
+                        exportContainer.style.setProperty('--grid-bg', '#2c3e50');
+                        exportContainer.style.setProperty('--card-bg', '#34495e');
+                        exportContainer.style.setProperty('--card-border', '#5a6c7d');
+                        exportContainer.style.setProperty('--empty-card-bg', '#2c3e50');
+                        exportContainer.style.setProperty('--empty-card-border', '#7f8c8d');
+                        exportContainer.style.setProperty('--description-color', '#bdc3c7');
+                    }
+                    
+                    // Apply essential container styling
+                    exportContainer.style.fontFamily = sourceStyles.fontFamily || "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+                    exportContainer.style.borderRadius = '12px';
+                    exportContainer.style.padding = '26px';
+                    exportContainer.style.minHeight = 'fit-content';
+                    exportContainer.style.overflow = 'visible';
+                    exportContainer.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+                }
+                
+                // Handle title and description visibility and styling
+                const deckHeader = clone.querySelector('.deck-header');
+                if (deckHeader) {
+                    if (!includeTitle) {
                         deckHeader.style.display = 'none';
+                    } else {
+                        // Apply theme-specific header styling
+                        if (currentTheme === 'light') {
+                            deckHeader.style.borderBottom = '2px solid #e0e0e0';
+                            deckHeader.style.color = '#333';
+                        } else {
+                            deckHeader.style.borderBottom = '2px solid #5a6c7d';
+                            deckHeader.style.color = '#ddd';
+                        }
+                        deckHeader.style.textAlign = 'center';
+                        deckHeader.style.marginBottom = '20px';
+                        deckHeader.style.paddingBottom = '15px';
+                        
+                        // Style the deck title
+                        const deckTitle = deckHeader.querySelector('.deck-title');
+                        if (deckTitle) {
+                            deckTitle.style.fontSize = '1.8em';
+                            deckTitle.style.fontWeight = '600';
+                            deckTitle.style.margin = '0 0 8px 0';
+                            if (currentTheme === 'light') {
+                                deckTitle.style.color = '#333';
+                            } else {
+                                deckTitle.style.color = '#ecf0f1';
+                            }
+                        }
+                        
+                        // Style the deck creator
+                        const deckCreator = deckHeader.querySelector('.deck-creator');
+                        if (deckCreator) {
+                            deckCreator.style.textAlign = 'center';
+                            deckCreator.style.fontSize = '0.85em';
+                            deckCreator.style.margin = '8px 0';
+                            if (currentTheme === 'light') {
+                                deckCreator.style.color = '#666';
+                            } else {
+                                deckCreator.style.color = '#bdc3c7';
+                            }
+                        }
+                        
+                        // Style the deck info (energy badges and card count)
+                        const deckInfo = deckHeader.querySelector('.deck-info');
+                        if (deckInfo) {
+                            deckInfo.style.display = 'flex';
+                            deckInfo.style.justifyContent = 'center';
+                            deckInfo.style.alignItems = 'center';
+                            deckInfo.style.gap = '15px';
+                            deckInfo.style.margin = '10px 0';
+                            
+                            // Style energy badges
+                            const energyBadges = deckInfo.querySelectorAll('.energy-badge');
+                            energyBadges.forEach(badge => {
+                                badge.style.width = '24px';
+                                badge.style.height = '24px';
+                                badge.style.borderRadius = '50%';
+                                if (currentTheme === 'light') {
+                                    badge.style.border = '1px solid #e0e0e0';
+                                } else {
+                                    badge.style.border = '1px solid #5a6c7d';
+                                }
+                                // Ensure crossorigin for html2canvas
+                                badge.crossOrigin = 'anonymous';
+                            });
+                            
+                            // Style card count
+                            const cardCount = deckInfo.querySelector('.card-count');
+                            if (cardCount) {
+                                cardCount.style.background = '#95a5a6';
+                                cardCount.style.color = '#2c3e50';
+                                cardCount.style.padding = '4px 8px';
+                                cardCount.style.borderRadius = '12px';
+                                cardCount.style.fontWeight = '500';
+                                cardCount.style.fontSize = '0.8em';
+                            }
+                        }
                     }
                 }
                 
-                if (!includeDescription) {
-                    const deckDescription = clone.querySelector('.deck-description');
-                    if (deckDescription) {
+                const deckDescription = clone.querySelector('.deck-description');
+                if (deckDescription) {
+                    if (!includeDescription) {
                         deckDescription.style.display = 'none';
+                    } else {
+                        // Apply theme-specific description styling
+                        deckDescription.style.marginTop = '20px';
+                        deckDescription.style.marginBottom = '10px';
+                        deckDescription.style.fontSize = '0.9em';
+                        deckDescription.style.lineHeight = '1.4';
+                        deckDescription.style.maxWidth = '800px';
+                        deckDescription.style.marginLeft = 'auto';
+                        deckDescription.style.marginRight = 'auto';
+                        deckDescription.style.wordWrap = 'break-word';
+                        if (currentTheme === 'light') {
+                            deckDescription.style.color = '#666';
+                        } else {
+                            deckDescription.style.color = '#bdc3c7';
+                        }
                     }
                 }
         
+                // Force remove all responsive classes and styling from the clone
+                const cloneCardsContainer = clone.querySelector('.cards-container');
+                const cloneCardsGrid = clone.querySelector('.cards-grid');
+                const cloneCardSlots = clone.querySelectorAll('.card-slot');
+                
+                if (cloneCardsContainer) {
+                    cloneCardsContainer.classList.remove('layout-2x10-container');
+                    // Override only the problematic responsive properties, preserve base styling
+                    cloneCardsContainer.style.padding = '8px';
+                    cloneCardsContainer.style.margin = '15px auto';
+                    cloneCardsContainer.style.overflow = 'visible';
+                    cloneCardsContainer.style.overflowX = 'visible';
+                    cloneCardsContainer.style.overflowY = 'visible';
+                    cloneCardsContainer.style.display = 'flex';
+                    cloneCardsContainer.style.justifyContent = 'center';
+                    cloneCardsContainer.style.alignItems = 'center';
+                    cloneCardsContainer.style.maxWidth = 'none';
+                    cloneCardsContainer.style.width = 'fit-content';
+                    
+                    // Ensure perfect centering for both layouts
+                    if (downloadFormat === '2x10') {
+                        cloneCardsContainer.style.width = '1163px';
+                        cloneCardsContainer.style.padding = '5px';
+                        cloneCardsContainer.style.margin = '15px auto';
+                        cloneCardsContainer.style.justifyContent = 'center';
+                        cloneCardsContainer.style.alignItems = 'center';
+                    } else if (downloadFormat === '5x4') {
+                        cloneCardsContainer.style.width = '455px';
+                        cloneCardsContainer.style.padding = '6px';
+                        cloneCardsContainer.style.margin = '15px auto';
+                        cloneCardsContainer.style.justifyContent = 'center';
+                        cloneCardsContainer.style.alignItems = 'center';
+                    }
+                    
+                    // Apply theme-specific container styling
+                    if (currentTheme === 'light') {
+                        cloneCardsContainer.style.background = '#fafafa';
+                        cloneCardsContainer.style.border = '1px solid #e0e0e0';
+                    } else {
+                        cloneCardsContainer.style.background = '#2c3e50';
+                        cloneCardsContainer.style.border = '1px solid #5a6c7d';
+                    }
+                    cloneCardsContainer.style.borderRadius = '8px';
+                }
+                
+                if (cloneCardsGrid) {
+                    cloneCardsGrid.classList.remove('layout-2x10', 'layout-5x4', 'auto-mobile', 'auto-desktop');
+                    // Override only the problematic responsive properties, preserve base styling
+                    cloneCardsGrid.style.gap = '8px';
+                    cloneCardsGrid.style.margin = '0';
+                    cloneCardsGrid.style.overflow = 'visible';
+                    cloneCardsGrid.style.maxWidth = 'none';
+                    cloneCardsGrid.style.minWidth = 'initial';
+                    cloneCardsGrid.style.flexShrink = '0';
+                    
+                    // Apply layout-specific grid settings
+                    if (downloadFormat === '2x10') {
+                        cloneCardsGrid.style.display = 'grid';
+                        cloneCardsGrid.style.gridTemplateColumns = 'repeat(10, 110.9px)';
+                        cloneCardsGrid.style.gridTemplateRows = 'repeat(2, auto)';
+                        cloneCardsGrid.style.width = '1156px';
+                        cloneCardsGrid.style.margin = '0 auto';
+                        cloneCardsGrid.style.justifyContent = 'center';
+                    } else if (downloadFormat === '5x4') {
+                        cloneCardsGrid.style.display = 'grid';
+                        cloneCardsGrid.style.gridTemplateColumns = 'repeat(4, 105px)';
+                        cloneCardsGrid.style.gridTemplateRows = 'repeat(5, auto)';
+                        cloneCardsGrid.style.width = '450px';
+                        cloneCardsGrid.style.margin = '0 auto';
+                        cloneCardsGrid.style.justifyContent = 'center';
+                    }
+                }
+                
+                // Force reset all card slots to standard size while preserving base styling
+                cloneCardSlots.forEach(slot => {
+                    // Don't clear cssText completely - preserve base card styling
+                    slot.style.width = '110px';
+                    slot.style.height = '154px';
+                    slot.style.maxWidth = '110px';
+                    slot.style.minWidth = '110px';
+                    slot.style.flexShrink = '0';
+                    slot.style.flexGrow = '0';
+                    // Ensure the card maintains its visual properties
+                    slot.style.aspectRatio = '63/88';
+                    slot.style.borderRadius = '3.5%';
+                    slot.style.overflow = 'hidden';
+                    slot.style.position = 'relative';
+                    slot.style.boxShadow = '0 1px 2px rgba(0,0,0,0.2)';
+                    
+                    // Apply theme-specific card styling
+                    if (slot.classList.contains('empty')) {
+                        if (currentTheme === 'light') {
+                            slot.style.background = '#f8f8f8';
+                            slot.style.border = '2px dashed #ccc';
+                        } else {
+                            slot.style.background = '#2c3e50';
+                            slot.style.border = '2px dashed #7f8c8d';
+                        }
+                        slot.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
+                        slot.style.opacity = '0.8';
+                    } else {
+                        if (currentTheme === 'light') {
+                            slot.style.background = '#fff';
+                        } else {
+                            slot.style.background = '#34495e';
+                        }
+                        slot.style.border = 'none';
+                    }
+                    
+                    // Ensure card images are properly styled in the clone
+                    const cardImage = slot.querySelector('.card-image');
+                    if (cardImage) {
+                        cardImage.style.width = '100%';
+                        cardImage.style.height = '100%';
+                        cardImage.style.objectFit = 'cover';
+                        cardImage.style.display = 'block';
+                        cardImage.style.borderRadius = '3.5%';
+                        // Ensure crossorigin for html2canvas
+                        cardImage.crossOrigin = 'anonymous';
+                    }
+                });
+        
                 const qualitySettings = getQualitySettings();
-                const currentTheme = document.body.classList.contains('light-theme') ? 'light' : 'dark';
                 const bgColor = currentTheme === 'light' ? '#ffffff' : getComputedStyle(sourceElement).backgroundColor;
         
-                // Brief delay to allow the browser to apply styles to the off-screen clone
-                await new Promise(resolve => setTimeout(resolve, 100));
+                // Extended delay to allow the browser to apply all styles to the off-screen clone
+                await new Promise(resolve => setTimeout(resolve, 200));
+        
+                // Debug: Log clone styling
+                console.log('Clone styles after preparation:');
+                console.log('Clone background:', getComputedStyle(clone).background);
+                console.log('Clone width:', clone.offsetWidth);
+                console.log('Clone height:', clone.offsetHeight);
+                console.log('Export container background:', getComputedStyle(exportContainer).background);
+                console.log('Cards container background:', getComputedStyle(cloneCardsContainer).background);
         
                 if (window.currentDownloadProcess?.cancelled) {
                      console.log('Download cancelled before capture.');
@@ -1337,7 +1777,16 @@
                     downloadBtn.textContent = '🖼️ Capturing...';
                 }
         
-                // Create a cancellable html2canvas promise
+                // Temporarily move clone to a better position for html2canvas
+                clone.style.left = '0px';
+                clone.style.top = '0px';
+                clone.style.position = 'absolute';
+                clone.style.zIndex = '-1'; // Behind everything but still renderable
+                
+                // Wait a bit for the position change to take effect
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+                // Create a cancellable html2canvas promise with enhanced options
                 const canvas = await new Promise((resolve, reject) => {
                     // Check for cancellation before starting
                     if (window.currentDownloadProcess?.cancelled) {
@@ -1349,8 +1798,25 @@
                         scale: qualitySettings.scale,
                         useCORS: true,
                         backgroundColor: bgColor,
-                        logging: false,
+                        logging: true, // Enable logging to debug issues
                         imageTimeout: qualitySettings.timeout,
+                        // Enhanced options for better export quality
+                        allowTaint: false, // Try with false first
+                        foreignObjectRendering: false, // Disable for better compatibility
+                        removeContainer: false,
+                        width: clone.offsetWidth,
+                        height: clone.offsetHeight,
+                        scrollX: 0,
+                        scrollY: 0,
+                        x: 0,
+                        y: 0,
+                        // Force html2canvas to use the full element
+                        windowWidth: clone.offsetWidth,
+                        windowHeight: clone.offsetHeight,
+                        ignoreElements: function(element) {
+                            // Don't ignore any elements in the clone
+                            return false;
+                        }
                     }).then(canvas => {
                         // Check for cancellation after completion
                         if (window.currentDownloadProcess?.cancelled) {
