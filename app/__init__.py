@@ -79,6 +79,7 @@ def create_app(config_name="default"):
     app = Flask(
         __name__,
         template_folder="../templates",
+        static_folder="../static",
     )
     app_config = config[config_name]
     app.config.from_object(app_config)

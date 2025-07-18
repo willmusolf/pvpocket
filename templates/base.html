@@ -54,7 +54,7 @@
         }
         .card-container {
             position: relative;
-            transition: transform 0.2s;
+            transition: transform 0.075s;
             cursor: pointer;
         }
         .card-container:hover {
@@ -205,6 +205,24 @@
                 transform: none !important;
                 box-shadow: none !important;
             }
+        }
+
+        /* Mobile touch interaction fixes */
+        .card-container,
+        .cover-card-image-wrapper,
+        .deck-cover-cards-area,
+        .card-body {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        /* Prevent double-tap zoom on interactive elements */
+        .card-container,
+        .cover-card-image-wrapper,
+        .deck-cover-cards-area {
+            touch-action: manipulation;
         }
     </style>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6306891304675674" crossorigin="anonymous"></script>

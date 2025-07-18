@@ -755,6 +755,24 @@
                 console.log('Selected quality:', window.selectedQuality);
                 console.log('Selected export format:', window.selectedExportFormat);
                 console.log('User layout preference:', window.userLayoutPreference);
+                
+                // Show cache statistics
+                getServiceWorkerCacheStats().then(stats => {
+                    console.log('Service Worker Cache Stats:', stats);
+                }).catch(error => {
+                    console.log('Service Worker Cache Stats: Not available');
+                });
+                
+                // Show server-side cache stats
+                fetch('/api/proxy-image-stats')
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Server-side Cache Stats:', data);
+                    })
+                    .catch(error => {
+                        console.log('Server-side Cache Stats: Not available');
+                    });
+                
                 console.log('==================');
             }
         }
@@ -1482,89 +1500,345 @@
             }
         }
         
-        // Load all images through proxy system
-        function loadAllImagesWithProxy() {
+        // Progressive image loading system
+        async function loadAllImagesWithProxy() {
             console.log('Loading all images through proxy...');
             const images = document.querySelectorAll('.card-image');
             const energyIcons = document.querySelectorAll('.energy-badge');
             
-            let imagesToLoad = images.length + energyIcons.length;
-            let imagesLoaded = 0;
-            
+            const imagesToLoad = images.length + energyIcons.length;
             console.log(`Found ${images.length} card images and ${energyIcons.length} energy icons`);
             console.log(`Total images to load: ${imagesToLoad}`);
             
-            // Disable download button until all images are loaded
             const downloadBtn = document.getElementById('downloadBtn');
             downloadBtn.disabled = true;
-            downloadBtn.textContent = '⏳ Loading High-Res Images...';
+            downloadBtn.textContent = '⏳ Loading Standard Images...';
             
-            function imageLoaded() {
-                imagesLoaded++;
-                const percentage = Math.round((imagesLoaded / imagesToLoad) * 100);
-                downloadBtn.textContent = `⏳ Loading Images... ${percentage}%`;
-                console.log(`Proxy loading progress: ${imagesLoaded}/${imagesToLoad} (${percentage}%)`);
-                
-                if (imagesLoaded === imagesToLoad) {
-                    downloadBtn.disabled = false;
-                    downloadBtn.textContent = '📷 Download Image';
-                    downloadBtn.focus();
-                    console.log('All proxy images loaded successfully');
-                    allImagesLoaded = true;
-                    
-                    // Apply layout after all images are loaded
-                    setTimeout(() => {
-                        if (window.userLayoutPreference === 'auto') {
-                            checkAndApplyAutoLayout();
-                        } else if (window.userLayoutPreference === '5x4') {
-                            applyDynamicSizing5x4();
-                        }
-                    }, 100);
+            // Phase 1: Load standard resolution images in parallel for immediate UI responsiveness
+            console.log('Phase 1: Loading standard resolution images...');
+            await loadStandardResolutionImages(images, energyIcons);
+            
+            // Enable download button after standard images are loaded
+            downloadBtn.disabled = false;
+            downloadBtn.textContent = '📷 Download Image (Standard)';
+            downloadBtn.focus();
+            console.log('Standard resolution images loaded - download enabled');
+            allImagesLoaded = true;
+            
+            // Apply layout after standard images are loaded
+            setTimeout(() => {
+                if (window.userLayoutPreference === 'auto') {
+                    checkAndApplyAutoLayout();
+                } else if (window.userLayoutPreference === '5x4') {
+                    applyDynamicSizing5x4();
                 }
+            }, 100);
+            
+            // Phase 2: Upgrade to high-resolution images in background
+            console.log('Phase 2: Upgrading to high-resolution images...');
+            downloadBtn.textContent = '📷 Download Image (Upgrading...)';
+            
+            try {
+                await upgradeToHighResolution(images);
+                downloadBtn.textContent = '📷 Download Image (High-Res)';
+                console.log('High-resolution images loaded successfully');
+            } catch (error) {
+                console.error('Error upgrading to high-resolution:', error);
+                downloadBtn.textContent = '📷 Download Image (Standard)';
+            }
+        }
+        
+        // Load standard resolution images first
+        async function loadStandardResolutionImages(images, energyIcons) {
+            const standardPromises = [];
+            let loadedCount = 0;
+            const totalImages = images.length + energyIcons.length;
+            
+            function updateStandardProgress() {
+                loadedCount++;
+                const percentage = Math.round((loadedCount / totalImages) * 100);
+                const downloadBtn = document.getElementById('downloadBtn');
+                downloadBtn.textContent = `⏳ Loading Standard... ${percentage}%`;
+                console.log(`Standard loading progress: ${loadedCount}/${totalImages} (${percentage}%)`);
             }
             
-            // Process card images
+            // Load standard resolution card images
             images.forEach(img => {
                 const originalSrc = img.getAttribute('data-original-src');
                 if (originalSrc && (originalSrc.includes('storage.googleapis.com') || originalSrc.includes('firebasestorage.googleapis.com'))) {
-                    // Try high-res version first
-                    const highResSrc = originalSrc.replace('/cards/', '/high_res_cards/');
-                    const highResProxy = `/api/proxy-image?url=${encodeURIComponent(highResSrc)}`;
-                    const regularProxy = `/api/proxy-image?url=${encodeURIComponent(originalSrc)}`;
-                    
-                    const testImg = new Image();
-                    testImg.onload = function() {
-                        img.src = highResProxy;
-                        if (window.debugMode) {
-                            console.log('Loaded high-res for:', img.alt);
-                        }
-                        imageLoaded();
-                    };
-                    testImg.onerror = function() {
-                        // Fallback to regular resolution
-                        img.src = regularProxy;
-                        if (window.debugMode) {
-                            console.log('Loaded regular res for:', img.alt);
-                        }
-                        imageLoaded();
-                    };
-                    testImg.src = highResProxy;
+                    const promise = loadStandardImage(img, originalSrc).then(() => {
+                        updateStandardProgress();
+                    });
+                    standardPromises.push(promise);
                 } else {
-                    imageLoaded();
+                    updateStandardProgress();
                 }
             });
             
-            // Process energy icons
+            // Load energy icons
             energyIcons.forEach(icon => {
                 const originalSrc = icon.getAttribute('data-original-src');
                 if (originalSrc && (originalSrc.includes('storage.googleapis.com') || originalSrc.includes('firebasestorage.googleapis.com'))) {
-                    const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(originalSrc)}`;
-                    icon.src = proxyUrl;
-                    if (window.debugMode) {
-                        console.log('Loaded energy icon through proxy');
-                    }
+                    const promise = loadEnergyIcon(icon, originalSrc).then(() => {
+                        updateStandardProgress();
+                    });
+                    standardPromises.push(promise);
+                } else {
+                    updateStandardProgress();
                 }
-                imageLoaded();
+            });
+            
+            await Promise.all(standardPromises);
+        }
+        
+        // Load standard resolution image
+        function loadStandardImage(img, originalSrc) {
+            return new Promise((resolve) => {
+                const regularProxy = `/api/proxy-image?url=${encodeURIComponent(originalSrc)}`;
+                
+                const testImg = new Image();
+                testImg.onload = function() {
+                    img.src = regularProxy;
+                    img.dataset.loadedResolution = 'standard';
+                    if (window.debugMode) {
+                        console.log('Loaded standard res for:', img.alt);
+                    }
+                    resolve();
+                };
+                testImg.onerror = function() {
+                    // Use placeholder if standard loading fails
+                    img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTEwIiBoZWlnaHQ9IjE1NCIgdmlld0JveD0iMCAwIDExMCAxNTQiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJhIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMCI+PHN0b3Agc3RvcC1jb2xvcj0iIzM0NDk1ZSIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzJjM2U1MCIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMTAiIGhlaWdodD0iMTU0IiBmaWxsPSJ1cmwoI2EpIiByeD0iNiIvPjx0ZXh0IHg9IjU1IiB5PSI3NyIgZmlsbD0iIzk1YTVhNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkNhcmQ8L3RleHQ+PC9zdmc+';
+                    img.dataset.loadedResolution = 'placeholder';
+                    if (window.debugMode) {
+                        console.log('Used placeholder for:', img.alt);
+                    }
+                    resolve();
+                };
+                testImg.src = regularProxy;
+            });
+        }
+        
+        // Upgrade to high-resolution images
+        async function upgradeToHighResolution(images) {
+            const upgradePromises = [];
+            let upgradedCount = 0;
+            const imagesToUpgrade = Array.from(images).filter(img => {
+                const originalSrc = img.getAttribute('data-original-src');
+                return originalSrc && (originalSrc.includes('storage.googleapis.com') || originalSrc.includes('firebasestorage.googleapis.com'));
+            });
+            
+            function updateUpgradeProgress() {
+                upgradedCount++;
+                const percentage = Math.round((upgradedCount / imagesToUpgrade.length) * 100);
+                const downloadBtn = document.getElementById('downloadBtn');
+                downloadBtn.textContent = `📷 Download Image (Upgrading... ${percentage}%)`;
+                console.log(`High-res upgrade progress: ${upgradedCount}/${imagesToUpgrade.length} (${percentage}%)`);
+            }
+            
+            imagesToUpgrade.forEach(img => {
+                const originalSrc = img.getAttribute('data-original-src');
+                const promise = upgradeImageToHighRes(img, originalSrc).then(() => {
+                    updateUpgradeProgress();
+                });
+                upgradePromises.push(promise);
+            });
+            
+            await Promise.all(upgradePromises);
+        }
+        
+        // Upgrade individual image to high-resolution
+        function upgradeImageToHighRes(img, originalSrc) {
+            return new Promise((resolve) => {
+                // Skip if already high-res
+                if (img.dataset.loadedResolution === 'high') {
+                    resolve();
+                    return;
+                }
+                
+                const highResSrc = originalSrc.replace('/cards/', '/high_res_cards/');
+                const highResProxy = `/api/proxy-image?url=${encodeURIComponent(highResSrc)}`;
+                
+                const testImg = new Image();
+                testImg.onload = function() {
+                    img.src = highResProxy;
+                    img.dataset.loadedResolution = 'high';
+                    if (window.debugMode) {
+                        console.log('Upgraded to high-res for:', img.alt);
+                    }
+                    resolve();
+                };
+                testImg.onerror = function() {
+                    // Keep standard resolution if high-res fails
+                    if (window.debugMode) {
+                        console.log('High-res upgrade failed for:', img.alt, 'keeping standard');
+                    }
+                    resolve();
+                };
+                testImg.src = highResProxy;
+            });
+        }
+        
+        // Intelligent preloading system
+        function implementIntelligentPreloading() {
+            // Get all card images that haven't been loaded yet
+            const images = document.querySelectorAll('.card-image');
+            const imagesToPreload = [];
+            
+            images.forEach(img => {
+                const originalSrc = img.getAttribute('data-original-src');
+                if (originalSrc && !img.dataset.loadedResolution) {
+                    imagesToPreload.push({
+                        element: img,
+                        src: originalSrc,
+                        priority: calculatePreloadPriority(img)
+                    });
+                }
+            });
+            
+            // Sort by priority (higher priority first)
+            imagesToPreload.sort((a, b) => b.priority - a.priority);
+            
+            // Preload images with delays to avoid overwhelming the network
+            imagesToPreload.forEach((item, index) => {
+                const delay = index * 100; // 100ms delay between each preload
+                setTimeout(() => {
+                    preloadImage(item.element, item.src);
+                }, delay);
+            });
+        }
+        
+        function calculatePreloadPriority(img) {
+            let priority = 0;
+            
+            // Higher priority for images currently in viewport
+            if (isInViewport(img)) {
+                priority += 100;
+            }
+            
+            // Higher priority for images near viewport
+            if (isNearViewport(img)) {
+                priority += 50;
+            }
+            
+            // Higher priority for images in the first row (5x4 layout)
+            const rect = img.getBoundingClientRect();
+            if (rect.top < window.innerHeight * 0.5) {
+                priority += 30;
+            }
+            
+            // Higher priority for images that are likely to be viewed
+            // (e.g., based on card position in deck)
+            const cardIndex = Array.from(img.parentElement.parentElement.children).indexOf(img.parentElement);
+            if (cardIndex < 10) { // First 10 cards
+                priority += 20;
+            }
+            
+            return priority;
+        }
+        
+        function isInViewport(element) {
+            const rect = element.getBoundingClientRect();
+            return (
+                rect.top >= 0 &&
+                rect.left >= 0 &&
+                rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+                rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+            );
+        }
+        
+        function isNearViewport(element, threshold = 200) {
+            const rect = element.getBoundingClientRect();
+            return (
+                rect.top >= -threshold &&
+                rect.left >= -threshold &&
+                rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) + threshold &&
+                rect.right <= (window.innerWidth || document.documentElement.clientWidth) + threshold
+            );
+        }
+        
+        function preloadImage(img, originalSrc) {
+            if (img.dataset.loadedResolution) {
+                return; // Already loaded
+            }
+            
+            // Start with standard resolution
+            const regularProxy = `/api/proxy-image?url=${encodeURIComponent(originalSrc)}`;
+            
+            const preloadImg = new Image();
+            preloadImg.onload = function() {
+                img.src = regularProxy;
+                img.dataset.loadedResolution = 'standard';
+                
+                if (window.debugMode) {
+                    console.log('Preloaded standard res for:', img.alt);
+                }
+                
+                // After a delay, try to upgrade to high-resolution
+                setTimeout(() => {
+                    const highResSrc = originalSrc.replace('/cards/', '/high_res_cards/');
+                    const highResProxy = `/api/proxy-image?url=${encodeURIComponent(highResSrc)}`;
+                    
+                    const highResImg = new Image();
+                    highResImg.onload = function() {
+                        img.src = highResProxy;
+                        img.dataset.loadedResolution = 'high';
+                        if (window.debugMode) {
+                            console.log('Preloaded high-res for:', img.alt);
+                        }
+                    };
+                    highResImg.onerror = function() {
+                        if (window.debugMode) {
+                            console.log('High-res preload failed for:', img.alt);
+                        }
+                    };
+                    highResImg.src = highResProxy;
+                }, 2000); // 2 second delay before trying high-res
+            };
+            preloadImg.onerror = function() {
+                if (window.debugMode) {
+                    console.log('Preload failed for:', img.alt);
+                }
+            };
+            preloadImg.src = regularProxy;
+        }
+        
+        // Intersection Observer for dynamic preloading
+        function setupIntersectionObserver() {
+            if ('IntersectionObserver' in window) {
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const img = entry.target;
+                            const originalSrc = img.getAttribute('data-original-src');
+                            
+                            if (originalSrc && !img.dataset.loadedResolution) {
+                                preloadImage(img, originalSrc);
+                            }
+                            
+                            // Stop observing once loaded
+                            observer.unobserve(img);
+                        }
+                    });
+                }, {
+                    rootMargin: '50px' // Start loading 50px before entering viewport
+                });
+                
+                // Observe all card images
+                document.querySelectorAll('.card-image').forEach(img => {
+                    observer.observe(img);
+                });
+            }
+        }
+        
+        // Load energy icon through proxy
+        function loadEnergyIcon(icon, originalSrc) {
+            return new Promise((resolve) => {
+                const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(originalSrc)}`;
+                icon.src = proxyUrl;
+                if (window.debugMode) {
+                    console.log('Loaded energy icon through proxy');
+                }
+                resolve();
             });
         }
         
@@ -1607,6 +1881,62 @@
             }
         }
 
+        // Register Service Worker for persistent image caching
+        function registerServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/static/js/image-cache-sw.js')
+                    .then(registration => {
+                        console.log('Image cache service worker registered:', registration);
+                        
+                        // Listen for service worker updates
+                        registration.addEventListener('updatefound', () => {
+                            console.log('Service worker update found');
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Service worker registration failed:', error);
+                    });
+            }
+        }
+        
+        // Get cache statistics from service worker
+        function getServiceWorkerCacheStats() {
+            return new Promise((resolve, reject) => {
+                if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                    const messageChannel = new MessageChannel();
+                    messageChannel.port1.onmessage = (event) => {
+                        resolve(event.data);
+                    };
+                    
+                    navigator.serviceWorker.controller.postMessage(
+                        { type: 'CACHE_STATS' },
+                        [messageChannel.port2]
+                    );
+                } else {
+                    reject(new Error('Service worker not available'));
+                }
+            });
+        }
+        
+        // Clear service worker cache
+        function clearServiceWorkerCache() {
+            return new Promise((resolve, reject) => {
+                if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                    const messageChannel = new MessageChannel();
+                    messageChannel.port1.onmessage = (event) => {
+                        resolve(event.data);
+                    };
+                    
+                    navigator.serviceWorker.controller.postMessage(
+                        { type: 'CLEAR_CACHE' },
+                        [messageChannel.port2]
+                    );
+                } else {
+                    reject(new Error('Service worker not available'));
+                }
+            });
+        }
+        
         // Initialize default state
         document.addEventListener('DOMContentLoaded', function() {
             if (window.debugMode) {
@@ -1617,6 +1947,9 @@
                 console.log('toggleTheme function:', typeof toggleTheme);
                 console.log('toggleQuality function:', typeof toggleQuality);
             }
+            
+            // Register service worker for persistent caching
+            registerServiceWorker();
             
             // Initialize UI immediately
             initializeUI();
@@ -1695,6 +2028,12 @@
                         console.log('Loading images with proxy');
                     }
                     loadAllImagesWithProxy();
+                    
+                    // Setup intelligent preloading after initial load
+                    setTimeout(() => {
+                        setupIntersectionObserver();
+                        implementIntelligentPreloading();
+                    }, 3000); // Start preloading after 3 seconds
                     
                     // Ensure proper layout after initialization
                     setTimeout(() => {

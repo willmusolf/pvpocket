@@ -993,6 +993,32 @@
         .btn-remove-small.is-tapping {
             animation: mobile-card-tap-animation 0.17s ease-in-out;
         }
+        
+        /* Loading indicator for high-res images */
+        .clickable-card.loading-high-res {
+            position: relative;
+        }
+        
+        .clickable-card.loading-high-res::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 30px;
+            height: 30px;
+            border: 3px solid rgba(255,255,255,0.2);
+            border-top-color: rgba(255,255,255,0.8);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            z-index: 10;
+            pointer-events: none;
+        }
+        
+        @keyframes spin {
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        
         #save-deck-btn, #clear-deck-btn, #export-deck-btn {
             -webkit-tap-highlight-color: transparent;
         }
@@ -1381,6 +1407,11 @@
     let progressiveLoadTimeout = null; // Manages the background loading of off-screen images
     let highResImageCache = new Set();
     let highResLoadTimeout = null;
+    let progressiveLoadQueue = new Map(); // Track progressive loading tasks
+    let imageLoadingStats = { hits: 0, misses: 0, errors: 0 }; // Performance tracking
+    let activeRequests = new Map(); // Track active image requests to prevent duplicates
+    let batchLoadQueue = new Set(); // Queue for batch loading
+    let batchLoadTimer = null; // Timer for batch processing
 
     let currentSortType = 'set'; 
     let currentSortDirection = 'asc'; 
@@ -1443,9 +1474,14 @@
 
     document.addEventListener('DOMContentLoaded', function() {
         console.log('Deck Builder DOMContentLoaded: Initializing...');
+        
+        // Register Service Worker for persistent caching
+        registerServiceWorker();
+        
         loadCards();
         setupEventListeners();
         initializeCardObserver();
+        setupMobileImageLoading();
     });
 
     function initializeCardObserver() {
@@ -1474,25 +1510,354 @@
                     const img = cardItem.querySelector('img[data-src]');
 
                     if (img && cardContainer) {
-                        const highResSrc = img.getAttribute('data-src');
+                        const originalSrc = img.getAttribute('data-src');
+                        const proxyUrl = getProxyUrl(originalSrc);
 
                         img.onload = () => {
                             cardContainer.classList.add('is-loaded');
                             setTimeout(() => {
                                 cardContainer.classList.remove('is-loading');
                             }, 110);
+                            
+                            // Don't auto-load high-res - wait for hover
+                            // startProgressiveHighResLoading(img, originalSrc, cardContainer);
                         };
                         img.onerror = () => {
                             cardContainer.classList.remove('is-loading');
                         };
 
-                        img.src = highResSrc;
+                        img.src = proxyUrl;
                         img.removeAttribute('data-src');
+                        // Keep original src for mobile high-res loading
+                        if (!img.dataset.originalSrc) {
+                            img.dataset.originalSrc = originalSrc;
+                        }
                     }
                     observer.unobserve(cardItem);
                 }
             });
         }, options);
+    }
+
+    // Image optimization helper functions
+    function getProxyUrl(originalUrl) {
+        // Check if URL needs proxy (Firebase Storage URLs)
+        if (originalUrl && (originalUrl.includes('storage.googleapis.com') || originalUrl.includes('firebasestorage.googleapis.com'))) {
+            return `/api/proxy-image?url=${encodeURIComponent(originalUrl)}`;
+        }
+        return originalUrl;
+    }
+
+    function startProgressiveHighResLoading(img, originalSrc, cardContainer) {
+        // Skip if already loading or loaded high-res
+        if (progressiveLoadQueue.has(originalSrc) || img.dataset.loadedResolution === 'high') {
+            return;
+        }
+
+        // Check if high-res version exists
+        if (!originalSrc.includes('/cards/')) {
+            return;
+        }
+
+        const highResSrc = originalSrc.replace('/cards/', '/high_res_cards/');
+        const highResProxyUrl = getProxyUrl(highResSrc);
+
+        // Add to progressive load queue
+        progressiveLoadQueue.set(originalSrc, {
+            img: img,
+            container: cardContainer,
+            highResSrc: highResSrc,
+            status: 'queued'
+        });
+
+        // Start loading high-res version with delay based on network conditions
+        const networkStatus = monitorNetworkStatus();
+        let baseDelay = 1000;
+        let randomDelay = 2000;
+        
+        if (networkStatus === 'slow') {
+            baseDelay = 3000;
+            randomDelay = 5000;
+        } else if (networkStatus === 'fast') {
+            baseDelay = 500;
+            randomDelay = 1000;
+        }
+        
+        setTimeout(() => {
+            loadHighResImage(img, highResSrc, highResProxyUrl, originalSrc);
+        }, Math.random() * randomDelay + baseDelay);
+    }
+
+    function loadHighResImage(img, highResSrc, highResProxyUrl, originalSrc) {
+        const queueItem = progressiveLoadQueue.get(originalSrc);
+        if (!queueItem || queueItem.status !== 'queued') {
+            return;
+        }
+
+        queueItem.status = 'loading';
+
+        // Check if already in cache
+        if (highResImageCache.has(highResSrc)) {
+            img.src = highResProxyUrl;
+            img.dataset.loadedResolution = 'high';
+            progressiveLoadQueue.delete(originalSrc);
+            imageLoadingStats.hits++;
+            
+            // Update any matching cards in the deck display
+            updateDeckImagesWithHighRes(originalSrc, highResProxyUrl);
+            return;
+        }
+
+        // Use deduplicated request
+        loadImageWithDeduplication(highResProxyUrl, highResSrc).then((success) => {
+            if (success && img.parentElement && !img.dataset.replacedByHover) {
+                img.src = highResProxyUrl;
+                img.dataset.loadedResolution = 'high';
+                highResImageCache.add(highResSrc);
+                imageLoadingStats.hits++;
+                
+                // Add subtle transition effect
+                img.style.transition = 'opacity 0.3s ease';
+                img.style.opacity = '0.8';
+                setTimeout(() => {
+                    img.style.opacity = '1';
+                }, 50);
+                
+                // Update any matching cards in the deck display
+                updateDeckImagesWithHighRes(originalSrc, highResProxyUrl);
+            }
+            progressiveLoadQueue.delete(originalSrc);
+        });
+    }
+
+    // Request deduplication to prevent multiple requests for the same image
+    function loadImageWithDeduplication(proxyUrl, originalSrc) {
+        return new Promise((resolve) => {
+            // Check if request is already in progress
+            if (activeRequests.has(originalSrc)) {
+                // Add to existing request's callback list
+                activeRequests.get(originalSrc).callbacks.push(resolve);
+                return;
+            }
+
+            // Create new request
+            const requestInfo = {
+                callbacks: [resolve],
+                image: new Image()
+            };
+
+            activeRequests.set(originalSrc, requestInfo);
+
+            requestInfo.image.onload = () => {
+                // Notify all callbacks
+                requestInfo.callbacks.forEach(callback => callback(true));
+                activeRequests.delete(originalSrc);
+                imageLoadingStats.misses++;
+            };
+
+            requestInfo.image.onerror = () => {
+                console.warn('Image load failed:', originalSrc);
+                requestInfo.callbacks.forEach(callback => callback(false));
+                activeRequests.delete(originalSrc);
+                imageLoadingStats.errors++;
+            };
+
+            requestInfo.image.src = proxyUrl;
+        });
+    }
+
+    // Batch loading system for efficient network usage
+    function addToBatchLoadQueue(originalSrc, priority = 'normal') {
+        batchLoadQueue.add({
+            src: originalSrc,
+            priority: priority,
+            timestamp: Date.now()
+        });
+
+        // Schedule batch processing
+        if (batchLoadTimer) {
+            clearTimeout(batchLoadTimer);
+        }
+
+        batchLoadTimer = setTimeout(processBatchLoad, 100); // Process batch every 100ms
+    }
+
+    function processBatchLoad() {
+        if (batchLoadQueue.size === 0) return;
+
+        const batch = Array.from(batchLoadQueue)
+            .sort((a, b) => {
+                // Sort by priority (high first), then by timestamp (older first)
+                const priorityOrder = { high: 0, normal: 1, low: 2 };
+                const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
+                if (priorityDiff !== 0) return priorityDiff;
+                return a.timestamp - b.timestamp;
+            })
+            .slice(0, 5); // Process up to 5 images at once
+
+        batchLoadQueue.clear();
+
+        // Process the batch
+        batch.forEach(item => {
+            const proxyUrl = getProxyUrl(item.src);
+            loadImageWithDeduplication(proxyUrl, item.src);
+        });
+    }
+
+    // Enhanced caching with size limits and intelligent eviction
+    function manageImageCache() {
+        const maxCacheSize = 200; // Increase cache size for better performance
+        
+        if (highResImageCache.size > maxCacheSize) {
+            // Convert Set to Array for easier manipulation
+            const cacheArray = Array.from(highResImageCache);
+            
+            // Remove oldest 20% of entries (simple FIFO)
+            const toRemove = Math.floor(cacheArray.length * 0.2);
+            for (let i = 0; i < toRemove; i++) {
+                highResImageCache.delete(cacheArray[i]);
+            }
+            
+            console.log(`Cache trimmed: removed ${toRemove} entries, ${highResImageCache.size} remaining`);
+        }
+    }
+
+    // Service Worker registration for persistent caching
+    function registerServiceWorker() {
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/static/js/image-cache-sw.js')
+                .then(registration => {
+                    console.log('Image cache service worker registered:', registration);
+                })
+                .catch(error => {
+                    console.error('Service worker registration failed:', error);
+                });
+        }
+    }
+
+    // Performance monitoring and metrics
+    function getImageLoadingStats() {
+        return {
+            ...imageLoadingStats,
+            cacheSize: highResImageCache.size,
+            queueSize: progressiveLoadQueue.size,
+            activeRequests: activeRequests.size,
+            batchQueueSize: batchLoadQueue.size,
+            progressiveLoadingActive: progressiveLoadQueue.size > 0,
+            cacheHitRate: imageLoadingStats.hits / (imageLoadingStats.hits + imageLoadingStats.misses) || 0,
+            errorRate: imageLoadingStats.errors / (imageLoadingStats.hits + imageLoadingStats.misses + imageLoadingStats.errors) || 0
+        };
+    }
+
+    // Performance monitoring console command
+    window.getImagePerformanceStats = function() {
+        const stats = getImageLoadingStats();
+        console.log('=== Image Loading Performance Stats ===');
+        console.log('Cache Hit Rate:', (stats.cacheHitRate * 100).toFixed(1) + '%');
+        console.log('Error Rate:', (stats.errorRate * 100).toFixed(1) + '%');
+        console.log('Cache Size:', stats.cacheSize);
+        console.log('Active Requests:', stats.activeRequests);
+        console.log('Queue Size:', stats.queueSize);
+        console.log('Batch Queue Size:', stats.batchQueueSize);
+        console.log('Progressive Loading Active:', stats.progressiveLoadingActive);
+        console.log('Raw Stats:', stats);
+        return stats;
+    };
+
+    // Automatic performance monitoring every 30 seconds
+    setInterval(() => {
+        const stats = getImageLoadingStats();
+        if (stats.errorRate > 0.1) { // More than 10% error rate
+            console.warn('High image loading error rate detected:', (stats.errorRate * 100).toFixed(1) + '%');
+        }
+        
+        // Manage cache size
+        manageImageCache();
+    }, 30000);
+
+    // Network status monitoring
+    function monitorNetworkStatus() {
+        if ('connection' in navigator) {
+            const connection = navigator.connection;
+            const networkInfo = {
+                effectiveType: connection.effectiveType,
+                downlink: connection.downlink,
+                rtt: connection.rtt
+            };
+            
+            // Adjust progressive loading based on network conditions
+            if (connection.effectiveType === 'slow-2g' || connection.effectiveType === '2g') {
+                // Reduce progressive loading frequency on slow connections
+                console.log('Slow network detected, reducing progressive loading frequency');
+                return 'slow';
+            } else if (connection.effectiveType === '4g') {
+                // Increase progressive loading on fast connections
+                return 'fast';
+            }
+        }
+        return 'normal';
+    }
+
+    // Mobile high-res loading on tap
+    let isTouchDevice = false;
+
+    function setupMobileImageLoading() {
+        // Check if this is a touch device
+        isTouchDevice = window.matchMedia("(hover: none)").matches || 'ontouchstart' in window;
+        
+        if (!isTouchDevice) {
+            console.log('Not a touch device, skipping mobile image loading setup');
+            return;
+        }
+        
+        console.log('Mobile device detected - high-res images will load when cards are added to deck');
+    }
+
+    function loadHighResForMobile(img) {
+        const originalSrc = img.dataset.originalSrc || img.getAttribute('data-original-src') || img.src;
+        
+        if (!originalSrc || !originalSrc.includes('/cards/') || img.dataset.loadedResolution === 'high') {
+            return;
+        }
+        
+        const highResSrc = originalSrc.replace('/cards/', '/high_res_cards/');
+        const highResProxyUrl = getProxyUrl(highResSrc);
+        
+        // Check if already in cache
+        if (highResImageCache.has(highResSrc)) {
+            img.src = highResProxyUrl;
+            img.dataset.loadedResolution = 'high';
+            
+            // Update any matching cards in the deck display
+            updateDeckImagesWithHighRes(originalSrc, highResProxyUrl);
+            return;
+        }
+        
+        // Load with deduplication (no visual indicators)
+        loadImageWithDeduplication(highResProxyUrl, highResSrc).then((success) => {
+            if (success && img.parentElement) {
+                img.src = highResProxyUrl;
+                img.dataset.loadedResolution = 'high';
+                highResImageCache.add(highResSrc);
+                
+                // Update any matching cards in the deck display
+                updateDeckImagesWithHighRes(originalSrc, highResProxyUrl);
+            }
+        });
+    }
+
+    function updateDeckImagesWithHighRes(originalSrc, highResProxyUrl) {
+        // Find all deck slot images that match the original source
+        const deckContainer = document.getElementById('current-deck');
+        if (!deckContainer) return;
+        
+        const deckImages = deckContainer.querySelectorAll('img[data-original-src]');
+        deckImages.forEach(deckImg => {
+            if (deckImg.dataset.originalSrc === originalSrc && deckImg.dataset.loadedResolution !== 'high') {
+                deckImg.src = highResProxyUrl;
+                deckImg.dataset.loadedResolution = 'high';
+            }
+        });
     }
 
     function loadCards() {
@@ -2157,6 +2522,15 @@
                 const cardContainer = cardItem ? cardItem.querySelector('.position-relative') : null;
 
                 if (cardItem && cardItem.dataset.cardId && cardContainer) {
+                    // Always try to load high-res image when card is tapped (on mobile)
+                    const isMobile = window.matchMedia("(hover: none)").matches;
+                    if (isMobile) {
+                        const img = cardItem.querySelector('img');
+                        if (img && img.dataset.loadedResolution !== 'high') {
+                            loadHighResForMobile(img);
+                        }
+                    }
+                    
                     if (cardContainer.classList.contains('max-copies')) {
                         const cardName = cardItem.dataset.cardName;
                         if (window.showGlobalToast) {
@@ -2298,21 +2672,37 @@
         clearTimeout(highResLoadTimeout);
         zoomContainer.dataset.intendedSrc = highResSrc;
 
+        // Use proxy URLs for both standard and high-res versions
+        const lowResProxyUrl = getProxyUrl(lowResSrc);
+        const highResProxyUrl = getProxyUrl(highResSrc);
+
         if (highResImageCache.has(highResSrc)) {
             // If cached, show high-res instantly.
-            zoomImg.src = highResSrc;
+            zoomImg.src = highResProxyUrl;
         } else {
             // If not cached, show low-res instantly.
-            zoomImg.src = lowResSrc;
+            zoomImg.src = lowResProxyUrl;
             
             // Schedule the high-res download to start after a delay.
             highResLoadTimeout = setTimeout(() => {
                 const highResImage = new Image();
-                highResImage.src = highResSrc;
+                highResImage.src = highResProxyUrl;
                 highResImage.onload = () => {
                     highResImageCache.add(highResSrc);
                     if (zoomContainer.style.display === 'block' && zoomContainer.dataset.intendedSrc === highResSrc) {
-                        zoomImg.src = highResSrc;
+                        zoomImg.src = highResProxyUrl;
+                    }
+                    
+                    // Also update the thumbnail with high-res version
+                    if (hoveredImgElement && hoveredImgElement.parentElement) {
+                        hoveredImgElement.src = highResProxyUrl;
+                        hoveredImgElement.dataset.loadedResolution = 'high';
+                        
+                        // Update any matching cards in the deck display
+                        const originalSrc = hoveredImgElement.dataset.originalSrc || hoveredImgElement.getAttribute('data-original-src');
+                        if (originalSrc) {
+                            updateDeckImagesWithHighRes(originalSrc, highResProxyUrl);
+                        }
                     }
                 };
                 highResImage.onerror = () => {
@@ -2680,6 +3070,7 @@
                 img.className = 'img-fluid rounded';
                 img.setAttribute('data-card-name', card.name);
                 img.setAttribute('data-src', card.display_image_path);
+                img.setAttribute('data-original-src', card.display_image_path); // Store for mobile loading
 
                 cardContainer.appendChild(img);
                 colDiv.appendChild(cardContainer);
@@ -2892,6 +3283,13 @@
             if (clickableContainer) {
                 clickableContainer.classList.add('tapped-mobile');
                 performImmediateStateUpdate();
+                
+                // Load high-res version when card is added to deck on mobile
+                const img = cardItem.querySelector('img');
+                if (img && img.dataset.loadedResolution !== 'high') {
+                    loadHighResForMobile(img);
+                }
+                
                 setTimeout(() => {
                     updateCardStateInCollection(cardId);
                     clickableContainer.classList.remove('tapped-mobile');
@@ -2951,12 +3349,28 @@
                 cardContainer.dataset.highResSrc = highResPath;
 
                 const img = document.createElement('img');
-                // Use the display_image_path of the specific card instance
-                img.src = cardInSlot.display_image_path; 
+                // Check if high-res version is cached and use it if available
+                const highResSrc = cardInSlot.display_image_path.replace('/cards/', '/high_res_cards/');
+                let imgSrc = cardInSlot.display_image_path;
+                
+                if (highResImageCache.has(highResSrc)) {
+                    imgSrc = highResSrc;
+                    img.dataset.loadedResolution = 'high';
+                }
+                
+                // Use the display_image_path of the specific card instance with proxy
+                const proxyUrl = getProxyUrl(imgSrc);
+                img.src = proxyUrl; 
                 img.alt = cardInSlot.name; // Use the name of the specific card instance
                 img.className = 'img-fluid rounded';
                 img.dataset.cardImage = 'true'; // Keep if used elsewhere
+                img.dataset.originalSrc = cardInSlot.display_image_path; // Store original for progressive loading
                 cardContainer.appendChild(img);
+                
+                // Don't auto-load high-res for deck slots - they're already visible
+                // img.onload = () => {
+                //     startProgressiveHighResLoading(img, cardInSlot.display_image_path, cardContainer);
+                // };
 
                 const removeBtn = document.createElement('button');
                 removeBtn.className = 'btn btn-sm btn-danger position-absolute top-0 end-0 m-1 rounded-circle btn-remove';
