@@ -141,9 +141,9 @@
             max-width: calc(100% - 40px); /* More conservative to prevent mobile overflow */
         }
         
-        /* Special scrolling behavior for 2x10 layout only */
+        /* Special scrolling behavior for 2x10 layout only - dynamic based on screen size */
         .cards-container.layout-2x10-container {
-            overflow-x: auto;
+            overflow-x: hidden; /* Default to hidden, will be set by JS based on screen size */
             overflow-y: hidden;
             max-width: calc(100% - 40px); /* Fit within export container with padding */
             width: calc(100% - 40px); /* Take full available width */
@@ -1472,9 +1472,10 @@
             // Apply specific layout
             grid.classList.add('layout-' + layoutType);
             
-            // Add container scrolling for 2x10 layout
+            // Add container classes and apply appropriate overflow settings
             if (layoutType === '2x10') {
                 container.classList.add('layout-2x10-container');
+                // Don't set overflow here - let applyDynamicSizing2x10 handle it based on screen size
                 // Apply dynamic sizing for 2x10 layout
                 setTimeout(() => {
                     applyDynamicSizing2x10();
@@ -1508,15 +1509,15 @@
             const cardsContainerStyle = getComputedStyle(cardsContainer);
             const cardsContainerPadding = parseInt(cardsContainerStyle.paddingLeft) + parseInt(cardsContainerStyle.paddingRight);
             
-            // Available width is container width minus all padding
-            const availableWidth = containerWidth - containerPadding - cardsContainerPadding; // No extra buffer for tight fit
+            // Available width is container width minus all padding with small buffer for precision
+            const availableWidth = containerWidth - containerPadding - cardsContainerPadding - 4; // Small buffer to prevent overflow
             
             // Calculate optimal card size for 10 cards
             const cardCount = 10;
             const minGap = 6;
             const maxGap = 12;
             const minCardWidth = 90;
-            const maxCardWidth = 140;
+            const maxCardWidth = 200;
             
             // Try different card sizes to find the best fit
             let bestCardWidth = minCardWidth;
@@ -1558,30 +1559,35 @@
             cardsContainer.style.maxWidth = `${containerWidth - containerPadding}px`;
             cardsContainer.style.margin = '15px auto';
             
-            // Adjust container behavior based on whether grid fits
-            if (totalGridWidth <= availableWidth) {
-                // Grid fits - center it within the container using flexbox but minimize padding
-                cardsContainer.style.justifyContent = 'center';
-                cardsContainer.style.alignItems = 'center';
-                if (grid) {
-                    grid.style.margin = '0';
-                    grid.style.minWidth = 'fit-content';
-                    grid.style.width = 'fit-content';
-                }
-            } else {
-                // Grid doesn't fit - anchor to left and allow scrolling
+            // Check if we're on a smaller screen (threshold for when to allow scrolling)
+            const isSmallScreen = window.innerWidth < 1200; // Adjust threshold as needed
+            
+            // Adjust container behavior based on screen size and whether grid fits
+            if (isSmallScreen && totalGridWidth > availableWidth) {
+                // Small screen and grid doesn't fit - allow horizontal scrolling
                 cardsContainer.style.justifyContent = 'flex-start';
                 cardsContainer.style.alignItems = 'center';
+                cardsContainer.style.overflowX = 'auto';
+                cardsContainer.style.overflowY = 'hidden';
                 if (grid) {
                     grid.style.margin = '0';
                     grid.style.minWidth = `${totalGridWidth}px`;
                     grid.style.width = `${totalGridWidth}px`;
+                    grid.style.maxWidth = 'none';
+                }
+            } else {
+                // Default/large screen or grid fits - center and no scrolling
+                cardsContainer.style.justifyContent = 'center';
+                cardsContainer.style.alignItems = 'center';
+                cardsContainer.style.overflowX = 'hidden';
+                cardsContainer.style.overflowY = 'hidden';
+                if (grid) {
+                    grid.style.margin = '0';
+                    grid.style.minWidth = 'fit-content';
+                    grid.style.width = 'fit-content';
+                    grid.style.maxWidth = `${availableWidth}px`;
                 }
             }
-            
-            // Ensure container can properly scroll
-            cardsContainer.style.overflowX = 'auto';
-            cardsContainer.style.overflowY = 'hidden';
             
         }
         
@@ -1696,8 +1702,9 @@
             // Use export container width for better calculation
             const exportContainerWidth = document.querySelector('.export-container').offsetWidth;
             
-            // Prefer 2x10 layout if it can reasonably fit (be more generous)
-            if (exportContainerWidth >= layout2x10Width * 0.9) { // 90% threshold for more generous 2x10
+            // Prefer 2x10 layout if it can reasonably fit OR if screen is large enough to handle scrolling
+            const isLargeScreen = window.innerWidth >= 1200;
+            if (exportContainerWidth >= layout2x10Width * 0.9 || isLargeScreen) { // 90% threshold for more generous 2x10
                 // Use 2x10 layout for desktop
                 grid.classList.add('layout-2x10', 'auto-desktop');
                 container.classList.add('layout-2x10-container');
