@@ -490,55 +490,261 @@
         .modal-content {
             background: var(--container-bg);
             color: var(--text-color);
-            padding: 20px;
-            border-radius: 12px;
-            max-width: 400px;
+            padding: 32px;
+            border-radius: 16px;
+            width: 480px;
+            max-width: calc(100vw - 40px);
             margin: 20px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
             border: 1px solid var(--border-color);
         }
         
         .modal-title {
             color: var(--title-color);
-            margin-top: 0;
-            margin-bottom: 20px;
-            font-size: 1.3em;
+            margin: 0 0 28px 0;
+            font-size: 1.6em;
+            font-weight: 700;
+            text-align: center;
         }
         
-        .modal-buttons {
+        .modal-grid {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        
+        .modal-section.full-width {
+            grid-column: 1 / -1;
+        }
+        
+        .modal-section {
+            margin-bottom: 16px;
+            padding: 16px 20px;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            min-height: auto;
             display: flex;
-            gap: 15px;
-            margin: 20px 0;
+            flex-direction: column;
+            justify-content: flex-start;
+            overflow: hidden;
         }
         
-        .modal-buttons .export-button {
-            flex: 1;
+        body.light-theme .modal-section {
+            background: rgba(0, 0, 0, 0.02);
         }
         
-        .modal-cancel {
+        .modal-subtitle {
+            color: var(--text-color);
+            margin: 0 0 6px 0;
+            font-size: 1em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            text-align: center;
+            opacity: 0.9;
+        }
+        
+        .modal-section.full-width .modal-subtitle {
+            margin: 0 0 6px 0;
+        }
+        
+        .modal-section.full-width {
+            padding: 16px 20px;
+        }
+        
+        .modal-button-group {
+            display: flex;
+            gap: 6px;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
             width: 100%;
+        }
+        
+        .modal-option-btn {
+            background: var(--button-bg);
+            color: var(--button-text);
+            border: 2px solid transparent;
+            padding: 12px 24px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-align: center;
+            min-width: 80px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-option-btn:hover {
+            background: var(--button-primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .modal-option-btn.active {
+            background: var(--button-primary);
+            color: var(--button-text);
+            border-color: var(--button-primary);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+            transform: translateY(-1px);
+        }
+        
+        
+        .modal-toggle-group {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 500;
+            padding: 8px 12px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+        
+        .modal-toggle:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .modal-toggle input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--button-primary);
+            cursor: pointer;
+            transition: none;
+        }
+        
+        .modal-toggle input[type="checkbox"]:checked {
+            accent-color: var(--button-primary);
+        }
+        
+        .modal-toggle-label {
+            color: var(--text-color);
+            cursor: pointer;
+        }
+        
+        .modal-toggle.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .modal-toggle.disabled input[type="checkbox"] {
+            cursor: not-allowed;
+        }
+        
+        .modal-toggle.disabled .modal-toggle-label {
+            cursor: not-allowed;
+            color: var(--description-color);
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 16px;
+            margin-top: 28px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .modal-action-btn {
+            flex: 1;
+            background: var(--button-bg);
+            color: var(--button-text);
+            border: none;
+            padding: 16px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.95em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            min-width: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .modal-action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .modal-action-btn.primary {
+            background: var(--button-primary);
+            font-weight: 700;
+        }
+        
+        .modal-action-btn.primary:hover {
+            background: #4a90e2;
+            box-shadow: 0 6px 16px rgba(74, 144, 226, 0.4);
+        }
+        
+        .modal-action-btn:disabled {
+            background: var(--button-bg);
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
         }
         
         @media (max-width: 800px) {
             .modal-content {
                 margin: 10px;
-                padding: 15px;
+                padding: 18px;
                 max-width: calc(100% - 20px);
+                width: auto;
             }
             
             .modal-title {
-                font-size: 1.1em;
-                margin-bottom: 15px;
+                font-size: 1.2em;
+                margin-bottom: 16px;
             }
             
-            .modal-buttons {
-                gap: 10px;
-                margin: 15px 0;
+            .modal-grid {
+                grid-template-columns: 1fr;
+                gap: 14px;
+                margin-bottom: 16px;
             }
             
-            .modal-buttons .export-button {
-                padding: 12px 8px;
-                font-size: 12px;
+            .modal-toggle-group {
+                gap: 12px;
+            }
+            
+            .modal-option-btn {
+                padding: 10px 12px;
+                font-size: 0.85em;
+            }
+            
+            .modal-action-btn {
+                padding: 12px 14px;
+                font-size: 0.85em;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .modal-button-group {
+                flex-direction: column;
+                gap: 6px;
+            }
+            
+            .modal-option-btn {
+                padding: 12px 16px;
+                font-size: 0.9em;
             }
         }
         
@@ -588,55 +794,69 @@
                     Light
                 </button>
             </div>
-            <div class="toggle-group">
-                <span class="toggle-label">Quality:</span>
-                <button class="toggle-button" id="quality-standard" onclick="toggleQuality('standard')">
-                    Standard
-                </button>
-                <button class="toggle-button active" id="quality-high" onclick="toggleQuality('high')">
-                    High
-                </button>
-                <button class="toggle-button" id="quality-ultra" onclick="toggleQuality('ultra')">
-                    Ultra
-                </button>
-            </div>
-            <div class="toggle-group">
-                <span class="toggle-label">Export Format:</span>
-                <button class="toggle-button" id="export-2x10" onclick="toggleExportFormat('2x10')">
-                    2×10
-                </button>
-                <button class="toggle-button active" id="export-5x4" onclick="toggleExportFormat('5x4')">
-                    5×4
-                </button>
-            </div>
         </div>
         <button id="downloadBtn" class="export-button primary" onclick="showDownloadOptions()">
             📷 Download Image
         </button>
-        <button id="cancelBtn" class="export-button" onclick="cancelDownload()" style="display: none;">
+        <button id="cancelBtn" class="export-button" onclick="cancelDownload()" style="display: none; background-color: #e74c3c; color: white; margin-left: 10px;">
             ✖️ Cancel
-        </button>
-        <button class="export-button" onclick="window.close()">
-            ✖️ Close
-        </button>
-        <button class="export-button" onclick="toggleDebugMode()" id="debugToggle">
-            🐛 Debug
         </button>
         
         <div id="downloadModal" class="download-modal" style="display: none;">
             <div class="modal-content">
-                <h3 class="modal-title">Choose Download Format</h3>
-                <div class="modal-buttons">
-                    <button class="export-button primary" onclick="downloadWithFormat('2x10')">
-                        📷 2×10 Layout
+                <h3 class="modal-title">Download Options</h3>
+                
+                <div class="modal-grid">
+                    <div class="modal-section">
+                        <h4 class="modal-subtitle">Quality</h4>
+                        <div class="modal-button-group">
+                            <button class="modal-option-btn" id="modal-quality-standard" onclick="selectModalQuality('standard')">
+                                Standard
+                            </button>
+                            <button class="modal-option-btn" id="modal-quality-high" onclick="selectModalQuality('high')">
+                                High
+                            </button>
+                            <button class="modal-option-btn" id="modal-quality-ultra" onclick="selectModalQuality('ultra')">
+                                Ultra
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-section">
+                        <h4 class="modal-subtitle">Format</h4>
+                        <div class="modal-button-group">
+                            <button class="modal-option-btn" id="modal-format-2x10" onclick="selectModalFormat('2x10')">
+                                2×10
+                            </button>
+                            <button class="modal-option-btn" id="modal-format-5x4" onclick="selectModalFormat('5x4')">
+                                5×4
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-section full-width">
+                    <h4 class="modal-subtitle">Include</h4>
+                    <div class="modal-toggle-group">
+                        <label class="modal-toggle">
+                            <input type="checkbox" id="modal-include-title" checked>
+                            <span class="modal-toggle-label">Title & Info</span>
+                        </label>
+                        <label class="modal-toggle">
+                            <input type="checkbox" id="modal-include-description" checked>
+                            <span class="modal-toggle-label">Description</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="modal-actions">
+                    <button class="modal-action-btn primary" id="modal-download-btn" onclick="downloadWithSelectedOptions()" disabled>
+                        📷 Download
                     </button>
-                    <button class="export-button primary" onclick="downloadWithFormat('5x4')">
-                        📷 5×4 Layout
+                    <button class="modal-action-btn" onclick="hideDownloadOptions()">
+                        Cancel
                     </button>
                 </div>
-                <button class="export-button modal-cancel" onclick="hideDownloadOptions()">
-                    Cancel
-                </button>
             </div>
         </div>
     </div>
@@ -683,7 +903,7 @@
                             {% else %}
                                 {% set proxy_url = image_url or 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTEwIiBoZWlnaHQ9IjE1NCIgdmlld0JveD0iMCAwIDExMCAxNTQiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJhIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMCI+PHN0b3Agc3RvcC1jb2xvcj0iIzM0NDk1ZSIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzJjM2U1MCIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMTAiIGhlaWdodD0iMTU0IiBmaWxsPSJ1cmwoI2EpIiByeD0iNiIvPjx0ZXh0IHg9IjU1IiB5PSI3NyIgZmlsbD0iIzk1YTVhNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkNhcmQ8L3RleHQ+PC9zdmc+' %}
                             {% endif %}
-                            <img src="{{ proxy_url }}" 
+                            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTEwIiBoZWlnaHQ9IjE1NCIgdmlld0JveD0iMCAwIDExMCAxNTQiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJhIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMCI+PHN0b3Agc3RvcC1jb2xvcj0iIzM0NDk1ZSIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzJjM2U1MCIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMTAiIGhlaWdodD0iMTU0IiBmaWxsPSJ1cmwoI2EpIiByeD0iNiIvPjx0ZXh0IHg9IjU1IiB5PSI3NyIgZmlsbD0iIzk1YTVhNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkxvYWRpbmcuLi48L3RleHQ+PC9zdmc+" 
                                  alt="{{ card.name }}" 
                                  class="card-image"
                                  title="{{ card.name }}"
@@ -734,48 +954,6 @@
         window.selectedExportFormat = '5x4'; // Default export format
         window.exportLibraryStatus = 'loading';
         window.currentDownloadProcess = null; // Track current download for cancellation
-        window.debugMode = false; // Enable verbose logging when needed
-        
-        // Debug mode toggle
-        window.toggleDebugMode = function toggleDebugMode() {
-            window.debugMode = !window.debugMode;
-            const debugBtn = document.getElementById('debugToggle');
-            if (debugBtn) {
-                debugBtn.textContent = window.debugMode ? '🐛 Debug ON' : '🐛 Debug';
-                debugBtn.style.backgroundColor = window.debugMode ? '#e74c3c' : '';
-            }
-            console.log('Debug mode:', window.debugMode ? 'ON' : 'OFF');
-            
-            if (window.debugMode) {
-                console.log('=== DEBUG INFO ===');
-                console.log('Export library status:', window.exportLibraryStatus);
-                console.log('html2canvas available:', typeof html2canvas);
-                console.log('All images loaded:', allImagesLoaded);
-                console.log('Current download process:', window.currentDownloadProcess);
-                console.log('Selected quality:', window.selectedQuality);
-                console.log('Selected export format:', window.selectedExportFormat);
-                console.log('User layout preference:', window.userLayoutPreference);
-                
-                // Show cache statistics
-                getServiceWorkerCacheStats().then(stats => {
-                    console.log('Service Worker Cache Stats:', stats);
-                }).catch(error => {
-                    console.log('Service Worker Cache Stats: Not available');
-                });
-                
-                // Show server-side cache stats
-                fetch('/api/proxy-image-stats')
-                    .then(response => response.json())
-                    .then(data => {
-                        console.log('Server-side Cache Stats:', data);
-                    })
-                    .catch(error => {
-                        console.log('Server-side Cache Stats: Not available');
-                    });
-                
-                console.log('==================');
-            }
-        }
         
         // Initialize UI state
         function initializeUI() {
@@ -789,6 +967,7 @@
             
             if (cancelBtn) {
                 cancelBtn.style.display = 'none';
+                cancelBtn.style.visibility = 'hidden';
                 cancelBtn.textContent = '✖️ Cancel';
             }
         }
@@ -802,14 +981,18 @@
                 downloadBtn.disabled = false;
                 downloadBtn.textContent = '📷 Download Image';
                 downloadBtn.style.display = 'inline-block';
+                downloadBtn.style.visibility = 'visible';
             }
             
             if (cancelBtn) {
                 cancelBtn.style.display = 'none';
+                cancelBtn.style.visibility = 'hidden';
                 cancelBtn.textContent = '✖️ Cancel';
+                console.log('Cancel button should now be hidden');
             }
             
             window.currentDownloadProcess = null;
+            console.log('UI reset complete');
         }
         
         // Quality settings function - defined early to avoid temporal dead zone
@@ -823,7 +1006,7 @@
             return settings[quality] || settings.high;
         }
         
-        // Wait for all images to load before allowing download
+        // Wait for all images to load before allowing download (legacy function - now uses loadAllImagesWithProxy)
         function checkAllImagesLoaded() {
             const images = document.querySelectorAll('.card-image');
             const energyImages = document.querySelectorAll('.energy-badge');
@@ -858,7 +1041,7 @@
             }
             
             // Set initial button state
-            document.getElementById('downloadBtn').textContent = '⏳ Loading Images...';
+            document.getElementById('downloadBtn').textContent = '⏳ Loading High-Res Images...';
             document.getElementById('downloadBtn').disabled = true;
             
             // Check all images including energy badges
@@ -879,24 +1062,147 @@
                     document.getElementById('downloadBtn').disabled = false;
                     document.getElementById('downloadBtn').focus();
                 }
-            }, 10000); // 10 second timeout
+            }, 15000); // 15 second timeout (increased for high-res loading)
         }
         
-        // Initial check after page load
+        // Initial check after page load - now handled in DOMContentLoaded
         window.addEventListener('load', function() {
-            // Wait a bit for high-res images to load
-            setTimeout(checkAllImagesLoaded, 1000);
+            // Image loading now handled in DOMContentLoaded for faster startup
         });
 
         // New download functions for format selection
         window.showDownloadOptions = function showDownloadOptions() {
-            // Skip modal and directly download using selected export format
-            downloadWithFormat(window.selectedExportFormat);
+            // Show modal for quality and format selection
+            const modal = document.getElementById('downloadModal');
+            modal.style.display = 'flex';
+            
+            // Reset modal selections
+            resetModalSelections();
+            
+            // Check if description exists and disable toggle if needed
+            updateDescriptionToggle();
         }
         
         window.hideDownloadOptions = function hideDownloadOptions() {
             const modal = document.getElementById('downloadModal');
             modal.style.display = 'none';
+        }
+        
+        // Modal selection variables
+        let selectedModalQuality = null;
+        let selectedModalFormat = null;
+        
+        function resetModalSelections() {
+            selectedModalQuality = null;
+            selectedModalFormat = null;
+            
+            // Reset button states
+            document.querySelectorAll('#downloadModal .modal-option-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Reset checkboxes to default
+            document.getElementById('modal-include-title').checked = true;
+            document.getElementById('modal-include-description').checked = true;
+            
+            // Disable download button
+            document.getElementById('modal-download-btn').disabled = true;
+        }
+        
+        window.selectModalQuality = function selectModalQuality(quality) {
+            selectedModalQuality = quality;
+            
+            // Update button states
+            document.querySelectorAll('[id^="modal-quality-"]').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById('modal-quality-' + quality).classList.add('active');
+            
+            // Check if we can enable download
+            updateModalDownloadButton();
+        }
+        
+        window.selectModalFormat = function selectModalFormat(format) {
+            selectedModalFormat = format;
+            
+            // Update button states
+            document.querySelectorAll('[id^="modal-format-"]').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById('modal-format-' + format).classList.add('active');
+            
+            // Check if we can enable download
+            updateModalDownloadButton();
+        }
+        
+        function updateModalDownloadButton() {
+            const downloadBtn = document.getElementById('modal-download-btn');
+            if (selectedModalQuality && selectedModalFormat) {
+                downloadBtn.disabled = false;
+                downloadBtn.textContent = `📷 Download`;
+            } else {
+                downloadBtn.disabled = true;
+                downloadBtn.textContent = '📷 Download';
+            }
+        }
+        
+        function updateDescriptionToggle() {
+            const descriptionElement = document.querySelector('.deck-description');
+            const descriptionToggle = document.querySelector('.modal-toggle:has(#modal-include-description)');
+            const descriptionCheckbox = document.getElementById('modal-include-description');
+            
+            // Check if description exists and has meaningful content
+            let hasDescription = false;
+            if (descriptionElement) {
+                const descText = descriptionElement.textContent.trim();
+                // Check if there's content beyond just "Description:"
+                if (descText.includes('Description:')) {
+                    const contentAfterLabel = descText.replace('Description:', '').trim();
+                    hasDescription = contentAfterLabel.length > 0;
+                } else if (descText.length > 0) {
+                    hasDescription = true;
+                }
+            }
+            
+            if (!hasDescription) {
+                // No description - disable the toggle
+                if (descriptionToggle) {
+                    descriptionToggle.classList.add('disabled');
+                }
+                if (descriptionCheckbox) {
+                    descriptionCheckbox.disabled = true;
+                    descriptionCheckbox.checked = false;
+                }
+                console.log('Description toggle disabled - no description found');
+            } else {
+                // Description exists - enable the toggle
+                if (descriptionToggle) {
+                    descriptionToggle.classList.remove('disabled');
+                }
+                if (descriptionCheckbox) {
+                    descriptionCheckbox.disabled = false;
+                    descriptionCheckbox.checked = true;
+                }
+                console.log('Description toggle enabled - description found');
+            }
+        }
+        
+        window.downloadWithSelectedOptions = function downloadWithSelectedOptions() {
+            if (!selectedModalQuality || !selectedModalFormat) {
+                alert('Please select both quality and format options.');
+                return;
+            }
+            
+            // Set the quality for the download
+            window.selectedQuality = selectedModalQuality;
+            
+            // Get include options
+            const includeTitle = document.getElementById('modal-include-title').checked;
+            const includeDescription = document.getElementById('modal-include-description').checked;
+            
+            // Hide modal and start download
+            hideDownloadOptions();
+            downloadWithFormatAndOptions(selectedModalFormat, includeTitle, includeDescription);
         }
         
         window.cancelDownload = function cancelDownload() {
@@ -905,13 +1211,27 @@
                 console.log('Download cancelled by user');
             }
             
-            // Reset UI
-            resetUI();
-            hideDownloadOptions();
+            // Show cancellation feedback
+            const cancelBtn = document.getElementById('cancelBtn');
+            if (cancelBtn) {
+                cancelBtn.textContent = '✖️ Cancelling...';
+                cancelBtn.disabled = true;
+            }
+            
+            // Reset UI after brief delay
+            setTimeout(() => {
+                resetUI();
+                hideDownloadOptions();
+            }, 500);
         }
         
         window.downloadWithFormat = async function downloadWithFormat(format) {
-            console.log('Starting download with format:', format);
+            // Legacy function - redirect to new function with default options
+            await downloadWithFormatAndOptions(format, true, true);
+        }
+        
+        window.downloadWithFormatAndOptions = async function downloadWithFormatAndOptions(format, includeTitle, includeDescription) {
+            console.log('Starting download with format:', format, 'includeTitle:', includeTitle, 'includeDescription:', includeDescription);
             
             // Hide modal and show cancel button
             hideDownloadOptions();
@@ -919,20 +1239,33 @@
             const cancelBtn = document.getElementById('cancelBtn');
             
             if (downloadBtn) {
-                downloadBtn.style.display = 'none';
                 downloadBtn.disabled = true;
+                downloadBtn.textContent = '⏳ Generating...';
+                downloadBtn.style.display = 'inline-block';
+                downloadBtn.style.visibility = 'visible';
             }
             
             if (cancelBtn) {
                 cancelBtn.style.display = 'inline-block';
+                cancelBtn.style.visibility = 'visible';
+                cancelBtn.disabled = false;
                 cancelBtn.textContent = '✖️ Cancel';
+                console.log('Cancel button should now be visible');
             }
             
             // Create download process tracker
             window.currentDownloadProcess = { cancelled: false };
             
+            // Small delay to ensure UI updates before starting download
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Update cancel button to show progress
+            if (cancelBtn) {
+                cancelBtn.textContent = '✖️ Cancel';
+            }
+            
             try {
-                await downloadAsImage(format);
+                await downloadAsImage(format, includeTitle, includeDescription);
             } catch (error) {
                 console.error('Download with format failed:', error);
                 // Error handling is done in downloadAsImage
@@ -942,7 +1275,7 @@
             }
         }
         
-        async function downloadAsImage(downloadFormat) {
+        async function downloadAsImage(downloadFormat, includeTitle = true, includeDescription = true) {
             if (!allImagesLoaded) {
                 alert('Please wait for all images to load before downloading.');
                 return;
@@ -951,9 +1284,6 @@
                 alert('Image export library failed to load. Please refresh the page and try again.');
                 return;
             }
-        
-            const cancelBtn = document.getElementById('cancelBtn');
-            cancelBtn.textContent = '⏳ Preparing...';
         
             const sourceElement = document.getElementById('deck-export');
             const clone = sourceElement.cloneNode(true);
@@ -973,30 +1303,83 @@
                 if (document.body.classList.contains('light-theme')) {
                     clone.classList.add('light-theme');
                 }
+                
+                // Handle title and description visibility
+                if (!includeTitle) {
+                    const deckHeader = clone.querySelector('.deck-header');
+                    if (deckHeader) {
+                        deckHeader.style.display = 'none';
+                    }
+                }
+                
+                if (!includeDescription) {
+                    const deckDescription = clone.querySelector('.deck-description');
+                    if (deckDescription) {
+                        deckDescription.style.display = 'none';
+                    }
+                }
         
                 const qualitySettings = getQualitySettings();
                 const currentTheme = document.body.classList.contains('light-theme') ? 'light' : 'dark';
                 const bgColor = currentTheme === 'light' ? '#ffffff' : getComputedStyle(sourceElement).backgroundColor;
         
-                cancelBtn.textContent = '⏳ Generating Image...';
-                
                 // Brief delay to allow the browser to apply styles to the off-screen clone
                 await new Promise(resolve => setTimeout(resolve, 100));
         
                 if (window.currentDownloadProcess?.cancelled) {
                      console.log('Download cancelled before capture.');
-                     return;
+                     throw new Error('Download cancelled');
                 }
         
-                const canvas = await html2canvas(clone, {
-                    scale: qualitySettings.scale,
-                    useCORS: true,
-                    backgroundColor: bgColor,
-                    logging: window.debugMode,
-                    imageTimeout: qualitySettings.timeout,
+                // Update progress
+                const downloadBtn = document.getElementById('downloadBtn');
+                if (downloadBtn) {
+                    downloadBtn.textContent = '🖼️ Capturing...';
+                }
+        
+                // Create a cancellable html2canvas promise
+                const canvas = await new Promise((resolve, reject) => {
+                    // Check for cancellation before starting
+                    if (window.currentDownloadProcess?.cancelled) {
+                        reject(new Error('Download cancelled'));
+                        return;
+                    }
+                    
+                    html2canvas(clone, {
+                        scale: qualitySettings.scale,
+                        useCORS: true,
+                        backgroundColor: bgColor,
+                        logging: false,
+                        imageTimeout: qualitySettings.timeout,
+                    }).then(canvas => {
+                        // Check for cancellation after completion
+                        if (window.currentDownloadProcess?.cancelled) {
+                            reject(new Error('Download cancelled'));
+                            return;
+                        }
+                        resolve(canvas);
+                    }).catch(reject);
                 });
         
+                // Check for cancellation after html2canvas completes
+                if (window.currentDownloadProcess?.cancelled) {
+                    console.log('Download cancelled after image generation.');
+                    throw new Error('Download cancelled');
+                }
+        
+                // Update progress
+                if (downloadBtn) {
+                    downloadBtn.textContent = '💾 Saving...';
+                }
+        
                 const dataUrl = canvas.toDataURL('image/png', 1.0);
+                
+                // Check for cancellation before starting download
+                if (window.currentDownloadProcess?.cancelled) {
+                    console.log('Download cancelled before file download.');
+                    throw new Error('Download cancelled');
+                }
+                
                 const deckName = '{{ deck.name|replace(" ", "_")|replace(".", "") }}';
         
                 const a = document.createElement('a');
@@ -1008,8 +1391,13 @@
                 URL.revokeObjectURL(a.href);
         
             } catch (error) {
-                console.error('Failed to generate image:', error);
-                alert('An error occurred while generating the image. Check the console for details.');
+                if (error.message === 'Download cancelled') {
+                    console.log('Download was cancelled by user');
+                    // Don't show an error for cancellation
+                } else {
+                    console.error('Failed to generate image:', error);
+                    alert('An error occurred while generating the image. Check the console for details.');
+                }
             } finally {
                 cleanupClone(); // Always remove the clone
             }
@@ -1019,10 +1407,6 @@
         window.userLayoutPreference = 'auto'; // 'auto' = automatic, '2x10' = force 2x10, '5x4' = force 5x4
         
         window.toggleLayout = function toggleLayout(layout) {
-            if (window.debugMode) {
-                console.log('=== LAYOUT DEBUG ===');
-                console.log('User selected layout:', layout);
-            }
             
             try {
                 const buttons = document.querySelectorAll('#layout-auto, #layout-2x10, #layout-5x4');
@@ -1034,31 +1418,12 @@
                 
                 if (layout === 'auto') {
                     // Enable automatic layout detection
-                    if (window.debugMode) {
-                        console.log('Enabling automatic layout detection');
-                    }
                     checkAndApplyAutoLayout();
                 } else {
                     // Apply specific forced layout
                     applySpecificLayout(layout);
                 }
                 
-                if (window.debugMode) {
-                    console.log(`${layout} layout activated`);
-                }
-            
-                // Debug grid dimensions
-                if (window.debugMode) {
-                    setTimeout(() => {
-                        const grid = document.getElementById('cards-grid');
-                        console.log('Grid dimensions after layout change:');
-                        console.log('Width:', grid.offsetWidth);
-                        console.log('Height:', grid.offsetHeight);
-                        console.log('Computed style width:', window.getComputedStyle(grid).width);
-                        console.log('Computed style max-width:', window.getComputedStyle(grid).maxWidth);
-                        console.log('Grid classes:', grid.className);
-                    }, 100);
-                }
                 
             } catch (error) {
                 console.error('Error in toggleLayout:', error);
@@ -1125,9 +1490,6 @@
                 }, 50);
             }
             
-            if (window.debugMode) {
-                console.log(`Applied specific layout: ${layoutType}`);
-            }
         }
         
         // Dynamic sizing function for 2x10 layout to perfectly fit the screen
@@ -1221,9 +1583,6 @@
             cardsContainer.style.overflowX = 'auto';
             cardsContainer.style.overflowY = 'hidden';
             
-            if (window.debugMode) {
-                console.log(`Dynamic sizing applied: ${bestCardWidth}px cards, ${bestGap}px gap, total width: ${(cardCount * bestCardWidth) + ((cardCount - 1) * bestGap)}px, available: ${availableWidth}px`);
-            }
         }
         
         // Dynamic sizing function for 5x4 layout to maintain compact appearance like 2x10
@@ -1307,10 +1666,6 @@
             cardsContainer.style.overflowX = 'hidden'; // No horizontal scrolling for 5x4
             cardsContainer.style.overflowY = 'hidden';
             
-            if (window.debugMode) {
-                console.log(`5x4 Dynamic sizing applied: ${bestCardWidth}px cards, ${bestGap}px gap, total width: ${totalGridWidth}px, available: ${availableWidth}px`);
-                console.log(`Container: ${containerWidth}px, padding: ${containerPadding}px, buffer: ${mobileBuffer}px, final max-width: ${containerWidth - containerPadding - mobileBuffer}px`);
-            }
         }
         
         function checkAndApplyAutoLayout() {
@@ -1327,12 +1682,6 @@
             const layout2x10Width = (10 * 110) + (9 * 8) + (2 * 40); // cards + gaps + container padding (more generous)
             const layout5x4Width = (4 * 110) + (3 * 8) + (2 * 40);   // cards + gaps + container padding
             
-            if (window.debugMode) {
-                console.log('Auto-check - Container width:', containerWidth);
-                console.log('Export container width:', document.querySelector('.export-container').offsetWidth);
-                console.log('2x10 required width:', layout2x10Width);
-                console.log('5x4 required width:', layout5x4Width);
-            }
             
             // Remove all layout classes
             grid.classList.remove('layout-2x10', 'layout-5x4', 'auto-mobile', 'auto-desktop');
@@ -1356,9 +1705,6 @@
                 setTimeout(() => {
                     applyDynamicSizing2x10();
                 }, 50);
-                if (window.debugMode) {
-                    console.log('Auto-selected 2x10 layout (desktop) - export container width:', exportContainerWidth);
-                }
             } else {
                 // Use 5x4 layout for mobile - reset any dynamic sizing first
                 const cardSlots = document.querySelectorAll('.card-slot');
@@ -1391,9 +1737,6 @@
                 setTimeout(() => {
                     applyDynamicSizing5x4();
                 }, 50);
-                if (window.debugMode) {
-                    console.log('Auto-selected 5x4 layout (mobile) - export container width:', exportContainerWidth);
-                }
             }
         }
         
@@ -1500,9 +1843,15 @@
             }
         }
         
-        // Progressive image loading system
+        // High-resolution first image loading system
         async function loadAllImagesWithProxy() {
-            console.log('Loading all images through proxy...');
+            // Prevent duplicate loading
+            if (allImagesLoaded) {
+                console.log('Images already loaded, skipping duplicate load');
+                return;
+            }
+            
+            console.log('Loading all images with high-res priority...');
             const images = document.querySelectorAll('.card-image');
             const energyIcons = document.querySelectorAll('.energy-badge');
             
@@ -1512,20 +1861,20 @@
             
             const downloadBtn = document.getElementById('downloadBtn');
             downloadBtn.disabled = true;
-            downloadBtn.textContent = '⏳ Loading Standard Images...';
+            downloadBtn.textContent = '⏳ Loading High-Res Images...';
             
-            // Phase 1: Load standard resolution images in parallel for immediate UI responsiveness
-            console.log('Phase 1: Loading standard resolution images...');
-            await loadStandardResolutionImages(images, energyIcons);
+            // Load high-resolution images first (with fallback to standard)
+            console.log('Loading high-resolution images (with fallback to standard)...');
+            await loadHighResolutionImages(images, energyIcons);
             
-            // Enable download button after standard images are loaded
+            // Enable download button only after all images are loaded with best quality
             downloadBtn.disabled = false;
-            downloadBtn.textContent = '📷 Download Image (Standard)';
+            downloadBtn.textContent = '📷 Download Image';
             downloadBtn.focus();
-            console.log('Standard resolution images loaded - download enabled');
+            console.log('All images loaded with best available quality - download enabled');
             allImagesLoaded = true;
             
-            // Apply layout after standard images are loaded
+            // Apply layout after images are loaded
             setTimeout(() => {
                 if (window.userLayoutPreference === 'auto') {
                     checkAndApplyAutoLayout();
@@ -1533,45 +1882,32 @@
                     applyDynamicSizing5x4();
                 }
             }, 100);
-            
-            // Phase 2: Upgrade to high-resolution images in background
-            console.log('Phase 2: Upgrading to high-resolution images...');
-            downloadBtn.textContent = '📷 Download Image (Upgrading...)';
-            
-            try {
-                await upgradeToHighResolution(images);
-                downloadBtn.textContent = '📷 Download Image (High-Res)';
-                console.log('High-resolution images loaded successfully');
-            } catch (error) {
-                console.error('Error upgrading to high-resolution:', error);
-                downloadBtn.textContent = '📷 Download Image (Standard)';
-            }
         }
         
-        // Load standard resolution images first
-        async function loadStandardResolutionImages(images, energyIcons) {
-            const standardPromises = [];
+        // Load high-resolution images first with fallback to standard
+        async function loadHighResolutionImages(images, energyIcons) {
+            const imagePromises = [];
             let loadedCount = 0;
             const totalImages = images.length + energyIcons.length;
             
-            function updateStandardProgress() {
+            function updateProgress() {
                 loadedCount++;
                 const percentage = Math.round((loadedCount / totalImages) * 100);
                 const downloadBtn = document.getElementById('downloadBtn');
-                downloadBtn.textContent = `⏳ Loading Standard... ${percentage}%`;
-                console.log(`Standard loading progress: ${loadedCount}/${totalImages} (${percentage}%)`);
+                downloadBtn.textContent = `⏳ Loading High-Res Images... ${percentage}%`;
+                console.log(`High-res loading progress: ${loadedCount}/${totalImages} (${percentage}%)`);
             }
             
-            // Load standard resolution card images
+            // Load high-resolution card images (with fallback to standard)
             images.forEach(img => {
                 const originalSrc = img.getAttribute('data-original-src');
                 if (originalSrc && (originalSrc.includes('storage.googleapis.com') || originalSrc.includes('firebasestorage.googleapis.com'))) {
-                    const promise = loadStandardImage(img, originalSrc).then(() => {
-                        updateStandardProgress();
+                    const promise = loadBestAvailableImage(img, originalSrc).then(() => {
+                        updateProgress();
                     });
-                    standardPromises.push(promise);
+                    imagePromises.push(promise);
                 } else {
-                    updateStandardProgress();
+                    updateProgress();
                 }
             });
             
@@ -1580,103 +1916,52 @@
                 const originalSrc = icon.getAttribute('data-original-src');
                 if (originalSrc && (originalSrc.includes('storage.googleapis.com') || originalSrc.includes('firebasestorage.googleapis.com'))) {
                     const promise = loadEnergyIcon(icon, originalSrc).then(() => {
-                        updateStandardProgress();
+                        updateProgress();
                     });
-                    standardPromises.push(promise);
+                    imagePromises.push(promise);
                 } else {
-                    updateStandardProgress();
+                    updateProgress();
                 }
             });
             
-            await Promise.all(standardPromises);
+            await Promise.all(imagePromises);
         }
         
-        // Load standard resolution image
-        function loadStandardImage(img, originalSrc) {
+        // Load best available image (high-res first, fallback to standard)
+        function loadBestAvailableImage(img, originalSrc) {
             return new Promise((resolve) => {
-                const regularProxy = `/api/proxy-image?url=${encodeURIComponent(originalSrc)}`;
-                
-                const testImg = new Image();
-                testImg.onload = function() {
-                    img.src = regularProxy;
-                    img.dataset.loadedResolution = 'standard';
-                    if (window.debugMode) {
-                        console.log('Loaded standard res for:', img.alt);
-                    }
-                    resolve();
-                };
-                testImg.onerror = function() {
-                    // Use placeholder if standard loading fails
-                    img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTEwIiBoZWlnaHQ9IjE1NCIgdmlld0JveD0iMCAwIDExMCAxNTQiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJhIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMCI+PHN0b3Agc3RvcC1jb2xvcj0iIzM0NDk1ZSIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzJjM2U1MCIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMTAiIGhlaWdodD0iMTU0IiBmaWxsPSJ1cmwoI2EpIiByeD0iNiIvPjx0ZXh0IHg9IjU1IiB5PSI3NyIgZmlsbD0iIzk1YTVhNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkNhcmQ8L3RleHQ+PC9zdmc+';
-                    img.dataset.loadedResolution = 'placeholder';
-                    if (window.debugMode) {
-                        console.log('Used placeholder for:', img.alt);
-                    }
-                    resolve();
-                };
-                testImg.src = regularProxy;
-            });
-        }
-        
-        // Upgrade to high-resolution images
-        async function upgradeToHighResolution(images) {
-            const upgradePromises = [];
-            let upgradedCount = 0;
-            const imagesToUpgrade = Array.from(images).filter(img => {
-                const originalSrc = img.getAttribute('data-original-src');
-                return originalSrc && (originalSrc.includes('storage.googleapis.com') || originalSrc.includes('firebasestorage.googleapis.com'));
-            });
-            
-            function updateUpgradeProgress() {
-                upgradedCount++;
-                const percentage = Math.round((upgradedCount / imagesToUpgrade.length) * 100);
-                const downloadBtn = document.getElementById('downloadBtn');
-                downloadBtn.textContent = `📷 Download Image (Upgrading... ${percentage}%)`;
-                console.log(`High-res upgrade progress: ${upgradedCount}/${imagesToUpgrade.length} (${percentage}%)`);
-            }
-            
-            imagesToUpgrade.forEach(img => {
-                const originalSrc = img.getAttribute('data-original-src');
-                const promise = upgradeImageToHighRes(img, originalSrc).then(() => {
-                    updateUpgradeProgress();
-                });
-                upgradePromises.push(promise);
-            });
-            
-            await Promise.all(upgradePromises);
-        }
-        
-        // Upgrade individual image to high-resolution
-        function upgradeImageToHighRes(img, originalSrc) {
-            return new Promise((resolve) => {
-                // Skip if already high-res
-                if (img.dataset.loadedResolution === 'high') {
-                    resolve();
-                    return;
-                }
-                
+                // Try high-res first
                 const highResSrc = originalSrc.replace('/cards/', '/high_res_cards/');
                 const highResProxy = `/api/proxy-image?url=${encodeURIComponent(highResSrc)}`;
                 
-                const testImg = new Image();
-                testImg.onload = function() {
+                const testHighRes = new Image();
+                testHighRes.onload = function() {
                     img.src = highResProxy;
                     img.dataset.loadedResolution = 'high';
-                    if (window.debugMode) {
-                        console.log('Upgraded to high-res for:', img.alt);
-                    }
                     resolve();
                 };
-                testImg.onerror = function() {
-                    // Keep standard resolution if high-res fails
-                    if (window.debugMode) {
-                        console.log('High-res upgrade failed for:', img.alt, 'keeping standard');
-                    }
-                    resolve();
+                testHighRes.onerror = function() {
+                    // Fallback to standard resolution
+                    const standardProxy = `/api/proxy-image?url=${encodeURIComponent(originalSrc)}`;
+                    
+                    const testStandard = new Image();
+                    testStandard.onload = function() {
+                        img.src = standardProxy;
+                        img.dataset.loadedResolution = 'standard';
+                        resolve();
+                    };
+                    testStandard.onerror = function() {
+                        // Use placeholder if both fail
+                        img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTEwIiBoZWlnaHQ9IjE1NCIgdmlld0JveD0iMCAwIDExMCAxNTQiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJhIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMCI+PHN0b3Agc3RvcC1jb2xvcj0iIzM0NDk1ZSIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzJjM2U1MCIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMTAiIGhlaWdodD0iMTU0IiBmaWxsPSJ1cmwoI2EpIiByeD0iNiIvPjx0ZXh0IHg9IjU1IiB5PSI3NyIgZmlsbD0iIzk1YTVhNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkNhcmQ8L3RleHQ+PC9zdmc+';
+                        img.dataset.loadedResolution = 'placeholder';
+                        resolve();
+                    };
+                    testStandard.src = standardProxy;
                 };
-                testImg.src = highResProxy;
+                testHighRes.src = highResProxy;
             });
         }
+        
         
         // Intelligent preloading system
         function implementIntelligentPreloading() {
@@ -1769,9 +2054,6 @@
                 img.src = regularProxy;
                 img.dataset.loadedResolution = 'standard';
                 
-                if (window.debugMode) {
-                    console.log('Preloaded standard res for:', img.alt);
-                }
                 
                 // After a delay, try to upgrade to high-resolution
                 setTimeout(() => {
@@ -1782,22 +2064,13 @@
                     highResImg.onload = function() {
                         img.src = highResProxy;
                         img.dataset.loadedResolution = 'high';
-                        if (window.debugMode) {
-                            console.log('Preloaded high-res for:', img.alt);
-                        }
                     };
                     highResImg.onerror = function() {
-                        if (window.debugMode) {
-                            console.log('High-res preload failed for:', img.alt);
-                        }
                     };
                     highResImg.src = highResProxy;
                 }, 2000); // 2 second delay before trying high-res
             };
             preloadImg.onerror = function() {
-                if (window.debugMode) {
-                    console.log('Preload failed for:', img.alt);
-                }
             };
             preloadImg.src = regularProxy;
         }
@@ -1835,51 +2108,10 @@
             return new Promise((resolve) => {
                 const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(originalSrc)}`;
                 icon.src = proxyUrl;
-                if (window.debugMode) {
-                    console.log('Loaded energy icon through proxy');
-                }
                 resolve();
             });
         }
         
-        // Load high-res images with fallback
-        function loadHighResImages() {
-            const images = document.querySelectorAll('.card-image');
-            let imagesToLoad = 0;
-            let imagesLoaded = 0;
-            
-            images.forEach(img => {
-                const originalSrc = img.getAttribute('data-original-src');
-                if (originalSrc && originalSrc.includes('/cards/')) {
-                    imagesToLoad++;
-                    // Try high-res version first
-                    const highResSrc = originalSrc.replace('/cards/', '/high_res_cards/');
-                    const highResProxySrc = '/api/proxy-image?url=' + encodeURIComponent(highResSrc);
-                    
-                    const testImg = new Image();
-                    testImg.onload = function() {
-                        img.src = highResProxySrc;
-                        imagesLoaded++;
-                        if (imagesLoaded === imagesToLoad) {
-                            setTimeout(checkAllImagesLoaded, 500);
-                        }
-                    };
-                    testImg.onerror = function() {
-                        // Fallback to original (already proxied)
-                        imagesLoaded++;
-                        if (imagesLoaded === imagesToLoad) {
-                            setTimeout(checkAllImagesLoaded, 500);
-                        }
-                    };
-                    testImg.src = highResProxySrc;
-                }
-            });
-            
-            // If no images need high-res loading, check immediately
-            if (imagesToLoad === 0) {
-                setTimeout(checkAllImagesLoaded, 500);
-            }
-        }
 
         // Register Service Worker for persistent image caching
         function registerServiceWorker() {
@@ -1939,14 +2171,6 @@
         
         // Initialize default state
         document.addEventListener('DOMContentLoaded', function() {
-            if (window.debugMode) {
-                console.log('DOMContentLoaded event fired');
-                
-                // Test if functions are accessible
-                console.log('toggleLayout function:', typeof toggleLayout);
-                console.log('toggleTheme function:', typeof toggleTheme);
-                console.log('toggleQuality function:', typeof toggleQuality);
-            }
             
             // Register service worker for persistent caching
             registerServiceWorker();
@@ -1956,15 +2180,9 @@
             
             // Wait for dom-to-image to be fully loaded
             setTimeout(function() {
-                if (window.debugMode) {
-                    console.log('Initializing default state...');
-                }
                 
                 try {
                     // Start with automatic layout detection (Auto mode)
-                    if (window.debugMode) {
-                        console.log('Initializing with Auto mode as default');
-                    }
                     window.userLayoutPreference = 'auto'; // Start in auto mode
                     toggleLayout('auto'); // This will trigger checkAndApplyAutoLayout
                     
@@ -1975,58 +2193,35 @@
                         if (window.opener && window.opener.document) {
                             const parentHtmlElement = window.opener.document.documentElement;
                             const parentThemeAttr = parentHtmlElement.getAttribute('data-theme');
-                            if (window.debugMode) {
-                                console.log('Parent data-theme attribute:', parentThemeAttr);
-                            }
                             
                             if (parentThemeAttr === 'dark' || parentThemeAttr === null) {
                                 parentTheme = 'dark';
                             } else {
                                 parentTheme = 'light';
                             }
-                            if (window.debugMode) {
-                                console.log('Detected parent theme:', parentTheme);
-                            }
                         } else {
                             // Fallback: check localStorage
                             const savedTheme = localStorage.getItem('theme');
                             const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
                             
-                            if (window.debugMode) {
-                                console.log('Fallback - savedTheme:', savedTheme, 'prefersDark:', prefersDark);
-                            }
                             
                             if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
                                 parentTheme = 'dark';
                             } else if (savedTheme === 'light') {
                                 parentTheme = 'light';
                             }
-                            if (window.debugMode) {
-                                console.log('Used fallback theme detection:', parentTheme);
-                            }
                         }
                     } catch (e) {
                         console.log('Could not detect parent theme, using default dark theme');
                     }
                     
-                    if (window.debugMode) {
-                        console.log('Setting theme to', parentTheme);
-                    }
                     toggleTheme(parentTheme);
                     
-                    if (window.debugMode) {
-                        console.log('Setting quality to standard');
-                    }
-                    toggleQuality('standard'); // Set default quality to Standard
+                    // Quality and format are now selected in the download modal
+                    window.selectedQuality = 'high'; // Default fallback
+                    window.selectedExportFormat = '5x4'; // Default fallback
                     
-                    if (window.debugMode) {
-                        console.log('Setting export format to 5x4');
-                    }
-                    toggleExportFormat('5x4'); // Set default export format to 5x4
-                    
-                    if (window.debugMode) {
-                        console.log('Loading images with proxy');
-                    }
+                    // Start loading immediately since we're using placeholders
                     loadAllImagesWithProxy();
                     
                     // Setup intelligent preloading after initial load
@@ -2044,9 +2239,6 @@
                         }
                     }, 200);
                     
-                    if (window.debugMode) {
-                        console.log('Initialization complete');
-                    }
                 } catch (error) {
                     console.error('Error during initialization:', error);
                     // Reset UI on initialization error
@@ -2057,9 +2249,6 @@
         
         // Handle window resize to automatically switch layouts - immediate response
         window.addEventListener('resize', function() {
-            if (window.debugMode) {
-                console.log('Window resized, checking if layout needs to change');
-            }
             
             // Only auto-adjust if in auto mode
             if (window.userLayoutPreference === 'auto') {
