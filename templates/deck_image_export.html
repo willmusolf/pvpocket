@@ -920,6 +920,11 @@
                 box-shadow: 0 10px 25px rgba(0,0,0,0.4);
             }
             
+            /* Override height constraint for download modal on mobile */
+            .download-modal .modal-content {
+                max-height: none !important;
+            }
+            
             .modal-title {
                 font-size: 1em;
                 margin-bottom: 8px;
@@ -1010,6 +1015,11 @@
                 box-shadow: 0 8px 20px rgba(0,0,0,0.5);
             }
             
+            /* Override height constraint for download modal on mobile */
+            .download-modal .modal-content {
+                max-height: none !important;
+            }
+            
             .modal-title {
                 font-size: 0.9em;
                 margin-bottom: 6px;
@@ -1072,6 +1082,19 @@
             }
         }
         
+        /* Small mobile devices - prevent card jumping with fixed dimensions */
+        @media (max-width: 480px) {
+            .cards-grid.layout-5x4 .card-slot,
+            .cards-grid .card-slot {
+                /* Fixed dimensions on very small mobile screens to prevent card jumping */
+                width: 70px !important; /* Compact size for mobile */
+                height: 98px !important; /* Maintain 63/88 aspect ratio: 70 * (88/63) = 97.78 ≈ 98 */
+                max-width: 70px !important; /* Prevent any resizing */
+                min-width: 70px !important; /* Enforce consistent size */
+                aspect-ratio: 63/88 !important; /* Ensure proper card proportions */
+            }
+        }
+        
         /* Extra small mobile devices */
         @media (max-width: 360px) {
             .modal-content {
@@ -1082,6 +1105,11 @@
                 max-height: calc(100vh - 10px);
                 border-radius: 3px;
                 box-shadow: 0 6px 15px rgba(0,0,0,0.6);
+            }
+            
+            /* Override height constraint for download modal on mobile */
+            .download-modal .modal-content {
+                max-height: none !important;
             }
             
             .modal-title {
@@ -1363,6 +1391,12 @@
     
     <script>
         let allImagesLoaded = false;
+        
+        // Mobile detection function - used to prevent card jumping on mobile devices only
+        function isMobileDevice() {
+            // Target small mobile screens where jumping is an issue
+            return window.innerWidth <= 480;
+        }
         
         // Initialize global variables
         window.selectedQuality = 'standard'; // Default quality setting (changed from high)
@@ -2099,6 +2133,11 @@
                 clone.style.position = 'absolute';
                 clone.style.zIndex = '-1'; // Behind everything but still renderable
                 
+                // Force clone to use its natural height on mobile
+                clone.style.height = 'auto';
+                clone.style.minHeight = 'auto';
+                clone.style.maxHeight = 'none';
+                
                 // Wait a bit for the position change to take effect
                 await new Promise(resolve => setTimeout(resolve, 100));
                 
@@ -2200,10 +2239,16 @@
                 
                 if (layout === 'auto') {
                     // Enable automatic layout detection
-                    checkAndApplyAutoLayout();
+                    // Skip on mobile to prevent card jumping
+                    if (!isMobileDevice()) {
+                        checkAndApplyAutoLayout();
+                    }
                 } else {
                     // Apply specific forced layout
-                    applySpecificLayout(layout);
+                    // Skip dynamic sizing on mobile to prevent card jumping
+                    if (!isMobileDevice()) {
+                        applySpecificLayout(layout);
+                    }
                 }
                 
                 
@@ -2266,21 +2311,30 @@
                 container.style.overflowY = 'visible';
                 // Don't set overflow here - let applyDynamicSizing2x10 handle it based on screen size
                 // Apply dynamic sizing for 2x10 layout immediately
-                console.log('Applying manual 2x10 layout');
-                applyDynamicSizing2x10();
+                // Skip dynamic sizing on mobile to prevent card jumping
+                if (!isMobileDevice()) {
+                    console.log('Applying manual 2x10 layout');
+                    applyDynamicSizing2x10();
+                }
             } else if (layoutType === '5x4') {
                 // Ensure clean container state for 5x4 layout - no scrolling
                 container.style.overflowX = 'hidden';
                 container.style.overflowY = 'hidden';
                 
                 // Apply dynamic sizing for 5x4 layout immediately
-                applyDynamicSizing5x4();
+                // Skip dynamic sizing on mobile to prevent card jumping
+                if (!isMobileDevice()) {
+                    applyDynamicSizing5x4();
+                }
             }
             
         }
         
         // Dynamic sizing function for 2x10 layout to perfectly fit the screen
         function applyDynamicSizing2x10() {
+            // Exit early on mobile to prevent card jumping
+            if (isMobileDevice()) return;
+            
             const container = document.querySelector('.export-container');
             const cardsContainer = document.querySelector('.cards-container.layout-2x10-container');
             
@@ -2404,6 +2458,9 @@
         
         // Dynamic sizing function for 5x4 layout to maintain compact appearance like 2x10
         function applyDynamicSizing5x4() {
+            // Exit early on mobile to prevent card jumping
+            if (isMobileDevice()) return;
+            
             const container = document.querySelector('.export-container');
             const cardsContainer = document.querySelector('.cards-container');
             
@@ -2516,6 +2573,9 @@
             if (window.userLayoutPreference !== 'auto') {
                 return; // User has forced a specific layout
             }
+            
+            // Exit early on mobile to prevent layout switching and card jumping
+            if (isMobileDevice()) return;
             
             // Clear sizing cache when auto layout runs to force recalculation
             sizingCache.layout2x10 = { containerWidth: 0, bestCardWidth: 0, bestGap: 0 };
@@ -2730,10 +2790,13 @@
             allImagesLoaded = true;
             
             // Apply layout after images are loaded immediately
-            if (window.userLayoutPreference === 'auto') {
-                checkAndApplyAutoLayout();
-            } else if (window.userLayoutPreference === '5x4') {
-                applyDynamicSizing5x4();
+            // Skip layout recalculation on mobile to prevent card jumping
+            if (!isMobileDevice()) {
+                if (window.userLayoutPreference === 'auto') {
+                    checkAndApplyAutoLayout();
+                } else if (window.userLayoutPreference === '5x4') {
+                    applyDynamicSizing5x4();
+                }
             }
         }
         
@@ -3084,10 +3147,13 @@
                     }, 3000); // Start preloading after 3 seconds
                     
                     // Ensure proper layout after initialization
-                    if (window.userLayoutPreference === 'auto') {
-                        checkAndApplyAutoLayout();
-                    } else if (window.userLayoutPreference === '5x4') {
-                        applyDynamicSizing5x4();
+                    // Skip layout switching on mobile to prevent card jumping
+                    if (!isMobileDevice()) {
+                        if (window.userLayoutPreference === 'auto') {
+                            checkAndApplyAutoLayout();
+                        } else if (window.userLayoutPreference === '5x4') {
+                            applyDynamicSizing5x4();
+                        }
                     }
                     
                 } catch (error) {
@@ -3123,6 +3189,12 @@
         // Handle window resize with debouncing to prevent flashing
         const handleResize = debounce(function() {
             if (isResizing) return;
+            
+            // Skip resize handling on mobile to prevent layout recalculation and card jumping
+            if (isMobileDevice()) {
+                return;
+            }
+            
             isResizing = true;
             
             // Use requestAnimationFrame for smoother updates
