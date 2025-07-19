@@ -62,6 +62,7 @@
             overflow: visible;
         }
         
+        
         .deck-header {
             text-align: center;
             margin-bottom: 20px;
@@ -1852,7 +1853,10 @@
             // Apply essential container styling
             exportContainer.style.fontFamily = sourceStyles.fontFamily || "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
             exportContainer.style.borderRadius = '12px';
+            
+            // Apply standard padding - the CSS will handle no-description cases
             exportContainer.style.padding = '26px';
+            
             exportContainer.style.minHeight = 'fit-content';
             exportContainer.style.overflow = 'visible';
             exportContainer.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
@@ -2127,18 +2131,20 @@
             viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
         }
 
-        // Layout-specific spacer to prevent cut-off
-        const spacer = document.createElement('div');
-        if (downloadFormat === '2x10') {
-            spacer.style.height = '180px'; // Dial back slightly for 2x10
-        } else if (downloadFormat === '5x4') {
-            spacer.style.height = '280px'; // Reduce a bit for 5x4
-        } else {
-            spacer.style.height = '220px'; // Default
+        // Layout-specific spacer to prevent cut-off (mobile only)
+        if (isMobileForExport()) {
+            const spacer = document.createElement('div');
+            if (downloadFormat === '2x10') {
+                spacer.style.height = '180px'; // Dial back slightly for 2x10
+            } else if (downloadFormat === '5x4') {
+                spacer.style.height = '280px'; // Reduce a bit for 5x4
+            } else {
+                spacer.style.height = '220px'; // Default
+            }
+            spacer.style.width = '100%';
+            spacer.style.clear = 'both';
+            clone.appendChild(spacer);
         }
-        spacer.style.width = '100%';
-        spacer.style.clear = 'both';
-        clone.appendChild(spacer);
 
         // Extended delay to allow the browser to apply all styles
         await new Promise(resolve => setTimeout(resolve, 300));
