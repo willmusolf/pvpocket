@@ -1520,7 +1520,7 @@
             }
             
             // Set initial button state
-            document.getElementById('downloadBtn').textContent = '⏳ Loading High-Res Images...';
+            document.getElementById('downloadBtn').textContent = '⏳ Loading Images...';
             document.getElementById('downloadBtn').disabled = true;
             
             // Check all images including energy badges
@@ -2814,7 +2814,7 @@
             
             const downloadBtn = document.getElementById('downloadBtn');
             downloadBtn.disabled = true;
-            downloadBtn.textContent = '⏳ Loading High-Res Images...';
+            downloadBtn.textContent = '⏳ Loading Images...';
             
             // Load high-resolution images first (with fallback to standard)
             console.log('Loading high-resolution images (with fallback to standard)...');
@@ -2848,7 +2848,7 @@
                 loadedCount++;
                 const percentage = Math.round((loadedCount / totalImages) * 100);
                 const downloadBtn = document.getElementById('downloadBtn');
-                downloadBtn.textContent = `⏳ Loading High-Res Images... ${percentage}%`;
+                downloadBtn.textContent = `⏳ Loading Images... ${percentage}%`;
                 console.log(`High-res loading progress: ${loadedCount}/${totalImages} (${percentage}%)`);
             }
             
