@@ -218,6 +218,18 @@
             box-shadow: 0 1px 2px rgba(0,0,0,0.1);
             opacity: 0.8;
             box-sizing: border-box;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .empty-slot-text {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+            color: var(--text-color);
+            opacity: 0.5;
         }
         
         .card-image {
@@ -226,8 +238,11 @@
             object-fit: cover;
             display: block;
             border-radius: 3.5%;
-            /* Prevent visual jumps during resizing */
+            /* Prevent visual jumps during resizing and loading */
             will-change: transform;
+            /* Ensure consistent sizing during load */
+            min-width: 100%;
+            min-height: 100%;
         }
         
         /* Export-specific card image styling for better fit */
@@ -1312,7 +1327,9 @@
                                  style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 3.5%;">
                         </div>
                     {% else %}
-                        <div class="card-slot empty"></div>
+                        <div class="card-slot empty">
+                            <div class="empty-slot-text">EMPTY</div>
+                        </div>
                     {% endif %}
                 {% endfor %}
             </div>
@@ -2451,7 +2468,7 @@
             
             // Batch DOM operations - read all elements first
             const cardSlots = document.querySelectorAll('.cards-grid.layout-5x4 .card-slot');
-            const grid = document.querySelector('.cards-grid.layout-5x4');
+            const gridElement = document.querySelector('.cards-grid.layout-5x4');
             
             // Apply all styles in one batch to prevent style thrashing
             // Add resizing class to disable transitions
@@ -2466,13 +2483,13 @@
                 });
                 
                 // Apply grid styles - ensure it's a CSS grid with proper 5x4 layout
-                if (grid) {
-                    grid.style.display = 'grid';
-                    grid.style.gridTemplateColumns = 'repeat(4, auto)';
-                    grid.style.gridTemplateRows = 'repeat(5, auto)';
-                    grid.style.gap = `${bestGap}px`;
-                    grid.style.width = `${totalGridWidth}px`;
-                    grid.style.maxWidth = `${Math.min(totalGridWidth, availableWidth)}px`; // Ensure grid doesn't exceed available space
+                if (gridElement) {
+                    gridElement.style.display = 'grid';
+                    gridElement.style.gridTemplateColumns = 'repeat(4, auto)';
+                    gridElement.style.gridTemplateRows = 'repeat(5, auto)';
+                    gridElement.style.gap = `${bestGap}px`;
+                    gridElement.style.width = `${totalGridWidth}px`;
+                    gridElement.style.maxWidth = `${Math.min(totalGridWidth, availableWidth)}px`; // Ensure grid doesn't exceed available space
                 }
                 
                 // Apply container styles for 5x4 - always fit all cards, no scrolling

@@ -69,24 +69,30 @@ def check_username_requirement():
 
 def is_safe_url(target):
     if not target:
-        print(
-            "[IS_SAFE_URL_DEBUG] Target is None or empty, returning False.", flush=True
-        )
+        try:
+            print(
+                "[IS_SAFE_URL_DEBUG] Target is None or empty, returning False.", flush=True
+            )
+        except (BrokenPipeError, IOError):
+            pass
         return False
     ref_url = urlparse(request.host_url)
     test_url = urlparse(urljoin(request.host_url, target))
     is_internal_host = ref_url.netloc == test_url.netloc
     is_valid_scheme = test_url.scheme in ("http", "https")
     result = is_valid_scheme and is_internal_host
-    print(
-        f"[IS_SAFE_URL_DEBUG] Target: '{target}', Host URL: '{request.host_url}'",
-        flush=True,
-    )
-    print(f"[IS_SAFE_URL_DEBUG] Ref URL: {ref_url}, Test URL: {test_url}", flush=True)
-    print(
-        f"[IS_SAFE_URL_DEBUG] Is internal host: {is_internal_host}, Is valid scheme: {is_valid_scheme}, Overall result: {result}",
-        flush=True,
-    )
+    try:
+        print(
+            f"[IS_SAFE_URL_DEBUG] Target: '{target}', Host URL: '{request.host_url}'",
+            flush=True,
+        )
+        print(f"[IS_SAFE_URL_DEBUG] Ref URL: {ref_url}, Test URL: {test_url}", flush=True)
+        print(
+            f"[IS_SAFE_URL_DEBUG] Is internal host: {is_internal_host}, Is valid scheme: {is_valid_scheme}, Overall result: {result}",
+            flush=True,
+        )
+    except (BrokenPipeError, IOError):
+        pass
     return result
 
 
