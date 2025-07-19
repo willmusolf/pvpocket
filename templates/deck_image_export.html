@@ -965,8 +965,10 @@
             
             .modal-toggle-group {
                 gap: 5px;
-                flex-direction: column;
-                align-items: stretch;
+                flex-direction: row;
+                align-items: center;
+                justify-content: center;
+                flex-wrap: wrap;
             }
             
             .modal-toggle {
@@ -982,12 +984,15 @@
             }
             
             .modal-button-group {
-                flex-direction: column;
+                flex-direction: row;
                 gap: 4px;
+                justify-content: center;
+                flex-wrap: wrap;
             }
             
             .modal-option-btn {
-                width: 100%;
+                flex: 1;
+                min-width: 60px;
                 padding: 8px 10px;
                 font-size: 0.8em;
                 min-height: 40px;
@@ -1250,11 +1255,11 @@
                     <h4 class="modal-subtitle">Include</h4>
                     <div class="modal-toggle-group">
                         <label class="modal-toggle">
-                            <input type="checkbox" id="modal-include-title" checked>
+                            <input type="checkbox" id="modal-include-title">
                             <span class="modal-toggle-label">Title & Info</span>
                         </label>
                         <label class="modal-toggle">
-                            <input type="checkbox" id="modal-include-description" checked>
+                            <input type="checkbox" id="modal-include-description">
                             <span class="modal-toggle-label">Description</span>
                         </label>
                     </div>
@@ -1606,8 +1611,8 @@
             document.getElementById('modal-theme-dark').classList.add('active');
             
             // Reset checkboxes to default
-            document.getElementById('modal-include-title').checked = true;
-            document.getElementById('modal-include-description').checked = true;
+            document.getElementById('modal-include-title').checked = false;
+            document.getElementById('modal-include-description').checked = false;
             
             // Enable download button since defaults are set
             document.getElementById('modal-download-btn').disabled = false;
@@ -1698,7 +1703,7 @@
                 }
                 if (descriptionCheckbox) {
                     descriptionCheckbox.disabled = false;
-                    descriptionCheckbox.checked = true;
+                    descriptionCheckbox.checked = false;
                 }
                 console.log('Description toggle enabled - description found');
             }
