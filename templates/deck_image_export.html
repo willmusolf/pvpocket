@@ -98,7 +98,7 @@
             color: var(--description-color);
             font-size: 0.9em;
             line-height: 1.4;
-            max-width: 800px;
+            max-width: 970px;
             margin-left: auto;
             margin-right: auto;
             word-wrap: break-word;
@@ -642,6 +642,7 @@
                 border-radius: 8px;
                 border: 1px solid var(--border-color);
                 text-align: left;
+                max-width: 100% !important; /* Wider for mobile exports */
             }
             
             .deck-title {
@@ -1854,8 +1855,8 @@
             exportContainer.style.fontFamily = sourceStyles.fontFamily || "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
             exportContainer.style.borderRadius = '12px';
             
-            // Apply standard padding - the CSS will handle no-description cases
-            exportContainer.style.padding = '26px';
+            // Apply responsive padding - reduced for mobile exports
+            exportContainer.style.padding = isMobileForExport() ? '18px' : '26px';
             
             exportContainer.style.minHeight = 'fit-content';
             exportContainer.style.overflow = 'visible';
@@ -1967,17 +1968,17 @@
                     const descLength = deckDescription.textContent.length;
                     let maxWidth;
                     if (descLength < 100) {
-                        maxWidth = '300px';
+                        maxWidth = '400px';
                     } else if (descLength < 200) {
-                        maxWidth = '450px';
-                    } else if (descLength < 300) {
-                        maxWidth = '550px';
-                    } else {
                         maxWidth = '600px';
+                    } else if (descLength < 300) {
+                        maxWidth = '750px';
+                    } else {
+                        maxWidth = '900px';
                     }
                     deckDescription.style.maxWidth = maxWidth;
                 } else {
-                    deckDescription.style.maxWidth = '800px';
+                    deckDescription.style.maxWidth = '970px';
                 }
                 
                 if (currentTheme === 'light') {
@@ -2131,15 +2132,28 @@
             viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
         }
 
-        // Layout-specific spacer to prevent cut-off (mobile only)
+        // Layout-specific spacer to prevent cut-off (mobile only) or very small desktop screens
         if (isMobileForExport()) {
             const spacer = document.createElement('div');
             if (downloadFormat === '2x10') {
-                spacer.style.height = '180px'; // Dial back slightly for 2x10
+                spacer.style.height = '150px'; // Tiny bit more for mobile 2x10 exports
             } else if (downloadFormat === '5x4') {
-                spacer.style.height = '280px'; // Reduce a bit for 5x4
+                spacer.style.height = '220px'; // Tiny bit more for mobile 5x4 exports
             } else {
-                spacer.style.height = '220px'; // Default
+                spacer.style.height = '185px'; // Tiny bit more for mobile default exports
+            }
+            spacer.style.width = '100%';
+            spacer.style.clear = 'both';
+            clone.appendChild(spacer);
+        } else if (window.innerWidth <= 400) {
+            // Add smaller spacer for very small desktop screens under 400px
+            const spacer = document.createElement('div');
+            if (downloadFormat === '2x10') {
+                spacer.style.height = '40px'; // Smaller spacer for desktop 2x10 under 400px
+            } else if (downloadFormat === '5x4') {
+                spacer.style.height = '50px'; // Smaller spacer for desktop 5x4 under 400px
+            } else {
+                spacer.style.height = '45px'; // Smaller spacer for desktop default under 400px
             }
             spacer.style.width = '100%';
             spacer.style.clear = 'both';
