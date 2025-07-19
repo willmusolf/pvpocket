@@ -104,6 +104,11 @@
             overflow-wrap: break-word;
             white-space: normal;
             word-break: break-word;
+            text-align: left;
+            padding: 15px 20px;
+            background: var(--card-bg);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
         }
         
         .deck-types {
@@ -139,12 +144,21 @@
             align-items: center;
             width: fit-content;
             max-width: calc(100% - 40px); /* More conservative to prevent mobile overflow */
+            /* Isolate reflows to prevent layout thrashing */
+            contain: layout style;
+        }
+        
+        /* Disable transitions during programmatic resizing */
+        .cards-container.resizing,
+        .cards-container.resizing .card-slot,
+        .cards-container.resizing .cards-grid {
+            transition: none !important;
         }
         
         /* Special scrolling behavior for 2x10 layout only - dynamic based on screen size */
         .cards-container.layout-2x10-container {
             overflow-x: hidden; /* Default to hidden, will be set by JS based on screen size */
-            overflow-y: hidden;
+            overflow-y: visible; /* Allow content to show by default, JS will adjust if needed */
             max-width: calc(100% - 40px); /* Fit within export container with padding */
             width: calc(100% - 40px); /* Take full available width */
             margin: 15px auto;
@@ -212,6 +226,8 @@
             object-fit: cover;
             display: block;
             border-radius: 3.5%;
+            /* Prevent visual jumps during resizing */
+            will-change: transform;
         }
         
         /* Export-specific card image styling for better fit */
@@ -598,6 +614,7 @@
                 background: var(--card-bg);
                 border-radius: 8px;
                 border: 1px solid var(--border-color);
+                text-align: left;
             }
             
             .deck-title {
@@ -663,11 +680,13 @@
             color: var(--text-color);
             padding: 32px;
             border-radius: 16px;
-            width: 480px;
-            max-width: calc(100vw - 40px);
+            width: min(480px, 95vw);
+            max-width: 95vw;
+            max-height: 90vh;
             margin: 20px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.3);
             border: 1px solid var(--border-color);
+            overflow-y: auto;
         }
         
         .modal-title {
@@ -680,9 +699,9 @@
         
         .modal-grid {
             display: grid;
-            grid-template-columns: 1.5fr 1fr;
-            gap: 24px;
-            margin-bottom: 24px;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
         }
         
         .modal-section.full-width {
@@ -690,7 +709,7 @@
         }
         
         .modal-section {
-            margin-bottom: 16px;
+            margin-bottom: 20px;
             padding: 16px 20px;
             border: 2px solid var(--border-color);
             border-radius: 12px;
@@ -727,7 +746,7 @@
         
         .modal-button-group {
             display: flex;
-            gap: 6px;
+            gap: 8px;
             flex-direction: row;
             justify-content: center;
             align-items: center;
@@ -750,6 +769,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            flex: 1;
         }
         
         .modal-option-btn:hover {
@@ -824,8 +844,8 @@
         
         .modal-actions {
             display: flex;
-            gap: 16px;
-            margin-top: 28px;
+            gap: 20px;
+            margin-top: 20px;
             padding-top: 20px;
             border-top: 1px solid var(--border-color);
         }
@@ -873,49 +893,241 @@
             transform: none;
         }
         
-        @media (max-width: 800px) {
+        /* Tablet responsive */
+        @media (max-width: 768px) {
             .modal-content {
                 margin: 10px;
-                padding: 18px;
-                max-width: calc(100% - 20px);
-                width: auto;
+                padding: 12px;
+                width: calc(100vw - 20px);
+                max-width: calc(100vw - 20px);
+                max-height: calc(100vh - 20px);
+                border-radius: 6px;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.4);
             }
             
             .modal-title {
-                font-size: 1.2em;
-                margin-bottom: 16px;
+                font-size: 1em;
+                margin-bottom: 8px;
+                font-weight: 600;
             }
             
             .modal-grid {
                 grid-template-columns: 1fr;
-                gap: 14px;
-                margin-bottom: 16px;
+                gap: 6px;
+                margin-bottom: 8px;
+            }
+            
+            .modal-section {
+                padding: 6px 8px;
+                margin-bottom: 5px;
+                border-radius: 6px;
+            }
+            
+            .modal-subtitle {
+                font-size: 0.8em;
+                margin-bottom: 4px;
+                font-weight: 600;
+                letter-spacing: 0.5px;
             }
             
             .modal-toggle-group {
-                gap: 12px;
+                gap: 5px;
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .modal-toggle {
+                justify-content: center;
+                padding: 4px 6px;
+                font-size: 0.8em;
+                border-radius: 4px;
+            }
+            
+            .modal-toggle input[type="checkbox"] {
+                width: 14px;
+                height: 14px;
+            }
+            
+            .modal-button-group {
+                flex-direction: column;
+                gap: 4px;
             }
             
             .modal-option-btn {
-                padding: 10px 12px;
-                font-size: 0.85em;
+                width: 100%;
+                padding: 8px 10px;
+                font-size: 0.8em;
+                min-height: 40px;
+                height: 40px;
+                border-radius: 6px;
+                font-weight: 500;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .modal-actions {
+                gap: 6px;
+                margin-top: 8px;
+                padding-top: 8px;
+                flex-direction: column;
             }
             
             .modal-action-btn {
-                padding: 12px 14px;
+                width: 100%;
+                padding: 10px;
                 font-size: 0.85em;
+                min-height: 40px;
+                border-radius: 6px;
+                font-weight: 600;
             }
         }
         
+        /* Small mobile devices */
         @media (max-width: 480px) {
-            .modal-button-group {
-                flex-direction: column;
-                gap: 6px;
+            .modal-content {
+                margin: 8px;
+                padding: 8px;
+                width: calc(100vw - 16px);
+                max-width: calc(100vw - 16px);
+                max-height: calc(100vh - 16px);
+                border-radius: 4px;
+                box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+            }
+            
+            .modal-title {
+                font-size: 0.9em;
+                margin-bottom: 6px;
+                font-weight: 600;
+            }
+            
+            .modal-grid {
+                gap: 4px;
+                margin-bottom: 6px;
+            }
+            
+            .modal-section {
+                padding: 4px 6px;
+                margin-bottom: 3px;
+                border-radius: 4px;
+            }
+            
+            .modal-subtitle {
+                font-size: 0.75em;
+                margin-bottom: 3px;
+                font-weight: 600;
+                letter-spacing: 0.3px;
+            }
+            
+            .modal-toggle {
+                padding: 3px 4px;
+                font-size: 0.75em;
+                border-radius: 3px;
+            }
+            
+            .modal-toggle input[type="checkbox"] {
+                width: 12px;
+                height: 12px;
             }
             
             .modal-option-btn {
-                padding: 12px 16px;
-                font-size: 0.9em;
+                padding: 6px 8px;
+                font-size: 0.75em;
+                min-height: 36px;
+                height: 36px;
+                border-radius: 4px;
+                font-weight: 500;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .modal-actions {
+                gap: 4px;
+                margin-top: 6px;
+                padding-top: 6px;
+            }
+            
+            .modal-action-btn {
+                padding: 8px;
+                font-size: 0.8em;
+                min-height: 36px;
+                border-radius: 4px;
+                font-weight: 600;
+            }
+        }
+        
+        /* Extra small mobile devices */
+        @media (max-width: 360px) {
+            .modal-content {
+                margin: 5px;
+                padding: 6px;
+                width: calc(100vw - 10px);
+                max-width: calc(100vw - 10px);
+                max-height: calc(100vh - 10px);
+                border-radius: 3px;
+                box-shadow: 0 6px 15px rgba(0,0,0,0.6);
+            }
+            
+            .modal-title {
+                font-size: 0.85em;
+                margin-bottom: 4px;
+                font-weight: 600;
+            }
+            
+            .modal-grid {
+                gap: 3px;
+                margin-bottom: 4px;
+            }
+            
+            .modal-section {
+                padding: 3px 4px;
+                margin-bottom: 2px;
+                border-radius: 3px;
+            }
+            
+            .modal-subtitle {
+                font-size: 0.7em;
+                margin-bottom: 2px;
+                font-weight: 600;
+                letter-spacing: 0.2px;
+            }
+            
+            .modal-toggle {
+                padding: 2px 3px;
+                font-size: 0.7em;
+                border-radius: 2px;
+            }
+            
+            .modal-toggle input[type="checkbox"] {
+                width: 10px;
+                height: 10px;
+            }
+            
+            .modal-option-btn {
+                padding: 5px 6px;
+                font-size: 0.7em;
+                min-height: 32px;
+                height: 32px;
+                border-radius: 3px;
+                font-weight: 500;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .modal-actions {
+                gap: 3px;
+                margin-top: 4px;
+                padding-top: 4px;
+            }
+            
+            .modal-action-btn {
+                padding: 6px;
+                font-size: 0.75em;
+                min-height: 32px;
+                border-radius: 3px;
+                font-weight: 600;
             }
         }
         
@@ -977,35 +1189,7 @@
             <div class="modal-content">
                 <h3 class="modal-title">Download Options</h3>
                 
-                <div class="modal-grid">
-                    <div class="modal-section">
-                        <h4 class="modal-subtitle">Quality</h4>
-                        <div class="modal-button-group">
-                            <button class="modal-option-btn" id="modal-quality-standard" onclick="selectModalQuality('standard')">
-                                Standard
-                            </button>
-                            <button class="modal-option-btn" id="modal-quality-high" onclick="selectModalQuality('high')">
-                                High
-                            </button>
-                            <button class="modal-option-btn" id="modal-quality-ultra" onclick="selectModalQuality('ultra')">
-                                Ultra
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="modal-section">
-                        <h4 class="modal-subtitle">Format</h4>
-                        <div class="modal-button-group">
-                            <button class="modal-option-btn" id="modal-format-2x10" onclick="selectModalFormat('2x10')">
-                                2×10
-                            </button>
-                            <button class="modal-option-btn" id="modal-format-5x4" onclick="selectModalFormat('5x4')">
-                                5×4
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
+                <!-- Include section moved to top -->
                 <div class="modal-section full-width">
                     <h4 class="modal-subtitle">Include</h4>
                     <div class="modal-toggle-group">
@@ -1017,6 +1201,49 @@
                             <input type="checkbox" id="modal-include-description" checked>
                             <span class="modal-toggle-label">Description</span>
                         </label>
+                    </div>
+                </div>
+                
+                <!-- Format and Theme side by side -->
+                <div class="modal-grid">
+                    <div class="modal-section">
+                        <h4 class="modal-subtitle">Format</h4>
+                        <div class="modal-button-group">
+                            <button class="modal-option-btn" id="modal-format-2x10" onclick="selectModalFormat('2x10')">
+                                2×10
+                            </button>
+                            <button class="modal-option-btn" id="modal-format-5x4" onclick="selectModalFormat('5x4')">
+                                5×4
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-section">
+                        <h4 class="modal-subtitle">Theme</h4>
+                        <div class="modal-button-group">
+                            <button class="modal-option-btn" id="modal-theme-dark" onclick="selectModalTheme('dark')">
+                                Dark
+                            </button>
+                            <button class="modal-option-btn" id="modal-theme-light" onclick="selectModalTheme('light')">
+                                Light
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Quality section below -->
+                <div class="modal-section">
+                    <h4 class="modal-subtitle">Quality</h4>
+                    <div class="modal-button-group">
+                        <button class="modal-option-btn" id="modal-quality-standard" onclick="selectModalQuality('standard')">
+                            Standard
+                        </button>
+                        <button class="modal-option-btn" id="modal-quality-high" onclick="selectModalQuality('high')">
+                            High
+                        </button>
+                        <button class="modal-option-btn" id="modal-quality-ultra" onclick="selectModalQuality('ultra')">
+                            Ultra
+                        </button>
                     </div>
                 </div>
                 
@@ -1247,37 +1474,67 @@
             const modal = document.getElementById('downloadModal');
             modal.style.display = 'flex';
             
+            // Prevent body scrolling
+            document.body.style.overflow = 'hidden';
+            
             // Reset modal selections
             resetModalSelections();
             
             // Check if description exists and disable toggle if needed
             updateDescriptionToggle();
+            
+            // Add ESC key listener to close modal
+            document.addEventListener('keydown', handleModalEscKey);
         }
         
         window.hideDownloadOptions = function hideDownloadOptions() {
             const modal = document.getElementById('downloadModal');
             modal.style.display = 'none';
+            
+            // Re-enable body scrolling
+            document.body.style.overflow = '';
+            
+            // Remove ESC key listener when modal is closed
+            document.removeEventListener('keydown', handleModalEscKey);
+        }
+        
+        // Handle ESC key press to close modal
+        function handleModalEscKey(event) {
+            if (event.key === 'Escape') {
+                const modal = document.getElementById('downloadModal');
+                if (modal && modal.style.display === 'flex') {
+                    hideDownloadOptions();
+                }
+            }
         }
         
         // Modal selection variables
         let selectedModalQuality = null;
         let selectedModalFormat = null;
+        let selectedModalTheme = null;
         
         function resetModalSelections() {
-            selectedModalQuality = null;
-            selectedModalFormat = null;
+            // Set default values: 2x10, dark mode, standard quality
+            selectedModalQuality = 'standard';
+            selectedModalFormat = '2x10';
+            selectedModalTheme = 'dark';
             
             // Reset button states
             document.querySelectorAll('#downloadModal .modal-option-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
             
+            // Set default button states
+            document.getElementById('modal-quality-standard').classList.add('active');
+            document.getElementById('modal-format-2x10').classList.add('active');
+            document.getElementById('modal-theme-dark').classList.add('active');
+            
             // Reset checkboxes to default
             document.getElementById('modal-include-title').checked = true;
             document.getElementById('modal-include-description').checked = true;
             
-            // Disable download button
-            document.getElementById('modal-download-btn').disabled = true;
+            // Enable download button since defaults are set
+            document.getElementById('modal-download-btn').disabled = false;
         }
         
         window.selectModalQuality = function selectModalQuality(quality) {
@@ -1306,9 +1563,22 @@
             updateModalDownloadButton();
         }
         
+        window.selectModalTheme = function selectModalTheme(theme) {
+            selectedModalTheme = theme;
+            
+            // Update button states
+            document.querySelectorAll('[id^="modal-theme-"]').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById('modal-theme-' + theme).classList.add('active');
+            
+            // Check if we can enable download
+            updateModalDownloadButton();
+        }
+        
         function updateModalDownloadButton() {
             const downloadBtn = document.getElementById('modal-download-btn');
-            if (selectedModalQuality && selectedModalFormat) {
+            if (selectedModalQuality && selectedModalFormat && selectedModalTheme) {
                 downloadBtn.disabled = false;
                 downloadBtn.textContent = `📷 Download`;
             } else {
@@ -1359,8 +1629,8 @@
         }
         
         window.downloadWithSelectedOptions = function downloadWithSelectedOptions() {
-            if (!selectedModalQuality || !selectedModalFormat) {
-                alert('Please select both quality and format options.');
+            if (!selectedModalQuality || !selectedModalFormat || !selectedModalTheme) {
+                alert('Please select quality, format, and theme options.');
                 return;
             }
             
@@ -1373,7 +1643,7 @@
             
             // Hide modal and start download
             hideDownloadOptions();
-            downloadWithFormatAndOptions(selectedModalFormat, includeTitle, includeDescription);
+            downloadWithFormatAndOptions(selectedModalFormat, includeTitle, includeDescription, selectedModalTheme);
         }
         
         window.cancelDownload = function cancelDownload() {
@@ -1398,11 +1668,11 @@
         
         window.downloadWithFormat = async function downloadWithFormat(format) {
             // Legacy function - redirect to new function with default options
-            await downloadWithFormatAndOptions(format, true, true);
+            await downloadWithFormatAndOptions(format, true, true, null);
         }
         
-        window.downloadWithFormatAndOptions = async function downloadWithFormatAndOptions(format, includeTitle, includeDescription) {
-            console.log('Starting download with format:', format, 'includeTitle:', includeTitle, 'includeDescription:', includeDescription);
+        window.downloadWithFormatAndOptions = async function downloadWithFormatAndOptions(format, includeTitle, includeDescription, modalTheme) {
+            console.log('Starting download with format:', format, 'includeTitle:', includeTitle, 'includeDescription:', includeDescription, 'theme:', modalTheme);
             
             // Hide modal and show cancel button
             hideDownloadOptions();
@@ -1436,7 +1706,7 @@
             }
             
             try {
-                await downloadAsImage(format, includeTitle, includeDescription);
+                await downloadAsImage(format, includeTitle, includeDescription, modalTheme);
             } catch (error) {
                 console.error('Download with format failed:', error);
                 // Error handling is done in downloadAsImage
@@ -1446,7 +1716,7 @@
             }
         }
         
-        async function downloadAsImage(downloadFormat, includeTitle = true, includeDescription = true) {
+        async function downloadAsImage(downloadFormat, includeTitle = true, includeDescription = true, modalTheme = null) {
             if (!allImagesLoaded) {
                 alert('Please wait for all images to load before downloading.');
                 return;
@@ -1472,16 +1742,19 @@
                 document.body.appendChild(clone);
                 clone.classList.add('is-export-clone', `export-prep-${downloadFormat}`);
                 
-                // Apply theme to the clone by copying body classes
-                if (document.body.classList.contains('light-theme')) {
+                // Apply theme to the clone based on modal selection
+                if (modalTheme === 'light') {
+                    clone.classList.add('light-theme');
+                } else if (!modalTheme && document.body.classList.contains('light-theme')) {
+                    // Fallback to current theme if no modal theme specified
                     clone.classList.add('light-theme');
                 }
                 
                 // Ensure the main export container maintains its styling
                 const exportContainer = clone.querySelector('.export-container') || clone;
                 
-                // Get the current theme variables (declare once for the entire function)
-                const currentTheme = document.body.classList.contains('light-theme') ? 'light' : 'dark';
+                // Get the theme to use for export (from modal selection or fallback to current theme)
+                const currentTheme = modalTheme || (document.body.classList.contains('light-theme') ? 'light' : 'dark');
                 
                 if (exportContainer) {
                     const sourceStyles = getComputedStyle(sourceElement);
@@ -1618,14 +1891,40 @@
                         deckDescription.style.marginBottom = '10px';
                         deckDescription.style.fontSize = '0.9em';
                         deckDescription.style.lineHeight = '1.4';
-                        deckDescription.style.maxWidth = '800px';
                         deckDescription.style.marginLeft = 'auto';
                         deckDescription.style.marginRight = 'auto';
                         deckDescription.style.wordWrap = 'break-word';
+                        deckDescription.style.textAlign = 'left';
+                        deckDescription.style.padding = '15px 20px';
+                        deckDescription.style.borderRadius = '8px';
+                        
+                        // Format-specific styling
+                        if (downloadFormat === '2x10') {
+                            // Dynamic width based on description length
+                            const descLength = deckDescription.textContent.length;
+                            let maxWidth;
+                            if (descLength < 100) {
+                                maxWidth = '300px';
+                            } else if (descLength < 200) {
+                                maxWidth = '450px';
+                            } else if (descLength < 300) {
+                                maxWidth = '550px';
+                            } else {
+                                maxWidth = '600px';
+                            }
+                            deckDescription.style.maxWidth = maxWidth;
+                        } else {
+                            deckDescription.style.maxWidth = '800px';
+                        }
+                        
                         if (currentTheme === 'light') {
                             deckDescription.style.color = '#666';
+                            deckDescription.style.background = '#fff';
+                            deckDescription.style.border = '1px solid #ddd';
                         } else {
                             deckDescription.style.color = '#bdc3c7';
+                            deckDescription.style.background = '#34495e';
+                            deckDescription.style.border = '1px solid #5a6c7d';
                         }
                     }
                 }
@@ -1900,6 +2199,10 @@
             const grid = document.getElementById('cards-grid');
             const container = document.querySelector('.cards-container');
             
+            // Clear sizing cache when applying specific layout to force recalculation
+            sizingCache.layout2x10 = { containerWidth: 0, bestCardWidth: 0, bestGap: 0 };
+            sizingCache.layout5x4 = { containerWidth: 0, bestCardWidth: 0, bestGap: 0 };
+            
             // Remove all layout classes
             grid.classList.remove('layout-2x10', 'layout-5x4', 'auto-mobile', 'auto-desktop');
             container.classList.remove('layout-2x10-container');
@@ -1941,20 +2244,20 @@
             // Add container classes and apply appropriate overflow settings
             if (layoutType === '2x10') {
                 container.classList.add('layout-2x10-container');
+                // Ensure container can show all content initially
+                container.style.overflow = 'visible';
+                container.style.overflowY = 'visible';
                 // Don't set overflow here - let applyDynamicSizing2x10 handle it based on screen size
-                // Apply dynamic sizing for 2x10 layout
-                setTimeout(() => {
-                    applyDynamicSizing2x10();
-                }, 50);
+                // Apply dynamic sizing for 2x10 layout immediately
+                console.log('Applying manual 2x10 layout');
+                applyDynamicSizing2x10();
             } else if (layoutType === '5x4') {
                 // Ensure clean container state for 5x4 layout - no scrolling
                 container.style.overflowX = 'hidden';
                 container.style.overflowY = 'hidden';
                 
-                // Apply dynamic sizing for 5x4 layout
-                setTimeout(() => {
-                    applyDynamicSizing5x4();
-                }, 50);
+                // Apply dynamic sizing for 5x4 layout immediately
+                applyDynamicSizing5x4();
             }
             
         }
@@ -1969,6 +2272,13 @@
             
             // Calculate available width more precisely
             const containerWidth = container.offsetWidth;
+            
+            // Early exit if dimensions haven't changed and we're still in 2x10 mode
+            const currentLayout = document.querySelector('.cards-grid.layout-2x10');
+            if (sizingCache.layout2x10.containerWidth === containerWidth && currentLayout) {
+                return;
+            }
+            
             const containerStyle = getComputedStyle(container);
             const containerPadding = parseInt(containerStyle.paddingLeft) + parseInt(containerStyle.paddingRight);
             
@@ -2000,60 +2310,78 @@
                 }
             }
             
-            // Apply the calculated sizes
-            const cardSlots = document.querySelectorAll('.cards-grid.layout-2x10 .card-slot');
-            cardSlots.forEach(slot => {
-                slot.style.width = `${bestCardWidth}px`;
-                slot.style.maxWidth = `${bestCardWidth}px`;
-                slot.style.height = `${bestCardWidth * (88/63)}px`; // Maintain 63/88 aspect ratio
-            });
-            
-            // Update grid gap
-            const grid = document.querySelector('.cards-grid.layout-2x10');
-            if (grid) {
-                grid.style.gap = `${bestGap}px`;
-                // Ensure grid doesn't overflow
-                grid.style.width = `${(cardCount * bestCardWidth) + ((cardCount - 1) * bestGap)}px`;
-                grid.style.maxWidth = `${availableWidth}px`;
-            }
+            // Cache the calculated values
+            sizingCache.layout2x10 = { containerWidth, bestCardWidth, bestGap };
             
             // Calculate the total grid width
             const totalGridWidth = (cardCount * bestCardWidth) + ((cardCount - 1) * bestGap);
             
-            // Set container to take full available width
-            cardsContainer.style.width = `${containerWidth - containerPadding}px`;
-            cardsContainer.style.maxWidth = `${containerWidth - containerPadding}px`;
-            cardsContainer.style.margin = '15px auto';
-            
             // Check if we're on a smaller screen (threshold for when to allow scrolling)
             const isSmallScreen = window.innerWidth < 1200; // Adjust threshold as needed
             
-            // Adjust container behavior based on screen size and whether grid fits
-            if (isSmallScreen && totalGridWidth > availableWidth) {
-                // Small screen and grid doesn't fit - allow horizontal scrolling
-                cardsContainer.style.justifyContent = 'flex-start';
-                cardsContainer.style.alignItems = 'center';
-                cardsContainer.style.overflowX = 'auto';
-                cardsContainer.style.overflowY = 'hidden';
+            // Batch DOM operations - read all elements first
+            const cardSlots = document.querySelectorAll('.cards-grid.layout-2x10 .card-slot');
+            const grid = document.querySelector('.cards-grid.layout-2x10');
+            
+            // Apply all styles in one batch to prevent style thrashing
+            // Add resizing class to disable transitions
+            cardsContainer.classList.add('resizing');
+            
+            requestAnimationFrame(() => {
+                // Apply card styles
+                cardSlots.forEach(slot => {
+                    slot.style.width = `${bestCardWidth}px`;
+                    slot.style.maxWidth = `${bestCardWidth}px`;
+                    slot.style.height = `${bestCardWidth * (88/63)}px`; // Maintain 63/88 aspect ratio
+                });
+                
+                // Apply grid styles - ensure it's a CSS grid with proper 2x10 layout
                 if (grid) {
-                    grid.style.margin = '0';
-                    grid.style.minWidth = `${totalGridWidth}px`;
+                    grid.style.display = 'grid';
+                    grid.style.gridTemplateColumns = 'repeat(10, auto)';
+                    grid.style.gridTemplateRows = 'repeat(2, auto)';
+                    grid.style.gap = `${bestGap}px`;
                     grid.style.width = `${totalGridWidth}px`;
-                    grid.style.maxWidth = 'none';
-                }
-            } else {
-                // Default/large screen or grid fits - center and no scrolling
-                cardsContainer.style.justifyContent = 'center';
-                cardsContainer.style.alignItems = 'center';
-                cardsContainer.style.overflowX = 'hidden';
-                cardsContainer.style.overflowY = 'hidden';
-                if (grid) {
-                    grid.style.margin = '0';
-                    grid.style.minWidth = 'fit-content';
-                    grid.style.width = 'fit-content';
                     grid.style.maxWidth = `${availableWidth}px`;
                 }
-            }
+                
+                // Apply container styles
+                cardsContainer.style.width = `${containerWidth - containerPadding}px`;
+                cardsContainer.style.maxWidth = `${containerWidth - containerPadding}px`;
+                cardsContainer.style.margin = '15px auto';
+                
+                // Adjust container behavior based on screen size and whether grid fits
+                if (isSmallScreen && totalGridWidth > availableWidth) {
+                    // Small screen and grid doesn't fit - allow horizontal scrolling
+                    cardsContainer.style.justifyContent = 'flex-start';
+                    cardsContainer.style.alignItems = 'center';
+                    cardsContainer.style.overflowX = 'auto';
+                    cardsContainer.style.overflowY = 'hidden';
+                    if (grid) {
+                        grid.style.margin = '0';
+                        grid.style.minWidth = `${totalGridWidth}px`;
+                        grid.style.width = `${totalGridWidth}px`;
+                        grid.style.maxWidth = 'none';
+                    }
+                } else {
+                    // Default/large screen or grid fits - center and no scrolling
+                    cardsContainer.style.justifyContent = 'center';
+                    cardsContainer.style.alignItems = 'center';
+                    cardsContainer.style.overflowX = 'hidden';
+                    cardsContainer.style.overflowY = 'hidden';
+                    if (grid) {
+                        grid.style.margin = '0';
+                        grid.style.minWidth = 'fit-content';
+                        grid.style.width = 'fit-content';
+                        grid.style.maxWidth = `${availableWidth}px`;
+                    }
+                }
+                
+                // Remove resizing class after styles are applied
+                requestAnimationFrame(() => {
+                    cardsContainer.classList.remove('resizing');
+                });
+            });
             
         }
         
@@ -2067,6 +2395,13 @@
             
             // Calculate available width more precisely (similar to 2x10 approach)
             const containerWidth = container.offsetWidth;
+            
+            // Early exit if dimensions haven't changed and we're still in 5x4 mode
+            const currentLayout = document.querySelector('.cards-grid.layout-5x4');
+            if (sizingCache.layout5x4.containerWidth === containerWidth && currentLayout) {
+                return;
+            }
+            
             const containerStyle = getComputedStyle(container);
             const containerPadding = parseInt(containerStyle.paddingLeft) + parseInt(containerStyle.paddingRight);
             
@@ -2108,35 +2443,54 @@
                 bestGap = minGap;
             }
             
-            // Apply the calculated sizes
-            const cardSlots = document.querySelectorAll('.cards-grid.layout-5x4 .card-slot');
-            cardSlots.forEach(slot => {
-                slot.style.width = `${bestCardWidth}px`;
-                slot.style.maxWidth = `${bestCardWidth}px`;
-                slot.style.height = `${bestCardWidth * (88/63)}px`; // Maintain 63/88 aspect ratio
-            });
+            // Cache the calculated values
+            sizingCache.layout5x4 = { containerWidth, bestCardWidth, bestGap };
             
             // Calculate total grid width
             const totalGridWidth = (cardsPerRow * bestCardWidth) + ((cardsPerRow - 1) * bestGap);
             
-            // Update grid styling to match 2x10 compactness
+            // Batch DOM operations - read all elements first
+            const cardSlots = document.querySelectorAll('.cards-grid.layout-5x4 .card-slot');
             const grid = document.querySelector('.cards-grid.layout-5x4');
-            if (grid) {
-                grid.style.gap = `${bestGap}px`;
-                grid.style.width = `${totalGridWidth}px`;
-                grid.style.maxWidth = `${Math.min(totalGridWidth, availableWidth)}px`; // Ensure grid doesn't exceed available space
-            }
             
-            // Set container styling for 5x4 - always fit all cards, no scrolling
-            cardsContainer.style.width = 'fit-content';
-            cardsContainer.style.maxWidth = `${containerWidth - containerPadding - mobileBuffer}px`;
-            cardsContainer.style.margin = '15px auto';
-            cardsContainer.style.display = 'flex';
-            cardsContainer.style.justifyContent = 'center';
-            cardsContainer.style.alignItems = 'center';
-            cardsContainer.style.padding = '8px';
-            cardsContainer.style.overflowX = 'hidden'; // No horizontal scrolling for 5x4
-            cardsContainer.style.overflowY = 'hidden';
+            // Apply all styles in one batch to prevent style thrashing
+            // Add resizing class to disable transitions
+            cardsContainer.classList.add('resizing');
+            
+            requestAnimationFrame(() => {
+                // Apply card styles
+                cardSlots.forEach(slot => {
+                    slot.style.width = `${bestCardWidth}px`;
+                    slot.style.maxWidth = `${bestCardWidth}px`;
+                    slot.style.height = `${bestCardWidth * (88/63)}px`; // Maintain 63/88 aspect ratio
+                });
+                
+                // Apply grid styles - ensure it's a CSS grid with proper 5x4 layout
+                if (grid) {
+                    grid.style.display = 'grid';
+                    grid.style.gridTemplateColumns = 'repeat(4, auto)';
+                    grid.style.gridTemplateRows = 'repeat(5, auto)';
+                    grid.style.gap = `${bestGap}px`;
+                    grid.style.width = `${totalGridWidth}px`;
+                    grid.style.maxWidth = `${Math.min(totalGridWidth, availableWidth)}px`; // Ensure grid doesn't exceed available space
+                }
+                
+                // Apply container styles for 5x4 - always fit all cards, no scrolling
+                cardsContainer.style.width = 'fit-content';
+                cardsContainer.style.maxWidth = `${containerWidth - containerPadding - mobileBuffer}px`;
+                cardsContainer.style.margin = '15px auto';
+                cardsContainer.style.display = 'flex';
+                cardsContainer.style.justifyContent = 'center';
+                cardsContainer.style.alignItems = 'center';
+                cardsContainer.style.padding = '8px';
+                cardsContainer.style.overflowX = 'hidden'; // No horizontal scrolling for 5x4
+                cardsContainer.style.overflowY = 'hidden';
+                
+                // Remove resizing class after styles are applied
+                requestAnimationFrame(() => {
+                    cardsContainer.classList.remove('resizing');
+                });
+            });
             
         }
         
@@ -2145,6 +2499,10 @@
             if (window.userLayoutPreference !== 'auto') {
                 return; // User has forced a specific layout
             }
+            
+            // Clear sizing cache when auto layout runs to force recalculation
+            sizingCache.layout2x10 = { containerWidth: 0, bestCardWidth: 0, bestGap: 0 };
+            sizingCache.layout5x4 = { containerWidth: 0, bestCardWidth: 0, bestGap: 0 };
             
             const grid = document.getElementById('cards-grid');
             const container = document.querySelector('.cards-container');
@@ -2170,14 +2528,23 @@
             
             // Prefer 2x10 layout if it can reasonably fit OR if screen is large enough to handle scrolling
             const isLargeScreen = window.innerWidth >= 1200;
-            if (exportContainerWidth >= layout2x10Width * 0.9 || isLargeScreen) { // 90% threshold for more generous 2x10
+            const canFit2x10 = exportContainerWidth >= layout2x10Width * 0.85; // 85% threshold for better switching
+            
+            // Debug logging for troubleshooting
+            console.log('Auto layout check:', {
+                windowWidth: window.innerWidth,
+                exportContainerWidth,
+                layout2x10Width,
+                canFit2x10,
+                isLargeScreen
+            });
+            
+            if (canFit2x10 || isLargeScreen) { // Use 2x10 if it fits or on large screens
                 // Use 2x10 layout for desktop
                 grid.classList.add('layout-2x10', 'auto-desktop');
                 container.classList.add('layout-2x10-container');
-                // Apply dynamic sizing for 2x10 layout
-                setTimeout(() => {
-                    applyDynamicSizing2x10();
-                }, 50);
+                // Apply dynamic sizing for 2x10 layout immediately
+                applyDynamicSizing2x10();
             } else {
                 // Use 5x4 layout for mobile - reset any dynamic sizing first
                 const cardSlots = document.querySelectorAll('.card-slot');
@@ -2206,10 +2573,8 @@
                 container.style.padding = '';
                 
                 grid.classList.add('layout-5x4', 'auto-mobile');
-                // Apply dynamic sizing for 5x4 layout in auto mode
-                setTimeout(() => {
-                    applyDynamicSizing5x4();
-                }, 50);
+                // Apply dynamic sizing for 5x4 layout in auto mode immediately
+                applyDynamicSizing5x4();
             }
         }
         
@@ -2347,14 +2712,12 @@
             console.log('All images loaded with best available quality - download enabled');
             allImagesLoaded = true;
             
-            // Apply layout after images are loaded
-            setTimeout(() => {
-                if (window.userLayoutPreference === 'auto') {
-                    checkAndApplyAutoLayout();
-                } else if (window.userLayoutPreference === '5x4') {
-                    applyDynamicSizing5x4();
-                }
-            }, 100);
+            // Apply layout after images are loaded immediately
+            if (window.userLayoutPreference === 'auto') {
+                checkAndApplyAutoLayout();
+            } else if (window.userLayoutPreference === '5x4') {
+                applyDynamicSizing5x4();
+            }
         }
         
         // Load high-resolution images first with fallback to standard
@@ -2704,13 +3067,11 @@
                     }, 3000); // Start preloading after 3 seconds
                     
                     // Ensure proper layout after initialization
-                    setTimeout(() => {
-                        if (window.userLayoutPreference === 'auto') {
-                            checkAndApplyAutoLayout();
-                        } else if (window.userLayoutPreference === '5x4') {
-                            applyDynamicSizing5x4();
-                        }
-                    }, 200);
+                    if (window.userLayoutPreference === 'auto') {
+                        checkAndApplyAutoLayout();
+                    } else if (window.userLayoutPreference === '5x4') {
+                        applyDynamicSizing5x4();
+                    }
                     
                 } catch (error) {
                     console.error('Error during initialization:', error);
@@ -2720,26 +3081,53 @@
             }, 100);
         });
         
-        // Handle window resize to automatically switch layouts - immediate response
-        window.addEventListener('resize', function() {
+        // Debounce function to prevent rapid-fire events
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+        
+        // Flag to prevent concurrent sizing operations
+        let isResizing = false;
+        
+        // Cache for dynamic sizing calculations
+        let sizingCache = {
+            layout2x10: { containerWidth: 0, bestCardWidth: 0, bestGap: 0 },
+            layout5x4: { containerWidth: 0, bestCardWidth: 0, bestGap: 0 }
+        };
+        
+        // Handle window resize with debouncing to prevent flashing
+        const handleResize = debounce(function() {
+            if (isResizing) return;
+            isResizing = true;
             
-            // Only auto-adjust if in auto mode
-            if (window.userLayoutPreference === 'auto') {
-                checkAndApplyAutoLayout();
-            } else if (window.userLayoutPreference === '2x10') {
-                // Re-apply dynamic sizing for 2x10 layout on resize
-                setTimeout(() => {
+            // Use requestAnimationFrame for smoother updates
+            requestAnimationFrame(() => {
+                // Only auto-adjust if in auto mode
+                if (window.userLayoutPreference === 'auto') {
+                    checkAndApplyAutoLayout();
+                } else if (window.userLayoutPreference === '2x10') {
+                    // Re-apply dynamic sizing for 2x10 layout
                     applyDynamicSizing2x10();
-                }, 100);
-            } else if (window.userLayoutPreference === '5x4') {
-                // Re-apply dynamic sizing for 5x4 layout on resize
-                setTimeout(() => {
+                } else if (window.userLayoutPreference === '5x4') {
+                    // Re-apply dynamic sizing for 5x4 layout
                     applyDynamicSizing5x4();
-                }, 100);
-            }
-            // Forced layouts maintain their settings regardless of container size
-            // The cards grid will scroll horizontally if needed
-        });
+                }
+                // Forced layouts maintain their settings regardless of container size
+                // The cards grid will scroll horizontally if needed
+                
+                isResizing = false;
+            });
+        }, 150);
+        
+        window.addEventListener('resize', handleResize);
     </script>
 </body>
 </html>
