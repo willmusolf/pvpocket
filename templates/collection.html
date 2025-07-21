@@ -840,10 +840,10 @@
                     description = prompt(`Making "${deckName}" public. Add an optional description (max 100 characters):`);
                     if (description === null) return; // User cancelled - don't make public
                     
-                    // Check length limit
+                    // Check length limit and truncate if necessary
                     if (description && description.length > 100) {
-                        alert('Description must be 100 characters or less.');
-                        return;
+                        description = description.substring(0, 100);
+                        alert('Description was truncated to 100 characters.');
                     }
                     
                     // Basic profanity check (frontend validation)
@@ -952,13 +952,13 @@
             const deck = allDecks.find(d => d.deck_id === deckId);
             const currentDescription = deck && deck.description ? deck.description : '';
             
-            const description = prompt(`${currentDescription ? 'Edit' : 'Add'} description for "${deckName}" (max 100 characters):`, currentDescription);
+            let description = prompt(`${currentDescription ? 'Edit' : 'Add'} description for "${deckName}" (max 100 characters):`, currentDescription);
             if (description === null) return; // User cancelled
             
-            // Check length limit
+            // Check length limit and truncate if necessary
             if (description && description.length > 100) {
-                alert('Description must be 100 characters or less.');
-                return;
+                description = description.substring(0, 100);
+                alert('Description was truncated to 100 characters.');
             }
             
             // Basic profanity check (frontend validation)

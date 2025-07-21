@@ -1231,7 +1231,9 @@
             margin-bottom: 4px;
             min-height: 0;
         }
-        #search-input,
+        #search-input {
+            font-size: 16px; /* Prevents iOS zoom on focus */
+        }
         #search-input::placeholder {
             font-size: 0.875rem;
         }
@@ -1366,7 +1368,7 @@
                     <div class="card">
                         <div class="card-header d-flex align-items-center gap-2"> <div class="input-group flex-grow-1">
                                 <span class="input-group-text"><i class="bi bi-search"></i></span>
-                                <input type="text" id="search-input" class="form-control" placeholder="Search" autocomplete="off">
+                                <input type="text" id="search-input" class="form-control" placeholder="Search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
                                 <span id="card-count-search" class="input-group-text">0 cards</span>
                             </div>
 
