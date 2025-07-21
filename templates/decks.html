@@ -1480,6 +1480,16 @@
     let deckSaved = false;
     let cardObserver = null; // Manages loading for visible images
     let progressiveLoadTimeout = null; // Manages the background loading of off-screen images
+    
+    // Debounce utility function
+    function debounce(func, delay) {
+        let timeoutId;
+        return function(...args) {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => func.apply(this, args), delay);
+        };
+    }
+    
     // Enhanced persistent cache manager
     class ImageCacheManager {
         constructor() {
@@ -2958,11 +2968,13 @@
 
     function setupEventListeners() {
         // Search input
-        document.getElementById('search-input').addEventListener('input', function() {
-            rawSearchText = this.value.toLowerCase(); // Use rawSearchText variable
+        const debouncedFilter = debounce(() => {
+            rawSearchText = document.getElementById('search-input').value.toLowerCase();
             resetAddCardsScroll();
             applyFilters();
-        });
+        }, 300);
+
+        document.getElementById('search-input').addEventListener('input', debouncedFilter);
 
         // Dropdown listeners (using the helper function for filter dropdowns)
         setupDropdownListeners(); // Handles cardType, stageType, rarity, set dropdowns
@@ -3416,12 +3428,6 @@
             clearTimeout(highResLoadTimeout);
         }
     }
-
-    document.getElementById('search-input').addEventListener('input', function() {
-        rawSearchText = this.value.toLowerCase();
-        resetAddCardsScroll();
-        applyFilters();
-    });
 
     function applyFilters() {
         // Define keyword mappings
