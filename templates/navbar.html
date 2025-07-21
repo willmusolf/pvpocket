@@ -68,4 +68,62 @@
         width: max-content !important;
         min-width: auto !important;
     }
+    
+    /* Profile dropdown button styling */
+    #mainNavbar .nav-link.dropdown-toggle {
+        border-radius: 6px;
+        padding: 6px 10px;
+        background-color: transparent;
+        transition: none;
+    }
+    
+    /* Active dropdown state */
+    #mainNavbar .dropdown.show .nav-link.dropdown-toggle,
+    #mainNavbar .nav-link.dropdown-toggle[aria-expanded="true"] {
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+    
+    /* Dark theme - active dropdown */
+    [data-theme="dark"] #mainNavbar .dropdown.show .nav-link.dropdown-toggle,
+    [data-theme="dark"] #mainNavbar .nav-link.dropdown-toggle[aria-expanded="true"] {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    /* Remove all focus and hover styles to prevent stuck states */
+    #mainNavbar .nav-link.dropdown-toggle:hover,
+    #mainNavbar .nav-link.dropdown-toggle:focus,
+    #mainNavbar .nav-link.dropdown-toggle:focus-visible,
+    #mainNavbar .nav-link.dropdown-toggle:active {
+        background-color: transparent;
+        box-shadow: none;
+        outline: none;
+    }
+    
+    /* Only show background when explicitly open */
+    #mainNavbar .dropdown.show .nav-link.dropdown-toggle:hover,
+    #mainNavbar .dropdown.show .nav-link.dropdown-toggle:focus {
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+    
+    [data-theme="dark"] #mainNavbar .dropdown.show .nav-link.dropdown-toggle:hover,
+    [data-theme="dark"] #mainNavbar .dropdown.show .nav-link.dropdown-toggle:focus {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Simple cleanup for navbar dropdowns
+    const navbarDropdowns = document.querySelectorAll('#mainNavbar .dropdown');
+    
+    navbarDropdowns.forEach(dropdown => {
+        // Remove focus after dropdown interaction
+        dropdown.addEventListener('hidden.bs.dropdown', function() {
+            const toggle = dropdown.querySelector('.dropdown-toggle');
+            if (toggle) {
+                toggle.blur();
+            }
+        });
+    });
+});
+</script>

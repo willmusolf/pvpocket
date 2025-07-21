@@ -149,6 +149,8 @@
     .deck-header-right-actions .badge {
         padding: 0.35em 0.55em;
         font-size: 0.75rem;
+        position: relative;
+        z-index: 1;
     }
 
     .deck-actions-dropdown .dropdown-toggle {
@@ -160,27 +162,40 @@
         color: var(--bs-secondary-color, #6c757d);
         transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
         margin-top: 1.5px;
+        border-radius: 4px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 32px;
+        min-height: 32px;
+        position: relative;
+        z-index: 10;
     }
 
     .deck-actions-dropdown .dropdown-toggle:hover,
-    .deck-actions-dropdown .dropdown-toggle:focus,
-    .deck-actions-dropdown .dropdown-toggle:active {
+    .deck-actions-dropdown .dropdown-toggle[aria-expanded="true"] {
         background-color: rgba(0, 0, 0, 0.075);
         color: var(--bs-body-color, #212529);
         box-shadow: none;
         border: none;
+        border-radius: 4px;
+        outline: none;
     }
 
+
+
     [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle {
-            color: var(--bs-gray-500, #adb5bd);
+        color: var(--bs-gray-500, #adb5bd);
     }
 
     [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle:hover,
-    [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle:focus,
-    [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle:active {
+    [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle[aria-expanded="true"] {
         background-color: rgba(255, 255, 255, 0.1);
         color: var(--bs-light, #f8f9fa);
+        border-radius: 4px;
+        outline: none;
     }
+
 
     .deck-actions-dropdown .dropdown-toggle i.bi-three-dots-vertical {
         font-size: 1.3rem;
@@ -362,7 +377,7 @@
         }
     }
     
-    @media (hover: none) {
+    @media (hover: none) and (pointer: coarse) {
         .deck-actions-dropdown .dropdown-toggle:hover,
         .deck-actions-dropdown .dropdown-toggle:active {
             background-color: transparent !important;
@@ -479,14 +494,13 @@
                                 ${deck.is_public ? '<span class="badge bg-success"><i class="bi bi-eye"></i> Public</span>' : ''}
                             </div>
                             <div class="dropdown deck-actions-dropdown">
-                                <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Deck Actions"><i class="bi bi-three-dots-vertical"></i></button>
+                                <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-container="body" aria-expanded="false" title="Deck Actions"><i class="bi bi-three-dots-vertical"></i></button>
                                 <ul class="dropdown-menu dropdown-menu-end">
                                     <li><a class="dropdown-item" href="${deckEditUrl}"><i class="bi bi-pencil-square me-2"></i>Edit</a></li>
                                     <li><a class="dropdown-item" href="${deckCopyUrl}"><i class="bi bi-files me-2"></i>Make a copy</a></li>
                                     <li><a class="dropdown-item" href="${pageData.battle_sim_url}"><i class="bi bi-joystick me-2"></i>Load into Battle Sim</a></li>
                                     <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="#" onclick="confirmTextExport('${escapeHTML(deck.deck_id)}', '${escapeHTML(deck.name)}'); return false;"><i class="bi bi-download me-2"></i>Export as Text</a></li>
-                                    <li><a class="dropdown-item" href="#" onclick="confirmImageExport('${escapeHTML(deck.deck_id)}', '${escapeHTML(deck.name)}'); return false;"><i class="bi bi-image me-2"></i>Export as Image</a></li>
+                                    <li><a class="dropdown-item" href="/deck/${escapeHTML(deck.deck_id)}/export/image" target="_blank"><i class="bi bi-image me-2"></i>Export as Image</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item deck-action-privacy" href="#" data-deck-id="${escapeHTML(deck.deck_id)}" data-deck-name="${escapeHTML(deck.name)}" data-is-public="${deck.is_public || false}">
                                         <i class="bi ${deck.is_public ? 'bi-eye-slash' : 'bi-eye'} me-2"></i>
@@ -618,6 +632,12 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
+        // Initialize Bootstrap tooltips and dropdowns
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+
         const pageDataEl = document.getElementById('page-data');
         const decksContainer = document.getElementById('decks-container');
         if (!pageDataEl || !decksContainer) return;
@@ -685,25 +705,14 @@
             }
         });
         
-        function confirmTextExport(deckId, deckName) {
-            if (confirm(`Export "${deckName}" as text file?`)) {
-                window.open(`/deck/${deckId}/export/text`, '_blank');
-            }
-        }
-
-        function confirmImageExport(deckId, deckName) {
-            if (confirm(`Export "${deckName}" as image?`)) {
-                window.open(`/deck/${deckId}/export?format=image`, '_blank');
-            }
-        }
         
         async function toggleDeckPrivacy(deckId, deckName, isCurrentlyPublic) {
-            const action = isCurrentlyPublic ? 'private' : 'public';
             let description = '';
             
             if (!isCurrentlyPublic) {
+                // Making deck public: Ask for description and proceed if not cancelled
                 description = prompt(`Making "${deckName}" public. Add an optional description (max 100 characters):`);
-                if (description === null) return; // User cancelled
+                if (description === null) return; // User cancelled - don't make public
                 
                 // Check length limit
                 if (description && description.length > 100) {
@@ -722,40 +731,66 @@
                         return;
                     }
                 }
-            }
-            
-            if (confirm(`Make "${deckName}" ${action}?`)) {
-                try {
-                    const response = await fetch(`{{ url_for('friends.toggle_deck_privacy', deck_id='DECK_ID') }}`.replace('DECK_ID', deckId), {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({description: description})
-                    });
-                    
-                    const result = await response.json();
-                    if (result.success) {
-                        // Update the deck in our local data
-                        const deckIndex = allDecks.findIndex(d => d.deck_id === deckId);
-                        if (deckIndex !== -1) {
-                            allDecks[deckIndex].is_public = result.is_public;
-                        }
-                        // Re-render this specific deck
-                        const pageDataEl = document.getElementById('page-data');
-                        const pageData = JSON.parse(pageDataEl.textContent);
-                        const deckElement = document.getElementById(`deck-col-${deckId}`);
-                        if (deckElement && deckIndex !== -1) {
-                            const updatedDeck = allDecks[deckIndex];
-                            const newHTML = createDeckCardHTML(updatedDeck, pageData);
-                            deckElement.outerHTML = newHTML;
-                            initializeImageLazyLoader(); // Re-initialize for the new element
-                        }
-                        applyFilters(); // Reapply filters to reflect changes
-                    } else {
-                        alert(result.error || 'An error occurred');
-                    }
-                } catch (error) {
-                    alert('An error occurred while updating deck privacy');
+                
+                // Proceed to make public without additional confirmation
+                await updateDeckPrivacy(deckId, deckName, description);
+            } else {
+                // Making deck private: Show confirmation dialog
+                if (confirm(`Make "${deckName}" private?`)) {
+                    await updateDeckPrivacy(deckId, deckName, description);
                 }
+            }
+        }
+        
+        async function updateDeckPrivacy(deckId, deckName, description) {
+            try {
+                const response = await fetch(`{{ url_for('friends.toggle_deck_privacy', deck_id='DECK_ID') }}`.replace('DECK_ID', deckId), {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({description: description})
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    // Update the deck in our local data
+                    const deckIndex = allDecks.findIndex(d => d.deck_id === deckId);
+                    if (deckIndex !== -1) {
+                        allDecks[deckIndex].is_public = result.is_public;
+                    }
+                    // Update just the badge and dropdown content without re-rendering entire deck
+                    const deckElement = document.getElementById(`deck-col-${deckId}`);
+                    if (deckElement && deckIndex !== -1) {
+                        const badgeContainer = deckElement.querySelector('.deck-header-right-actions .d-flex');
+                        const privacyLink = deckElement.querySelector('.deck-action-privacy');
+                        const privacyIcon = privacyLink.querySelector('i');
+                        
+                        // Update or add/remove the public badge
+                        let publicBadge = badgeContainer.querySelector('.badge.bg-success');
+                        if (result.is_public) {
+                            if (!publicBadge) {
+                                badgeContainer.insertAdjacentHTML('beforeend', '<span class="badge bg-success"><i class="bi bi-eye"></i> Public</span>');
+                            }
+                            // Update dropdown link
+                            privacyIcon.className = 'bi bi-eye-slash me-2';
+                            privacyLink.innerHTML = '<i class="bi bi-eye-slash me-2"></i>Make Private';
+                        } else {
+                            if (publicBadge) {
+                                publicBadge.remove();
+                            }
+                            // Update dropdown link
+                            privacyIcon.className = 'bi bi-eye me-2';
+                            privacyLink.innerHTML = '<i class="bi bi-eye me-2"></i>Make Public';
+                        }
+                        
+                        // Update data attributes
+                        privacyLink.setAttribute('data-is-public', result.is_public);
+                    }
+                    applyFilters(); // Reapply filters to reflect changes
+                } else {
+                    alert(result.error || 'An error occurred');
+                }
+            } catch (error) {
+                alert('An error occurred while updating deck privacy');
             }
         }
     });
