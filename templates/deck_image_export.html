@@ -2192,8 +2192,14 @@
         clone.style.zIndex = '-1';
         
         // Get actual rendered dimensions
-        const actualHeight = clone.scrollHeight;
+        let actualHeight = clone.scrollHeight;
         const actualWidth = clone.scrollWidth;
+        
+        // Crop bottom for desktop exports
+        if (!isMobileForExport() && window.innerWidth > 400) {
+            actualHeight -= 15; // Crop 50px from bottom for regular desktop
+        }
+        
         console.log('Clone actual dimensions:', actualWidth, 'x', actualHeight);
         
         // Wait for positioning
