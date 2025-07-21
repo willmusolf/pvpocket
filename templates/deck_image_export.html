@@ -1337,17 +1337,12 @@
                 {% if deck_types %}
                 <div class="deck-types">
                     {% for deck_type in deck_types %}
-                    {% set energy_url = config.ENERGY_ICON_URLS.get(deck_type) %}
-                    {% if energy_url and ('storage.googleapis.com' in energy_url or 'firebasestorage.googleapis.com' in energy_url) %}
-                        {% set energy_proxy_url = '/api/proxy-image?url=' + energy_url|urlencode %}
-                    {% else %}
-                        {% set energy_proxy_url = energy_url %}
-                    {% endif %}
-                    <img src="{{ energy_proxy_url }}" 
+                    {% set display_url = config.ENERGY_ICON_URLS.get(deck_type) %}
+                    <img src="{{ display_url }}" 
                          alt="{{ deck_type }}" 
                          class="energy-badge"
                          title="{{ deck_type }}"
-                         data-original-src="{{ energy_url }}"
+                         data-original-src="{{ display_url }}"
                          crossorigin="anonymous">
                     {% endfor %}
                 </div>
@@ -1361,18 +1356,13 @@
                 {% for card in ordered_cards %}
                     {% if card %}
                         <div class="card-slot">
-                            {% set image_url = card.display_image_path or card.firebase_image_url %}
-                            {% if image_url and ('storage.googleapis.com' in image_url or 'firebasestorage.googleapis.com' in image_url) %}
-                                {% set proxy_url = '/api/proxy-image?url=' + image_url|urlencode %}
-                            {% else %}
-                                {% set proxy_url = image_url or 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTEwIiBoZWlnaHQ9IjE1NCIgdmlld0JveD0iMCAwIDExMCAxNTQiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJhIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMCI+PHN0b3Agc3RvcC1jb2xvcj0iIzM0NDk1ZSIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzJjM2U1MCIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMTAiIGhlaWdodD0iMTU0IiBmaWxsPSJ1cmwoI2EpIiByeD0iNiIvPjx0ZXh0IHg9IjU1IiB5PSI3NyIgZmlsbD0iIzk1YTVhNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkNhcmQ8L3RleHQ+PC9zdmc+' %}
-                            {% endif %}
+                            {% set fallback_url = card.display_image_path or card.firebase_image_url %}
                             <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTEwIiBoZWlnaHQ9IjE1NCIgdmlld0JveD0iMCAwIDExMCAxNTQiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJhIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMCI+PHN0b3Agc3RvcC1jb2xvcj0iIzM0NDk1ZSIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzJjM2U1MCIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMTAiIGhlaWdodD0iMTU0IiBmaWxsPSJ1cmwoI2EpIiByeD0iNiIvPjx0ZXh0IHg9IjU1IiB5PSI3NyIgZmlsbD0iIzk1YTVhNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkxvYWRpbmcuLi48L3RleHQ+PC9zdmc+" 
                                  alt="{{ card.name }}" 
                                  class="card-image"
                                  title="{{ card.name }}"
-                                 data-fallback-src="{{ proxy_url }}"
-                                 data-original-src="{{ image_url }}"
+                                 data-fallback-src="{{ fallback_url }}"
+                                 data-original-src="{{ fallback_url }}"
                                  crossorigin="anonymous"
                                  onerror="handleImageError(this)"
                                  style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 3.5%;">
@@ -1490,7 +1480,65 @@
             return settings[quality] || settings.high;
         }
         
-        // Wait for all images to load before allowing download (legacy function - now uses loadAllImagesWithProxy)
+        // Helper function to convert any image URL to its high-res version
+        function getHighResUrl(originalUrl) {
+            if (!originalUrl) return null;
+            
+            // Simply replace /cards/ with /high_res_cards/ in the URL
+            if (originalUrl.includes('/cards/')) {
+                return originalUrl.replace('/cards/', '/high_res_cards/');
+            }
+            
+            return null;
+        }
+
+        // Image URL helper - convert Firebase Storage URLs to CDN URLs
+        function getImageUrl(originalUrl) {
+            if (!originalUrl) return '';
+            
+            // If the URL already includes the CDN domain, return as-is
+            if (originalUrl.startsWith('https://cdn.pvpocket.xyz')) {
+                return originalUrl;
+            }
+            
+            // Convert Firebase Storage URLs to CDN URLs
+            if (originalUrl.includes('firebasestorage.googleapis.com') || originalUrl.includes('storage.googleapis.com')) {
+                // Extract the path from Firebase Storage URLs
+                // Examples:
+                // https://firebasestorage.googleapis.com/v0/b/pvpocket-dd286.firebasestorage.app/o/energy_icons%2Fwater.png?alt=media
+                // https://storage.googleapis.com/pvpocket-dd286.firebasestorage.app/cards/genetic-apex/267
+                
+                let path = '';
+                
+                if (originalUrl.includes('firebasestorage.googleapis.com')) {
+                    // Handle Firebase Storage URLs with encoded paths
+                    const pathMatch = originalUrl.match(/\/o\/([^?]+)/);
+                    if (pathMatch) {
+                        path = '/' + decodeURIComponent(pathMatch[1]);
+                    }
+                } else if (originalUrl.includes('storage.googleapis.com')) {
+                    // Handle Google Cloud Storage URLs  
+                    const pathMatch = originalUrl.match(/pvpocket-dd286\.firebasestorage\.app\/(.+)$/);
+                    if (pathMatch) {
+                        path = '/' + pathMatch[1];
+                    }
+                }
+                
+                if (path) {
+                    return 'https://cdn.pvpocket.xyz' + path;
+                }
+            }
+            
+            // If it's a relative path, prepend the CDN base URL
+            if (originalUrl.startsWith('/') || !originalUrl.includes('://')) {
+                return 'https://cdn.pvpocket.xyz' + (originalUrl.startsWith('/') ? originalUrl : '/' + originalUrl);
+            }
+            
+            // For any other URLs, return as-is (fallback)
+            return originalUrl;
+        }
+        
+        // Wait for all images to load before allowing download (legacy function - now uses loadAllImages)
         function checkAllImagesLoaded() {
             const images = document.querySelectorAll('.card-image');
             const energyImages = document.querySelectorAll('.energy-badge');
@@ -2797,10 +2845,9 @@
                 console.log('Trying fallback src');
                 img.src = fallbackSrc;
             } else if (originalSrc && originalSrc !== img.src) {
-                // Try original source through proxy
-                const proxySrc = '/api/proxy-image?url=' + encodeURIComponent(originalSrc);
-                console.log('Trying proxy src:', proxySrc);
-                img.src = proxySrc;
+                // Try original source directly
+                console.log('Trying original src:', originalSrc);
+                img.src = getImageUrl(originalSrc);
             } else {
                 // If all fails, use inline SVG placeholder
                 console.log('Using placeholder');
@@ -2809,7 +2856,7 @@
         }
         
         // High-resolution first image loading system
-        async function loadAllImagesWithProxy() {
+        async function loadAllImages() {
             // Prevent duplicate loading
             if (allImagesLoaded) {
                 console.log('Images already loaded, skipping duplicate load');
@@ -2867,7 +2914,7 @@
             // Load high-resolution card images (with fallback to standard)
             images.forEach(img => {
                 const originalSrc = img.getAttribute('data-original-src');
-                if (originalSrc && (originalSrc.includes('storage.googleapis.com') || originalSrc.includes('firebasestorage.googleapis.com'))) {
+                if (originalSrc && (originalSrc.includes('storage.googleapis.com') || originalSrc.includes('firebasestorage.googleapis.com') || originalSrc.includes('cdn.pvpocket.xyz'))) {
                     const promise = loadBestAvailableImage(img, originalSrc).then(() => {
                         updateProgress();
                     });
@@ -2880,7 +2927,7 @@
             // Load energy icons
             energyIcons.forEach(icon => {
                 const originalSrc = icon.getAttribute('data-original-src');
-                if (originalSrc && (originalSrc.includes('storage.googleapis.com') || originalSrc.includes('firebasestorage.googleapis.com'))) {
+                if (originalSrc && (originalSrc.includes('storage.googleapis.com') || originalSrc.includes('firebasestorage.googleapis.com') || originalSrc.includes('cdn.pvpocket.xyz'))) {
                     const promise = loadEnergyIcon(icon, originalSrc).then(() => {
                         updateProgress();
                     });
@@ -2897,34 +2944,43 @@
         function loadBestAvailableImage(img, originalSrc) {
             return new Promise((resolve) => {
                 // Try high-res first
-                const highResSrc = originalSrc.replace('/cards/', '/high_res_cards/');
-                const highResProxy = `/api/proxy-image?url=${encodeURIComponent(highResSrc)}`;
+                const highResSrc = getHighResUrl(originalSrc);
+                console.log('[EXPORT] loadBestAvailableImage:', {
+                    originalSrc: originalSrc,
+                    highResSrc: highResSrc,
+                    hasHighRes: !!highResSrc
+                });
+                
+                if (!highResSrc) {
+                    // No high-res available, use standard
+                    img.src = getImageUrl(originalSrc);
+                    resolve();
+                    return;
+                }
                 
                 const testHighRes = new Image();
                 testHighRes.onload = function() {
-                    img.src = highResProxy;
+                    img.src = getImageUrl(highResSrc);
                     img.dataset.loadedResolution = 'high';
                     resolve();
                 };
                 testHighRes.onerror = function() {
                     // Fallback to standard resolution
-                    const standardProxy = `/api/proxy-image?url=${encodeURIComponent(originalSrc)}`;
-                    
                     const testStandard = new Image();
                     testStandard.onload = function() {
-                        img.src = standardProxy;
+                        img.src = getImageUrl(originalSrc);
                         img.dataset.loadedResolution = 'standard';
                         resolve();
                     };
                     testStandard.onerror = function() {
-                        // Use placeholder if both fail
+                        // Use placeholder if both high-res and standard fail
                         img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTEwIiBoZWlnaHQ9IjE1NCIgdmlld0JveD0iMCAwIDExMCAxNTQiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJhIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMCI+PHN0b3Agc3RvcC1jb2xvcj0iIzM0NDk1ZSIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzJjM2U1MCIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMTAiIGhlaWdodD0iMTU0IiBmaWxsPSJ1cmwoI2EpIiByeD0iNiIvPjx0ZXh0IHg9IjU1IiB5PSI3NyIgZmlsbD0iIzk1YTVhNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkNhcmQ8L3RleHQ+PC9zdmc+';
                         img.dataset.loadedResolution = 'placeholder';
                         resolve();
                     };
-                    testStandard.src = standardProxy;
+                    testStandard.src = getImageUrl(originalSrc);
                 };
-                testHighRes.src = highResProxy;
+                testHighRes.src = getImageUrl(highResSrc);
             });
         }
         
@@ -3013,32 +3069,32 @@
             }
             
             // Start with standard resolution
-            const regularProxy = `/api/proxy-image?url=${encodeURIComponent(originalSrc)}`;
-            
             const preloadImg = new Image();
             preloadImg.onload = function() {
-                img.src = regularProxy;
+                img.src = getImageUrl(originalSrc);
                 img.dataset.loadedResolution = 'standard';
                 
                 
                 // After a delay, try to upgrade to high-resolution
                 setTimeout(() => {
-                    const highResSrc = originalSrc.replace('/cards/', '/high_res_cards/');
-                    const highResProxy = `/api/proxy-image?url=${encodeURIComponent(highResSrc)}`;
+                    const highResSrc = getHighResUrl(originalSrc);
+                    if (!highResSrc) {
+                        return; // No high-res available
+                    }
                     
                     const highResImg = new Image();
                     highResImg.onload = function() {
-                        img.src = highResProxy;
+                        img.src = getImageUrl(highResSrc);
                         img.dataset.loadedResolution = 'high';
                     };
                     highResImg.onerror = function() {
                     };
-                    highResImg.src = highResProxy;
+                    highResImg.src = getImageUrl(highResSrc);
                 }, 2000); // 2 second delay before trying high-res
             };
             preloadImg.onerror = function() {
             };
-            preloadImg.src = regularProxy;
+            preloadImg.src = getImageUrl(originalSrc);
         }
         
         // Intersection Observer for dynamic preloading
@@ -3069,11 +3125,10 @@
             }
         }
         
-        // Load energy icon through proxy
+        // Load energy icon
         function loadEnergyIcon(icon, originalSrc) {
             return new Promise((resolve) => {
-                const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(originalSrc)}`;
-                icon.src = proxyUrl;
+                icon.src = getImageUrl(originalSrc);
                 resolve();
             });
         }
@@ -3188,7 +3243,7 @@
                     window.selectedExportFormat = '5x4'; // Default fallback
                     
                     // Start loading immediately since we're using placeholders
-                    loadAllImagesWithProxy();
+                    loadAllImages();
                     
                     // Setup intelligent preloading after initial load
                     setTimeout(() => {

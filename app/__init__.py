@@ -83,19 +83,8 @@ def create_app(config_name="default"):
     )
     app_config = config[config_name]
     app.config.from_object(app_config)
+    app.config['FLASK_ENV'] = config_name
     
-    # Disable request logging for proxy-image endpoint
-    import logging
-    werkzeug_logger = logging.getLogger('werkzeug')
-    
-    # Create a custom filter to suppress proxy-image logs
-    class ProxyImageFilter(logging.Filter):
-        def filter(self, record):
-            # Suppress logs containing /api/proxy-image
-            return '/api/proxy-image' not in record.getMessage()
-    
-    # Add the filter to werkzeug logger
-    werkzeug_logger.addFilter(ProxyImageFilter())
 
     if not app.config.get("SECRET_KEY"):
         raise ValueError(
@@ -143,13 +132,12 @@ def create_app(config_name="default"):
         if DEFAULT_PROFILE_ICON in icon_filenames:
             icon_filenames.remove(DEFAULT_PROFILE_ICON)
 
-        base_url = "https://firebasestorage.googleapis.com/v0/b/pvpocket-dd286.firebasestorage.app/o/profile_icons%2F"
-        media_suffix = "?alt=media"
-
-        all_icon_urls = {
-            icon: f"{base_url}{icon}{media_suffix}"
-            for icon in icon_filenames + [DEFAULT_PROFILE_ICON]
-        }
+        base_url = app.config['ASSET_BASE_URL']
+        all_icon_urls = {}
+        # Always use CDN for profile icons to avoid CORS issues
+        cdn_base_url = 'https://cdn.pvpocket.xyz'
+        for icon in icon_filenames + [DEFAULT_PROFILE_ICON]:
+            all_icon_urls[icon] = f"{cdn_base_url}/profile_icons/{icon}"
 
         app.config["PROFILE_ICON_FILENAMES"] = sorted(icon_filenames)
         app.config["PROFILE_ICON_URLS"] = all_icon_urls
@@ -201,18 +189,27 @@ def create_app(config_name="default"):
         app.register_blueprint(google_bp, url_prefix="/login")
         oauth_authorized.connect(google_auth_handler_function, sender=google_bp)
 
-    app.config["ENERGY_ICON_URLS"] = {
-        "Grass": "https://firebasestorage.googleapis.com/v0/b/pvpocket-dd286.firebasestorage.app/o/energy_icons%2Fgrass.png?alt=media&token=4d91420b-c0f1-47e6-9d4b-c9599f9a4d34",
-        "Fire": "https://firebasestorage.googleapis.com/v0/b/pvpocket-dd286.firebasestorage.app/o/energy_icons%2Ffire.png?alt=media&token=476db9b6-f69a-41b6-beaf-fe44fcbe883c",
-        "Water": "https://firebasestorage.googleapis.com/v0/b/pvpocket-dd286.firebasestorage.app/o/energy_icons%2Fwater.png?alt=media&token=f9903896-59b8-4122-83e4-35d4660be54c",
-        "Lightning": "https://firebasestorage.googleapis.com/v0/b/pvpocket-dd286.firebasestorage.app/o/energy_icons%2Felectric.png?alt=media&token=f3593c9f-e4b1-45cb-b021-8e92c5b3117f",
-        "Psychic": "https://firebasestorage.googleapis.com/v0/b/pvpocket-dd286.firebasestorage.app/o/energy_icons%2Fpsychic.png?alt=media&token=ece52e71-9a49-4200-8424-7f2708ca7b96",
-        "Fighting": "https://firebasestorage.googleapis.com/v0/b/pvpocket-dd286.firebasestorage.app/o/energy_icons%2Ffighting.png?alt=media&token=c8269b93-7ed5-4f3c-bceb-324074dc5207",
-        "Darkness": "https://firebasestorage.googleapis.com/v0/b/pvpocket-dd286.firebasestorage.app/o/energy_icons%2Fdark.png?alt=media&token=358b8eba-e5ef-4293-95cc-5c745591472b",
-        "Metal": "https://firebasestorage.googleapis.com/v0/b/pvpocket-dd286.firebasestorage.app/o/energy_icons%2Fmetal.png?alt=media&token=d0c1481a-c9e5-49a8-a8cd-8300a3c4f73e",
-        "Dragon": "https://firebasestorage.googleapis.com/v0/b/pvpocket-dd286.firebasestorage.app/o/energy_icons%2Fdragon.png?alt=media&token=0f9630da-e7a2-478b-a0d3-f3b6d5948eb3",
-        "Colorless": "https://firebasestorage.googleapis.com/v0/b/pvpocket-dd286.firebasestorage.app/o/energy_icons%2Fcolorless.png?alt=media&token=ffbd920d-85e9-4a92-b9a3-54494ff69060",
+    # Energy icon mapping
+    energy_icon_files = {
+        "Grass": "grass.png",
+        "Fire": "fire.png",
+        "Water": "water.png",
+        "Lightning": "electric.png",
+        "Psychic": "psychic.png",
+        "Fighting": "fighting.png",
+        "Darkness": "dark.png",
+        "Metal": "metal.png",
+        "Dragon": "dragon.png",
+        "Colorless": "colorless.png",
     }
+
+    energy_icon_urls = {}
+    # Always use CDN for energy icons to avoid CORS issues
+    cdn_base_url = 'https://cdn.pvpocket.xyz'
+    for energy_type, filename in energy_icon_files.items():
+        energy_icon_urls[energy_type] = f"{cdn_base_url}/energy_icons/{filename}"
+
+    app.config["ENERGY_ICON_URLS"] = energy_icon_urls
 
     @app.context_processor
     def inject_user_profile_icon():
@@ -228,6 +225,44 @@ def create_app(config_name="default"):
                 "DEFAULT_PROFILE_ICON_URL", ""
             )
         )
+
+    @app.template_filter('cdn_url')
+    def cdn_url_filter(original_url):
+        """Convert Firebase Storage URLs to CDN URLs"""
+        if not original_url:
+            return ''
+        
+        # If the URL already includes the CDN domain, return as-is
+        if original_url.startswith('https://cdn.pvpocket.xyz'):
+            return original_url
+        
+        # Convert Firebase Storage URLs to CDN URLs
+        if 'firebasestorage.googleapis.com' in original_url or 'storage.googleapis.com' in original_url:
+            import re
+            from urllib.parse import unquote
+            
+            path = ''
+            
+            if 'firebasestorage.googleapis.com' in original_url:
+                # Handle Firebase Storage URLs with encoded paths
+                path_match = re.search(r'/o/([^?]+)', original_url)
+                if path_match:
+                    path = '/' + unquote(path_match.group(1))
+            elif 'storage.googleapis.com' in original_url:
+                # Handle Google Cloud Storage URLs  
+                path_match = re.search(r'pvpocket-dd286\.firebasestorage\.app/(.+)$', original_url)
+                if path_match:
+                    path = '/' + path_match.group(1)
+            
+            if path:
+                return 'https://cdn.pvpocket.xyz' + path
+        
+        # If it's a relative path, prepend the CDN base URL
+        if original_url.startswith('/') or '://' not in original_url:
+            return 'https://cdn.pvpocket.xyz' + (original_url if original_url.startswith('/') else '/' + original_url)
+        
+        # For any other URLs, return as-is (fallback)
+        return original_url
 
     @app.route("/api/refresh-cards", methods=["POST"])
     def refresh_cards_cache():

@@ -212,9 +212,26 @@ def get_all_cards():
             card_dict = (
                 card_obj.to_dict()
             )  # Card.to_dict() should return all necessary fields
-            # Ensure display_image_path is included. If Card.to_dict() doesn't include properties, add it:
-            if "display_image_path" not in card_dict:  # Check if it's already there
-                card_dict["display_image_path"] = card_obj.display_image_path
+            
+            # Addition:
+            # Define the old storage domain and the new CDN domain
+            OLD_STORAGE_BASE_URL = 'https://storage.googleapis.com/pvpocket-dd286.firebasestorage.app'
+            CDN_BASE_URL = 'https://cdn.pvpocket.xyz'
+
+            # Get the original full URL from the card object
+            original_url = card_obj.display_image_path
+
+            # Correctly transform the URL by replacing the domain
+            if original_url and original_url.startswith(OLD_STORAGE_BASE_URL):
+                card_dict['display_image_path'] = original_url.replace(OLD_STORAGE_BASE_URL, CDN_BASE_URL)
+            else:
+                # If the URL is already in the new CDN format or is a relative path, pass it through.
+                # This makes the code robust for the future.
+                card_dict['display_image_path'] = original_url
+                
+            if card_dict['display_image_path']:
+                card_dict['high_res_image_path'] = card_dict['display_image_path'].replace('/cards/', '/high_res_cards/')
+                
             card_dicts.append(card_dict)
 
         current_app.logger.info(

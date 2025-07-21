@@ -1,0 +1,13 @@
+[
+    {
+      "origin": [
+        "https://pvpocket.xyz",
+        "https://test-env-dot-pvpocket-dd286.uc.r.appspot.com",
+        "http://localhost:5000",
+        "http://127.0.0.1:5000"
+      ],
+      "method": ["GET", "OPTIONS"],
+      "responseHeader": ["Content-Type"],
+      "maxAgeSeconds": 3600
+    }
+  ]

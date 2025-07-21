@@ -40,8 +40,10 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
     const request = event.request;
     
-    // Only cache proxy image requests
-    if (request.url.includes('/api/proxy-image')) {
+    // Cache CDN images and card images directly (now that CORS is configured)
+    if (request.url.includes('cdn.pvpocket.xyz') || 
+        request.url.includes('firebasestorage.googleapis.com') ||
+        request.url.includes('/api/proxy-image')) { // Keep proxy support for legacy/fallback
         event.respondWith(handleImageRequest(request));
     }
 });

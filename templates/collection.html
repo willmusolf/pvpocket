@@ -629,7 +629,7 @@
                         wrapper.classList.add('is-loaded');
                     };
                     img.onerror = () => wrapper.classList.remove('is-loading');
-                    img.src = img.dataset.src;
+                    img.src = getImageUrl(img.dataset.src);
                     img.removeAttribute('data-src');
                     observer.unobserve(img);
                 }

@@ -16,6 +16,10 @@ class Config:
     BASE_DIR = os.path.abspath(os.path.dirname(__file__))
     PROJECT_ROOT = os.path.dirname(BASE_DIR)
 
+    # Asset URL Configuration
+    FIREBASE_STORAGE_BASE_URL = 'https://firebasestorage.googleapis.com/v0/b/pvpocket-dd286.firebasestorage.app/o'
+    ASSET_BASE_URL = FIREBASE_STORAGE_BASE_URL  # Default for development
+
     DEBUG = (
         os.environ.get("FLASK_DEBUG", "0") == "1"
     )
@@ -33,6 +37,12 @@ class DevelopmentConfig(Config):
 class ProductionConfig(Config):
     """Configuration for production environment."""
     DEBUG = False
+    ASSET_BASE_URL = 'https://cdn.pvpocket.xyz'
+
+
+class StagingConfig(ProductionConfig):
+    """Configuration for staging environment."""
+    pass
 
 
 class TestingConfig(Config):
@@ -43,6 +53,7 @@ class TestingConfig(Config):
 config = {
     "development": DevelopmentConfig,
     "production": ProductionConfig,
+    "staging": StagingConfig,
     "testing": TestingConfig,
     "default": DevelopmentConfig,
 }

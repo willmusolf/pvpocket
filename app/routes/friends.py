@@ -278,9 +278,58 @@ def view_friend_decks(user_id):
                         try:
                             card_obj = card_collection.get_card_by_id(int(c_id_str))
                             if card_obj:
+                                # Get the correct base URL from the app's central config
+                                base_url = current_app.config['ASSET_BASE_URL']
+                                
+                                # Get the original image path
+                                image_path = getattr(card_obj, "firebase_image_url", None)
+                                
+                                if image_path:
+                                    # If the image path is already a CDN URL, use it as-is
+                                    if image_path.startswith('https://cdn.pvpocket.xyz'):
+                                        firebase_image_url = image_path
+                                    # If it's already a Firebase URL and we're not using CDN, use it as-is 
+                                    elif (image_path.startswith('https://') and 
+                                          not base_url.startswith('https://cdn.pvpocket.xyz')):
+                                        firebase_image_url = image_path
+                                    # If it's a Firebase URL and we need to convert to CDN
+                                    elif (image_path.startswith('https://') and 
+                                          base_url.startswith('https://cdn.pvpocket.xyz')):
+                                        # Extract relative path from Firebase URLs
+                                        relative_path = None
+                                        if 'firebasestorage.googleapis.com' in image_path and '/o/' in image_path:
+                                            # Extract the path after /o/
+                                            path_part = image_path.split('/o/', 1)[1].split('?')[0]
+                                            # URL decode the path
+                                            from urllib.parse import unquote
+                                            relative_path = unquote(path_part)
+                                        elif 'storage.googleapis.com' in image_path:
+                                            # Extract path from Google Cloud Storage URLs
+                                            if 'pvpocket-dd286.firebasestorage.app/' in image_path:
+                                                relative_path = image_path.split('pvpocket-dd286.firebasestorage.app/', 1)[1]
+                                        
+                                        if relative_path:
+                                            firebase_image_url = f"{base_url}/{relative_path}"
+                                        else:
+                                            firebase_image_url = image_path
+                                    # If it's a relative path, build the URL normally
+                                    else:
+                                        if base_url.startswith('https://cdn.pvpocket.xyz'):
+                                            # For CDN, the path is direct and clean
+                                            clean_path = image_path.lstrip('/')
+                                            firebase_image_url = f"{base_url}/{clean_path}"
+                                        else: 
+                                            # For local development (Firebase), the path needs URL encoding and a suffix
+                                            from urllib.parse import quote
+                                            clean_path = image_path.lstrip('/')
+                                            encoded_path = quote(clean_path, safe='')
+                                            firebase_image_url = f"{base_url}/{encoded_path}?alt=media"
+                                else:
+                                    firebase_image_url = image_path
+                                    
                                 resolved_cover_cards.append({
                                     "name": getattr(card_obj, "name", "N/A"),
-                                    "firebase_image_url": getattr(card_obj, "firebase_image_url", None),
+                                    "firebase_image_url": firebase_image_url,
                                 })
                                 seen_card_ids.add(c_id_str)
                                 # Limit to 3 cover cards maximum

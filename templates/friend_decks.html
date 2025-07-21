@@ -555,7 +555,7 @@
                                     <div class="deck-cover-cards-area">
                                         {% for cover in deck.resolved_cover_cards %}
                                         <div class="cover-card-image-wrapper">
-                                            <img src="{{ cover.firebase_image_url or '/static/placeholder.png' }}" alt="{{ cover.name }}" title="{{ cover.name }}">
+                                            <img src="{{ (cover.firebase_image_url or '/static/placeholder.png') | cdn_url }}" alt="{{ cover.name }}" title="{{ cover.name }}">
                                         </div>
                                         {% endfor %}
                                         {% if deck.cards|length < 20 %}
