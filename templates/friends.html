@@ -95,6 +95,15 @@
         color: var(--bs-gray-500);
         opacity: 1;
     }
+    [data-theme="dark"] #friends-search-input::placeholder {
+        color: var(--bs-gray-500);
+        opacity: 1;
+    }
+    [data-theme="dark"] .input-group-text {
+        background-color: var(--input-bg);
+        border-color: var(--border-color);
+        color: var(--text-color);
+    }
     [data-theme="dark"] .friend-actions-dropdown .dropdown-toggle {
         color: var(--bs-gray-500, #adb5bd);
     }
@@ -130,6 +139,12 @@
             --bs-btn-active-border-color: var(--bs-btn-border-color);
             box-shadow: none !important; /* Explicitly remove focus shadow */
         }
+    }
+    .friends-no-results {
+        text-align: center;
+        padding: 1rem;
+        color: var(--bs-secondary);
+        font-style: italic;
     }
 </style>
 {% endblock %}
@@ -173,6 +188,10 @@
 
             <div class="friend-list-card">
                 <h4>Your Friends (<span id="friends-count">{{ friends|length }}</span>)</h4>
+                <div class="input-group mb-3">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" id="friends-search-input" class="form-control" placeholder="Search your friends..." aria-label="Search friends">
+                </div>
                 <div id="friends-list">
                     {% if friends %}
                         {% for user in friends %}
@@ -487,6 +506,94 @@
                 this.remove();
             });
         }
+
+        // Friends search functionality
+        const friendsSearchInput = document.getElementById('friends-search-input');
+        const originalFriendsCount = friendIds.size;
+        let allFriendEntries = [];
+
+        // Store all friend entries for filtering
+        function storeFriendEntries() {
+            allFriendEntries = Array.from(friendsListContainer.querySelectorAll('.user-entry'));
+        }
+
+        // Filter friends based on search query
+        function filterFriends(searchQuery) {
+            const query = searchQuery.toLowerCase().trim();
+            let visibleCount = 0;
+
+            allFriendEntries.forEach(entry => {
+                const username = entry.querySelector('.user-info span').textContent.toLowerCase();
+                const isMatch = username.includes(query);
+                
+                if (isMatch) {
+                    entry.style.display = '';
+                    visibleCount++;
+                } else {
+                    entry.style.display = 'none';
+                }
+            });
+
+            // Update friends count
+            friendsCountSpan.textContent = visibleCount;
+
+            // Show/hide "no results" message
+            const existingNoResults = friendsListContainer.querySelector('.friends-no-results');
+            if (existingNoResults) {
+                existingNoResults.remove();
+            }
+
+            if (visibleCount === 0 && query.length > 0 && allFriendEntries.length > 0) {
+                const noResultsMsg = document.createElement('div');
+                noResultsMsg.className = 'friends-no-results';
+                noResultsMsg.textContent = 'No friends match your search.';
+                friendsListContainer.appendChild(noResultsMsg);
+            }
+        }
+
+        // Initialize friend entries storage
+        if (allFriendEntries.length === 0) {
+            storeFriendEntries();
+        }
+
+        // Add search input event listener
+        if (friendsSearchInput) {
+            friendsSearchInput.addEventListener('input', function() {
+                const searchQuery = this.value;
+                
+                if (searchQuery.trim() === '') {
+                    // Show all friends when search is empty
+                    allFriendEntries.forEach(entry => entry.style.display = '');
+                    friendsCountSpan.textContent = originalFriendsCount;
+                    
+                    // Remove no results message
+                    const existingNoResults = friendsListContainer.querySelector('.friends-no-results');
+                    if (existingNoResults) {
+                        existingNoResults.remove();
+                    }
+                } else {
+                    filterFriends(searchQuery);
+                }
+            });
+        }
+
+        // Update stored entries when friends list changes (for accept/remove actions)
+        const originalHandleFriendAction = window.handleFriendAction;
+        window.handleFriendAction = async function(action, userId, element) {
+            const result = await originalHandleFriendAction(action, userId, element);
+            
+            // Re-store friend entries after list changes
+            setTimeout(() => {
+                storeFriendEntries();
+                
+                // Reapply current search filter if any
+                if (friendsSearchInput && friendsSearchInput.value.trim() !== '') {
+                    filterFriends(friendsSearchInput.value);
+                }
+            }, 100);
+            
+            return result;
+        };
     });
 </script>
 {%endblock%}

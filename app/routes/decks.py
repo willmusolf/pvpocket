@@ -799,6 +799,71 @@ def delete_deck(deck_id: str):
         )
 
 
+@decks_bp.route("/api/decks/<string:deck_id>/description", methods=["POST"])
+@login_required
+def update_deck_description(deck_id: str):
+    """Update the description of a deck."""
+    try:
+        db = get_db()
+        current_user_id = flask_login_current_user.id
+        
+        # Get request data
+        data = request.get_json()
+        description = data.get("description", "").strip()
+        
+        # Validate description length
+        if description and len(description) > 100:
+            return jsonify({
+                "success": False,
+                "error": "Description must be 100 characters or less."
+            }), 400
+        
+        # Profanity check
+        if description and profanity_check(description):
+            return jsonify({
+                "success": False,
+                "error": "Description contains inappropriate language."
+            }), 400
+        
+        # Get the deck document
+        deck_ref = db.collection("decks").document(deck_id)
+        deck_doc = deck_ref.get()
+        
+        if not deck_doc.exists:
+            return jsonify({
+                "success": False,
+                "error": "Deck not found."
+            }), 404
+        
+        deck_data = deck_doc.to_dict()
+        
+        # Verify ownership
+        if deck_data.get("owner_id") != current_user_id:
+            return jsonify({
+                "success": False,
+                "error": "You can only modify your own decks."
+            }), 403
+        
+        # Update description
+        deck_ref.update({
+            "description": description
+        })
+        
+        return jsonify({
+            "success": True,
+            "message": "Description updated successfully."
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(
+            f"Error updating deck description (ID: {deck_id}): {e}", exc_info=True
+        )
+        return jsonify({
+            "success": False,
+            "error": "An error occurred while updating the description."
+        }), 500
+
+
 # Change the route and method for copy_deck
 @decks_bp.route(
     "/api/decks/<string:original_deck_id>/copy", methods=["POST"]
@@ -875,6 +940,12 @@ def copy_deck(
         new_deck_firestore_id = str(uuid.uuid4())
         copied_deck_obj.id = new_deck_firestore_id
         copied_deck_obj.owner_id = user_firestore_id
+        
+        # Explicitly preserve the description from original deck
+        original_description = original_deck_data.get("description", "")
+        copied_deck_obj.description = original_description
+        
+        current_app.logger.info(f"Copying deck '{original_deck_data.get('name')}' with description: '{original_description}'")
 
         original_name = original_deck_data.get("name", "Unnamed Deck")
         new_deck_name = f"Copy of {original_name}"

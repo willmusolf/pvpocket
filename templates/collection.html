@@ -118,6 +118,8 @@
         margin-top: 0.5rem;
         margin-bottom: 0rem;
         min-height: 1.2em;
+        position: relative;
+        padding-right: 20px; /* Make space for the info icon */
     }
 
     .collection-main-content {
@@ -204,6 +206,12 @@
 
     .deck-actions-dropdown .dropdown-menu {
         min-width: 190px;
+        z-index: 9999 !important;
+    }
+    
+    [data-theme="dark"] .deck-actions-dropdown .dropdown-menu {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
     }
 
     .deck-actions-dropdown .dropdown-item {
@@ -214,6 +222,7 @@
     .deck-actions-dropdown .dropdown-item .bi {
         width: 1.5em;
     }
+    
 
     .deck-cover-cards-area {
         display: flex;
@@ -377,6 +386,31 @@
         }
     }
     
+    /* Make description icon more visible and always positioned in top-right */
+    .card-title .bi-info-circle {
+        opacity: 0.7;
+        transition: opacity 0.2s ease;
+        position: absolute;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 2;
+    }
+    
+    .card-title .bi-info-circle:hover {
+        opacity: 1;
+    }
+    
+    [data-theme="dark"] .card-title .bi-info-circle {
+        color: #6c9bd2 !important;
+        opacity: 0.8;
+    }
+    
+    [data-theme="dark"] .card-title .bi-info-circle:hover {
+        color: #8bb3e4 !important;
+        opacity: 1;
+    }
+    
     @media (hover: none) and (pointer: coarse) {
         .deck-actions-dropdown .dropdown-toggle:hover,
         .deck-actions-dropdown .dropdown-toggle:active {
@@ -468,9 +502,13 @@
 
     function createDeckCardHTML(deck, pageData) {
         const deckEditUrl = `${pageData.deck_builder_url}?edit=${deck.deck_id}`;
-        const deckCopyUrl = `${pageData.deck_builder_url}?copy_from=${deck.deck_id}`;
+        // Use API copy instead of deck builder copy to preserve description
+        const deckCopyUrl = '#';
         const energyUrls = pageData.energy_icon_urls;
-
+        
+        // Allow adding description to any deck
+        const hasDescription = deck.description && deck.description.trim();
+        const shouldShowAddDesc = true; // Always show the option
         const energyIconsHTML = (deck.types || []).map(type => {
             const iconUrl = energyUrls[type] || '';
             return `<div class="energy-icon-wrapper"><img src="${escapeHTML(iconUrl)}" alt="${escapeHTML(type)}" class="energy-icon"></div>`;
@@ -483,7 +521,10 @@
 
         const notUsableHTML = deck.card_count < 20 ? '<div class="deck-not-full-overlay">DECK NOT USABLE</div>' : '';
         const deckColumnId = `deck-col-${deck.deck_id}`;
-
+        
+        // Add/Edit Description menu item HTML
+        const descriptionButtonText = hasDescription ? 'Edit Description' : 'Add Description';
+        const addDescriptionHTML = shouldShowAddDesc ? `<li><a class="dropdown-item deck-action-description" href="#" data-deck-id="${escapeHTML(deck.deck_id)}" data-deck-name="${escapeHTML(deck.name)}"><i class="bi bi-pencil me-2"></i>${descriptionButtonText}</a></li>` : '';
         return `
             <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4" id="${deckColumnId}">
                 <div class="card h-100">
@@ -497,23 +538,27 @@
                                 <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-container="body" aria-expanded="false" title="Deck Actions"><i class="bi bi-three-dots-vertical"></i></button>
                                 <ul class="dropdown-menu dropdown-menu-end">
                                     <li><a class="dropdown-item" href="${deckEditUrl}"><i class="bi bi-pencil-square me-2"></i>Edit</a></li>
-                                    <li><a class="dropdown-item" href="${deckCopyUrl}"><i class="bi bi-files me-2"></i>Make a copy</a></li>
-                                    <li><a class="dropdown-item" href="${pageData.battle_sim_url}"><i class="bi bi-joystick me-2"></i>Load into Battle Sim</a></li>
-                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item deck-action-copy" href="#" data-deck-id="${escapeHTML(deck.deck_id)}" data-deck-name="${escapeHTML(deck.name)}"><i class="bi bi-files me-2"></i>Make a copy</a></li>
                                     <li><a class="dropdown-item" href="/deck/${escapeHTML(deck.deck_id)}/export/image" target="_blank"><i class="bi bi-image me-2"></i>Export as Image</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item deck-action-privacy" href="#" data-deck-id="${escapeHTML(deck.deck_id)}" data-deck-name="${escapeHTML(deck.name)}" data-is-public="${deck.is_public || false}">
+                                    ${addDescriptionHTML}
+                                    <li><a class="dropdown-item deck-action-privacy" href="#" data-deck-id="${escapeHTML(deck.deck_id)}" data-deck-name="${escapeHTML(deck.name)}" data-is-public="${deck.is_public || false}" data-has-description="${!!(deck.description && deck.description.trim())}">
                                         <i class="bi ${deck.is_public ? 'bi-eye-slash' : 'bi-eye'} me-2"></i>
                                         ${deck.is_public ? 'Make Private' : 'Make Public'}
                                     </a></li>
-                                    <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item text-danger deck-action-delete" href="#" data-deck-id="${escapeHTML(deck.deck_id)}" data-deck-name="${escapeHTML(deck.name)}"><i class="bi bi-trash me-2"></i>Delete</a></li>
                                 </ul>
                             </div>
                         </div>
                         <div class="d-flex mb-2">${energyIconsHTML}</div>
                         <div class="deck-cover-cards-area">${coverCardsHTML}${notUsableHTML}</div>
-                        <h5 class="card-title">${escapeHTML(deck.name)}</h5>
+                        <h5 class="card-title">
+                            ${escapeHTML(deck.name)}
+                            ${deck.description && deck.description.trim() ? `<i class="bi bi-info-circle ms-1 text-muted" 
+                               style="font-size: 0.8em; cursor: help;" 
+                               title="${escapeHTML(deck.description)}"
+                               data-bs-toggle="tooltip" 
+                               data-bs-placement="bottom"></i>` : ''}
+                        </h5>
                     </div>
                 </div>
             </div>`;
@@ -657,7 +702,7 @@
                         const deckCardHTML = createDeckCardHTML(deck, pageData);
                         decksContainer.insertAdjacentHTML('beforeend', deckCardHTML);
                     });
-
+                    
                     decksContainer.insertAdjacentHTML('beforeend', `
                         <div id="no-results-message" class="col-12 text-center p-5" style="display: none;">
                             <p class="h5">No decks match your current filters.</p>
@@ -666,6 +711,12 @@
 
                     initializeImageLazyLoader();
                     setupFilterListeners();
+                    
+                    // Initialize tooltips for description icons
+                    var tooltipTriggerList2 = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                    var tooltipList2 = tooltipTriggerList2.map(function (tooltipTriggerEl) {
+                        return new bootstrap.Tooltip(tooltipTriggerEl);
+                    });
                 } else {
                     decksContainer.innerHTML = `<div class="col-12"><div class="alert alert-info"><p>You don't have any decks yet. <a href="${pageData.deck_builder_url}">Create your first deck!</a></p></div></div>`;
                 }
@@ -678,6 +729,8 @@
         document.body.addEventListener('click', function(event) {
             const deleteLink = event.target.closest('.deck-action-delete');
             const privacyLink = event.target.closest('.deck-action-privacy');
+            const descriptionLink = event.target.closest('.deck-action-description');
+            const copyLink = event.target.closest('.deck-action-copy');
             
             if (deleteLink) {
                 event.preventDefault();
@@ -700,40 +753,64 @@
                 const deckId = privacyLink.getAttribute('data-deck-id');
                 const deckName = privacyLink.getAttribute('data-deck-name');
                 const isPublic = privacyLink.getAttribute('data-is-public') === 'true';
+                const hasDescription = privacyLink.getAttribute('data-has-description') === 'true';
                 
-                toggleDeckPrivacy(deckId, deckName, isPublic);
+                toggleDeckPrivacy(deckId, deckName, isPublic, hasDescription);
+            }
+            
+            if (descriptionLink) {
+                event.preventDefault();
+                const deckId = descriptionLink.getAttribute('data-deck-id');
+                const deckName = descriptionLink.getAttribute('data-deck-name');
+                
+                addDeckDescription(deckId, deckName);
+            }
+            
+            if (copyLink) {
+                event.preventDefault();
+                const deckId = copyLink.getAttribute('data-deck-id');
+                const deckName = copyLink.getAttribute('data-deck-name');
+                
+                copyDeck(deckId, deckName);
             }
         });
         
         
-        async function toggleDeckPrivacy(deckId, deckName, isCurrentlyPublic) {
+        async function toggleDeckPrivacy(deckId, deckName, isCurrentlyPublic, hasDescription) {
             let description = '';
             
             if (!isCurrentlyPublic) {
-                // Making deck public: Ask for description and proceed if not cancelled
-                description = prompt(`Making "${deckName}" public. Add an optional description (max 100 characters):`);
-                if (description === null) return; // User cancelled - don't make public
-                
-                // Check length limit
-                if (description && description.length > 100) {
-                    alert('Description must be 100 characters or less.');
-                    return;
-                }
-                
-                // Basic profanity check (frontend validation)
-                if (description && description.trim()) {
-                    const profanityWords = ['damn', 'hell', 'shit', 'fuck', 'bitch', 'ass', 'bastard']; // Basic list
-                    const lowerDesc = description.toLowerCase();
-                    const hasProfanity = profanityWords.some(word => lowerDesc.includes(word));
+                // Making deck public
+                if (hasDescription) {
+                    // Deck already has description, just confirm
+                    if (confirm(`Make "${deckName}" public?`)) {
+                        await updateDeckPrivacy(deckId, deckName, '');
+                    }
+                } else {
+                    // No description, ask for one
+                    description = prompt(`Making "${deckName}" public. Add an optional description (max 100 characters):`);
+                    if (description === null) return; // User cancelled - don't make public
                     
-                    if (hasProfanity) {
-                        alert('Description contains inappropriate language. Please use appropriate language.');
+                    // Check length limit
+                    if (description && description.length > 100) {
+                        alert('Description must be 100 characters or less.');
                         return;
                     }
+                    
+                    // Basic profanity check (frontend validation)
+                    if (description && description.trim()) {
+                        const profanityWords = ['damn', 'hell', 'shit', 'fuck', 'bitch', 'ass', 'bastard']; // Basic list
+                        const lowerDesc = description.toLowerCase();
+                        const hasProfanity = profanityWords.some(word => lowerDesc.includes(word));
+                        
+                        if (hasProfanity) {
+                            alert('Description contains inappropriate language. Please use appropriate language.');
+                            return;
+                        }
+                    }
+                    
+                    await updateDeckPrivacy(deckId, deckName, description);
                 }
-                
-                // Proceed to make public without additional confirmation
-                await updateDeckPrivacy(deckId, deckName, description);
             } else {
                 // Making deck private: Show confirmation dialog
                 if (confirm(`Make "${deckName}" private?`)) {
@@ -784,6 +861,9 @@
                         
                         // Update data attributes
                         privacyLink.setAttribute('data-is-public', result.is_public);
+                        if (description) {
+                            privacyLink.setAttribute('data-has-description', 'true');
+                        }
                     }
                     applyFilters(); // Reapply filters to reflect changes
                 } else {
@@ -791,6 +871,95 @@
                 }
             } catch (error) {
                 alert('An error occurred while updating deck privacy');
+            }
+        }
+        
+        async function copyDeck(deckId, deckName) {
+            if (!confirm(`Make a copy of "${deckName}"?`)) {
+                return; // User cancelled
+            }
+            
+            try {
+                const response = await fetch(`/api/decks/${deckId}/copy`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    // Reload the page to show the new copied deck
+                    window.location.reload();
+                } else {
+                    alert(result.error || 'Failed to copy deck');
+                }
+            } catch (error) {
+                console.error('Error copying deck:', error);
+                alert('An error occurred while copying the deck');
+            }
+        }
+        
+        async function addDeckDescription(deckId, deckName) {
+            // Find the current description if any
+            const deck = allDecks.find(d => d.deck_id === deckId);
+            const currentDescription = deck && deck.description ? deck.description : '';
+            
+            const description = prompt(`${currentDescription ? 'Edit' : 'Add'} description for "${deckName}" (max 100 characters):`, currentDescription);
+            if (description === null) return; // User cancelled
+            
+            // Check length limit
+            if (description && description.length > 100) {
+                alert('Description must be 100 characters or less.');
+                return;
+            }
+            
+            // Basic profanity check (frontend validation)
+            if (description && description.trim()) {
+                const profanityWords = ['damn', 'hell', 'shit', 'fuck', 'bitch', 'ass', 'bastard']; // Basic list
+                const lowerDesc = description.toLowerCase();
+                const hasProfanity = profanityWords.some(word => lowerDesc.includes(word));
+                
+                if (hasProfanity) {
+                    alert('Description contains inappropriate language. Please use appropriate language.');
+                    return;
+                }
+            }
+            
+            try {
+                const response = await fetch(`/api/decks/${deckId}/description`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({description: description})
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    // Update the deck in our local data
+                    const deckIndex = allDecks.findIndex(d => d.deck_id === deckId);
+                    if (deckIndex !== -1) {
+                        allDecks[deckIndex].description = description;
+                    }
+                    
+                    // Re-render the deck card to show the description icon and remove "Add Description" option
+                    const deckElement = document.getElementById(`deck-col-${deckId}`);
+                    if (deckElement && deckIndex !== -1) {
+                        const pageData = JSON.parse(document.getElementById('page-data').textContent);
+                        const updatedDeckHTML = createDeckCardHTML(allDecks[deckIndex], pageData);
+                        deckElement.outerHTML = updatedDeckHTML;
+                        
+                        // Reinitialize tooltips for the new element
+                        const newDeckElement = document.getElementById(`deck-col-${deckId}`);
+                        const tooltipElement = newDeckElement.querySelector('[data-bs-toggle="tooltip"]');
+                        if (tooltipElement) {
+                            new bootstrap.Tooltip(tooltipElement);
+                        }
+                        
+                        initializeImageLazyLoader();
+                    }
+                } else {
+                    alert(result.error || 'An error occurred');
+                }
+            } catch (error) {
+                alert('An error occurred while adding deck description');
             }
         }
     });
