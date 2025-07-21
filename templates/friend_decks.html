@@ -335,10 +335,43 @@
         background-color: var(--input-bg);
     }
 
-    /* Center energy icons horizontally when they wrap to a new line on smaller screens */
+    /* Mobile layout improvements - keep horizontal but force energy icons to wrap */
     @media (max-width: 767.98px) {
+        .search-section {
+            flex: 1 1 180px; /* More space for search since no dropdown */
+            min-width: 180px;
+        }
+        
+        .energy-icons-section {
+            flex: 1 1 100%; /* Force energy icons to wrap to next line */
+            width: 100%;
+        }
+        
         .filter-bar .energy-icons {
             justify-content: center;
+            gap: 6px;
+        }
+        
+        .filter-bar .energy-icon-wrapper {
+            width: 28px;
+            height: 28px;
+        }
+    }
+    
+    /* Additional mobile adjustments for very small screens */
+    @media (max-width: 575.98px) {
+        .search-section {
+            flex: 1 1 160px;
+            min-width: 160px;
+        }
+        
+        .filter-bar .energy-icons {
+            gap: 4px;
+        }
+        
+        .filter-bar .energy-icon-wrapper {
+            width: 26px;
+            height: 26px;
         }
     }
 
@@ -398,7 +431,7 @@
 
     /* Friend-specific header styles */
     .friend-header {
-        margin-bottom: 1.5rem;
+        margin-bottom: 0.5rem;
     }
 
     .friend-header .friend-info {
