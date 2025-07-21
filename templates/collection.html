@@ -428,6 +428,10 @@
             padding: 0.75rem;
         }
         
+        #deck-search-input {
+            font-size: 16px; /* Prevents iOS zoom on focus */
+        }
+        
         .filter-bar .dropdown button {
             font-size: 0.875rem;
             padding: 0.5rem 0.75rem;
@@ -493,7 +497,7 @@
                             <div class="search-section">
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="bi bi-search"></i></span>
-                                    <input type="text" id="deck-search-input" class="form-control" placeholder="Search" autocomplete="off">
+                                    <input type="text" id="deck-search-input" class="form-control" placeholder="Search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
                                 </div>
                             </div>
                             <div class="dropdown-section">

@@ -146,6 +146,15 @@
         color: var(--bs-secondary);
         font-style: italic;
     }
+    
+    /* Mobile font size fix for iOS zoom prevention */
+    @media (max-width: 768px) {
+        #search-input-mobile,
+        #search-input-desktop,
+        #friends-search-input {
+            font-size: 16px; /* Prevents iOS zoom on focus */
+        }
+    }
 
 </style>
 {% endblock %}
@@ -180,7 +189,7 @@
                 <div class="friend-list-card add-friends-card">
                     <h4>Add Friends</h4>
                     <div class="input-group mb-3">
-                        <input type="text" id="search-input-mobile" class="form-control" placeholder="Search by username..." aria-label="Search by username">
+                        <input type="text" id="search-input-mobile" class="form-control" placeholder="Search by username..." aria-label="Search by username" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
                         <button class="btn btn-primary no-hover-on-mobile" type="button" id="search-btn-mobile">Search</button>
                     </div>
                     <div id="search-results-mobile"></div>
@@ -191,7 +200,7 @@
                 <h4>Your Friends (<span id="friends-count">{{ friends|length }}</span>)</h4>
                 <div class="input-group mb-3">
                     <span class="input-group-text"><i class="bi bi-search"></i></span>
-                    <input type="text" id="friends-search-input" class="form-control" placeholder="Search your friends..." aria-label="Search friends">
+                    <input type="text" id="friends-search-input" class="form-control" placeholder="Search your friends..." aria-label="Search friends" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
                 </div>
                 <div id="friends-list">
                     {% if friends %}
@@ -227,7 +236,7 @@
             <div class="friend-list-card add-friends-card">
                 <h4>Add Friends</h4>
                 <div class="input-group mb-3">
-                    <input type="text" id="search-input-desktop" class="form-control" placeholder="Search by username..." aria-label="Search by username">
+                    <input type="text" id="search-input-desktop" class="form-control" placeholder="Search by username..." aria-label="Search by username" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
                     <button class="btn btn-primary" type="button" id="search-btn-desktop">Search</button>
                 </div>
                 <div id="search-results-desktop"></div>
