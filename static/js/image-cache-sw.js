@@ -1,9 +1,10 @@
 // Service Worker for persistent image caching
 // This will cache images across browser sessions for faster loading
 
-const CACHE_NAME = 'pokemon-tcg-images-v1';
-const MAX_CACHE_SIZE = 50; // Maximum number of images to cache
-const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+const CACHE_NAME = 'pokemon-tcg-images-v2';
+const MAX_CACHE_SIZE = 200; // Increased maximum number of images to cache
+const CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds (increased from 24 hours)
+const HIGH_PRIORITY_CACHE_SIZE = 50; // Reserve space for high-priority images
 
 // Install event - set up the cache
 self.addEventListener('install', event => {
@@ -56,6 +57,10 @@ async function handleImageRequest(request) {
             const cacheAge = Date.now() - parseInt(cachedDate);
             if (cacheAge < CACHE_DURATION) {
                 console.log('Serving from service worker cache:', request.url);
+                
+                // Update access metadata for cache management
+                await updateAccessMetadata(cache, request, cachedResponse);
+                
                 return cachedResponse;
             } else {
                 console.log('Cached image expired, removing:', request.url);
@@ -72,9 +77,12 @@ async function handleImageRequest(request) {
             // Clone the response to cache it
             const responseToCache = networkResponse.clone();
             
-            // Add cache timestamp header
+            // Add cache metadata headers
             const headers = new Headers(responseToCache.headers);
-            headers.set('sw-cached-date', Date.now().toString());
+            const now = Date.now().toString();
+            headers.set('sw-cached-date', now);
+            headers.set('sw-last-accessed', now);
+            headers.set('sw-access-count', '1');
             
             const cachedResponse = new Response(responseToCache.body, {
                 status: responseToCache.status,
@@ -117,15 +125,106 @@ async function manageCacheSize(cache) {
     const keys = await cache.keys();
     
     if (keys.length >= MAX_CACHE_SIZE) {
-        // Remove oldest entries (simple FIFO approach)
-        const keysToDelete = keys.slice(0, keys.length - MAX_CACHE_SIZE + 1);
+        // Get metadata for all cached items
+        const cacheEntries = await Promise.all(
+            keys.map(async (key) => {
+                const response = await cache.match(key);
+                const cachedDate = response?.headers.get('sw-cached-date') || Date.now();
+                const accessCount = parseInt(response?.headers.get('sw-access-count') || '1');
+                const isHighRes = key.url.includes('high_res_cards');
+                
+                return {
+                    key,
+                    cachedDate: parseInt(cachedDate),
+                    accessCount,
+                    isHighRes,
+                    lastAccessed: parseInt(response?.headers.get('sw-last-accessed') || cachedDate)
+                };
+            })
+        );
+
+        // Sort by priority score (lower = delete first)
+        cacheEntries.sort((a, b) => {
+            // High-res images get bonus points
+            const scoreA = calculatePriorityScore(a);
+            const scoreB = calculatePriorityScore(b);
+            return scoreA - scoreB;
+        });
+
+        // Delete oldest/least used entries, but preserve high-priority items
+        const entriesToDelete = cacheEntries.slice(0, Math.ceil(keys.length * 0.25));
+        const keysToDelete = entriesToDelete
+            .filter(entry => !shouldPreserve(entry, cacheEntries))
+            .map(entry => entry.key);
         
         await Promise.all(
             keysToDelete.map(key => {
-                console.log('Removing old cached image:', key.url);
+                console.log('Removing cached image:', key.url);
                 return cache.delete(key);
             })
         );
+        
+        console.log(`Cache managed: removed ${keysToDelete.length} entries, ${keys.length - keysToDelete.length} remaining`);
+    }
+}
+
+function calculatePriorityScore(entry) {
+    const now = Date.now();
+    const ageHours = (now - entry.cachedDate) / (1000 * 60 * 60);
+    const timeSinceAccess = (now - entry.lastAccessed) / (1000 * 60 * 60);
+    
+    // Base score (higher = keep longer)
+    let score = entry.accessCount * 10; // Access frequency
+    
+    // Bonus for high-res images
+    if (entry.isHighRes) {
+        score += 50;
+    }
+    
+    // Penalty for old age
+    score -= ageHours * 0.5;
+    
+    // Penalty for not being accessed recently
+    score -= timeSinceAccess * 2;
+    
+    return score;
+}
+
+function shouldPreserve(entry, allEntries) {
+    // Always preserve the most frequently accessed high-res images
+    if (entry.isHighRes && entry.accessCount >= 3) {
+        return true;
+    }
+    
+    // Preserve recently accessed items (within 1 hour)
+    const oneHourAgo = Date.now() - (60 * 60 * 1000);
+    if (entry.lastAccessed > oneHourAgo) {
+        return true;
+    }
+    
+    return false;
+}
+
+async function updateAccessMetadata(cache, request, cachedResponse) {
+    try {
+        const accessCount = parseInt(cachedResponse.headers.get('sw-access-count') || '1');
+        const cachedDate = cachedResponse.headers.get('sw-cached-date');
+        
+        // Create updated response with incremented access count
+        const headers = new Headers(cachedResponse.headers);
+        headers.set('sw-access-count', (accessCount + 1).toString());
+        headers.set('sw-last-accessed', Date.now().toString());
+        
+        const updatedResponse = new Response(cachedResponse.body, {
+            status: cachedResponse.status,
+            statusText: cachedResponse.statusText,
+            headers: headers
+        });
+        
+        // Update the cache with new metadata
+        await cache.put(request, updatedResponse.clone());
+    } catch (error) {
+        console.warn('Failed to update access metadata:', error);
     }
 }
 
@@ -169,23 +268,38 @@ async function getCacheStats() {
             const response = await cache.match(key);
             if (response) {
                 const cachedDate = response.headers.get('sw-cached-date');
+                const lastAccessed = response.headers.get('sw-last-accessed');
+                const accessCount = response.headers.get('sw-access-count');
                 const size = response.headers.get('content-length') || 0;
+                const isHighRes = key.url.includes('high_res_cards');
+                
                 totalSize += parseInt(size);
                 
                 entries.push({
                     url: key.url,
                     cachedDate: cachedDate ? new Date(parseInt(cachedDate)) : null,
-                    size: parseInt(size)
+                    lastAccessed: lastAccessed ? new Date(parseInt(lastAccessed)) : null,
+                    accessCount: parseInt(accessCount || '1'),
+                    size: parseInt(size),
+                    isHighRes
                 });
             }
         }
         
+        const highResEntries = entries.filter(e => e.isHighRes).length;
+        const totalAccesses = entries.reduce((sum, e) => sum + e.accessCount, 0);
+        const avgAccessCount = entries.length > 0 ? (totalAccesses / entries.length).toFixed(1) : 0;
+
         return {
             totalEntries: keys.length,
+            highResEntries,
+            standardEntries: keys.length - highResEntries,
             totalSizeMB: (totalSize / (1024 * 1024)).toFixed(2),
+            totalAccesses,
+            avgAccessCount,
             maxCacheSize: MAX_CACHE_SIZE,
             cacheDurationHours: CACHE_DURATION / (60 * 60 * 1000),
-            entries: entries
+            entries: entries.sort((a, b) => b.accessCount - a.accessCount) // Sort by most accessed
         };
     } catch (error) {
         console.error('Error getting cache stats:', error);

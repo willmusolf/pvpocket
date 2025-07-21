@@ -77,6 +77,17 @@
         transition: none;
     }
     
+    /* Force profile dropdown to be black in light mode (override Bootstrap's navbar-light) */
+    #mainNavbar.navbar-light .nav-link.dropdown-toggle,
+    #mainNavbar .nav-link.dropdown-toggle {
+        color: #000 !important; /* Force black color */
+    }
+    
+    /* Dark mode profile dropdown color */
+    [data-theme="dark"] #mainNavbar .nav-link.dropdown-toggle {
+        color: #f8f9fa !important; /* White for dark mode */
+    }
+    
     /* Active dropdown state */
     #mainNavbar .dropdown.show .nav-link.dropdown-toggle,
     #mainNavbar .nav-link.dropdown-toggle[aria-expanded="true"] {

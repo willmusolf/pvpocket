@@ -44,7 +44,7 @@
         display: flex;
         gap: 0.5rem;
     }
-    .friend-actions-dropdown .dropdown-toggle {
+    .container .friend-actions-dropdown .dropdown-toggle {
         background-color: transparent;
         border: none;
         box-shadow: none;
@@ -53,17 +53,17 @@
         color: var(--bs-secondary-color, #6c757d);
         transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
     }
-    .friend-actions-dropdown .dropdown-toggle:hover,
-    .friend-actions-dropdown .dropdown-toggle[aria-expanded="true"] {
+    .container .friend-actions-dropdown .dropdown-toggle:hover,
+    .container .friend-actions-dropdown .dropdown-toggle[aria-expanded="true"] {
         background-color: rgba(0, 0, 0, 0.075);
         color: var(--bs-body-color, #212529);
         box-shadow: none;
         border: none;
     }
-    .friend-actions-dropdown .dropdown-toggle::after {
+    .container .friend-actions-dropdown .dropdown-toggle::after {
         display: none; 
     }
-    .friend-actions-dropdown .dropdown-toggle i.bi-three-dots-vertical {
+    .container .friend-actions-dropdown .dropdown-toggle i.bi-three-dots-vertical {
         font-size: 1.3rem;
         vertical-align: middle;
     }
@@ -80,7 +80,7 @@
     [data-theme="dark"] .text-muted {
         color: var(--bs-gray-500) !important;
     }
-    [data-theme="dark"] .dropdown-menu {
+    [data-theme="dark"] .container .dropdown-menu {
         --bs-dropdown-bg: #343a40;
         --bs-dropdown-link-color: #dee2e6;
         --bs-dropdown-link-hover-color: #fff;
@@ -104,32 +104,32 @@
         border-color: var(--border-color);
         color: var(--text-color);
     }
-    [data-theme="dark"] .friend-actions-dropdown .dropdown-toggle {
+    [data-theme="dark"] .container .friend-actions-dropdown .dropdown-toggle {
         color: var(--bs-gray-500, #adb5bd);
     }
-    [data-theme="dark"] .friend-actions-dropdown .dropdown-toggle:hover,
-    [data-theme="dark"] .friend-actions-dropdown .dropdown-toggle[aria-expanded="true"] {
+    [data-theme="dark"] .container .friend-actions-dropdown .dropdown-toggle:hover,
+    [data-theme="dark"] .container .friend-actions-dropdown .dropdown-toggle[aria-expanded="true"] {
         background-color: rgba(255, 255, 255, 0.1);
         color: var(--bs-light, #f8f9fa);
     }
     @media (hover: none) {
         /* Prevents the 3-dot dropdown from changing color on tap */
-        .friend-actions-dropdown .dropdown-toggle:hover,
-        .friend-actions-dropdown .dropdown-toggle:active {
+        .container .friend-actions-dropdown .dropdown-toggle:hover,
+        .container .friend-actions-dropdown .dropdown-toggle:active {
             background-color: transparent !important;
             color: var(--bs-secondary-color) !important;
         }
 
         /* Dark mode compatibility for the 3-dot dropdown */
-        [data-theme="dark"] .friend-actions-dropdown .dropdown-toggle:hover,
-        [data-theme="dark"] .friend-actions-dropdown .dropdown-toggle:active {
+        [data-theme="dark"] .container .friend-actions-dropdown .dropdown-toggle:hover,
+        [data-theme="dark"] .container .friend-actions-dropdown .dropdown-toggle:active {
             color: var(--bs-gray-500) !important;
         }
 
         /* Prevents standard Bootstrap buttons on this page from changing color on tap */
-        .btn-primary:active, .btn-primary:hover,
-        .btn-success:active, .btn-success:hover,
-        .btn-secondary:active, .btn-secondary:hover {
+        .container .btn-primary:active, .container .btn-primary:hover,
+        .container .btn-success:active, .container .btn-success:hover,
+        .container .btn-secondary:active, .container .btn-secondary:hover {
             /* Use Bootstrap's CSS variables to force the active/hover state to match the base state */
             --bs-btn-hover-color: var(--bs-btn-color);
             --bs-btn-hover-bg: var(--bs-btn-bg);
@@ -146,6 +146,7 @@
         color: var(--bs-secondary);
         font-style: italic;
     }
+
 </style>
 {% endblock %}
 
@@ -595,5 +596,6 @@
             return result;
         };
     });
+
 </script>
 {%endblock%}

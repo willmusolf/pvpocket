@@ -994,29 +994,94 @@
             animation: mobile-card-tap-animation 0.17s ease-in-out;
         }
         
-        /* Loading indicator for high-res images */
+        /* Enhanced loading indicators for image loading states */
+        .card-item.loading-high-res,
         .clickable-card.loading-high-res {
             position: relative;
         }
         
+        .card-item.loading-high-res::after,
         .clickable-card.loading-high-res::after {
             content: '';
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 30px;
-            height: 30px;
-            border: 3px solid rgba(255,255,255,0.2);
-            border-top-color: rgba(255,255,255,0.8);
+            width: 24px;
+            height: 24px;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-top-color: #007bff;
             border-radius: 50%;
-            animation: spin 1s linear infinite;
+            animation: spin 0.8s linear infinite;
             z-index: 10;
             pointer-events: none;
+            background: rgba(0,0,0,0.5);
+        }
+
+        /* Different loading states */
+        .card-item.loading-queued::before {
+            content: '';
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 8px;
+            height: 8px;
+            background: #ffc107;
+            border-radius: 50%;
+            z-index: 5;
+            animation: pulse 2s infinite;
+        }
+
+        .card-item.loading-priority::before {
+            background: #28a745;
+        }
+
+        .card-item.loading-deck::before {
+            background: #dc3545;
         }
         
         @keyframes spin {
             to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.4; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        /* Batch loading progress indicator */
+        .batch-progress {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .batch-progress.visible {
+            opacity: 1;
+        }
+
+        .batch-progress .progress-bar {
+            width: 100px;
+            height: 4px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px;
+            margin-top: 4px;
+            overflow: hidden;
+        }
+
+        .batch-progress .progress-fill {
+            height: 100%;
+            background: #007bff;
+            border-radius: 2px;
+            transition: width 0.3s ease;
         }
         
         #save-deck-btn, #clear-deck-btn, #export-deck-btn {
@@ -1181,6 +1246,14 @@
 {% block content %}
 {# HTML SECTION #}
 <body>
+    <!-- Batch loading progress indicator -->
+    <div id="batch-progress" class="batch-progress">
+        <div id="batch-progress-text">Loading images...</div>
+        <div class="progress-bar">
+            <div id="batch-progress-fill" class="progress-fill" style="width: 0%"></div>
+        </div>
+    </div>
+
     <div class="container">
         <div class="container-fluid">
             <div class="filter-bar mb-4 rounded">
@@ -1405,13 +1478,448 @@
     let deckSaved = false;
     let cardObserver = null; // Manages loading for visible images
     let progressiveLoadTimeout = null; // Manages the background loading of off-screen images
-    let highResImageCache = new Set();
+    // Enhanced persistent cache manager
+    class ImageCacheManager {
+        constructor() {
+            this.cacheKey = 'pokemon_tcg_high_res_cache_v2';
+            this.metadataKey = 'pokemon_tcg_cache_metadata_v2';
+            this.maxCacheSize = 300; // Increased cache size
+            this.maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
+            this.cache = new Map();
+            this.loadFromStorage();
+        }
+
+        loadFromStorage() {
+            try {
+                const cacheData = localStorage.getItem(this.cacheKey);
+                const metadata = localStorage.getItem(this.metadataKey);
+                
+                if (cacheData && metadata) {
+                    const cache = JSON.parse(cacheData);
+                    const meta = JSON.parse(metadata);
+                    const now = Date.now();
+                    
+                    // Load valid (non-expired) entries
+                    for (const [url, timestamp] of Object.entries(cache)) {
+                        if (now - timestamp < this.maxAge) {
+                            this.cache.set(url, {
+                                timestamp,
+                                size: meta[url]?.size || 0,
+                                loadCount: meta[url]?.loadCount || 1
+                            });
+                        }
+                    }
+                    
+                    console.log(`Loaded ${this.cache.size} images from persistent cache`);
+                }
+            } catch (error) {
+                console.warn('Failed to load cache from localStorage:', error);
+                this.cache.clear();
+            }
+        }
+
+        saveToStorage() {
+            try {
+                const cacheData = {};
+                const metadata = {};
+                
+                for (const [url, data] of this.cache) {
+                    cacheData[url] = data.timestamp;
+                    metadata[url] = {
+                        size: data.size,
+                        loadCount: data.loadCount
+                    };
+                }
+                
+                localStorage.setItem(this.cacheKey, JSON.stringify(cacheData));
+                localStorage.setItem(this.metadataKey, JSON.stringify(metadata));
+            } catch (error) {
+                console.warn('Failed to save cache to localStorage:', error);
+            }
+        }
+
+        has(url) {
+            const entry = this.cache.get(url);
+            if (!entry) return false;
+            
+            // Check if expired
+            if (Date.now() - entry.timestamp > this.maxAge) {
+                this.cache.delete(url);
+                return false;
+            }
+            
+            return true;
+        }
+
+        add(url, size = 0) {
+            const now = Date.now();
+            
+            if (this.cache.has(url)) {
+                // Update existing entry
+                const entry = this.cache.get(url);
+                entry.loadCount++;
+                entry.timestamp = now; // Update timestamp for LRU
+            } else {
+                // Add new entry
+                this.cache.set(url, {
+                    timestamp: now,
+                    size,
+                    loadCount: 1
+                });
+            }
+            
+            this.manageSize();
+            this.saveToStorage();
+        }
+
+        delete(url) {
+            const deleted = this.cache.delete(url);
+            if (deleted) {
+                this.saveToStorage();
+            }
+            return deleted;
+        }
+
+        get size() {
+            return this.cache.size;
+        }
+
+        manageSize() {
+            if (this.cache.size <= this.maxCacheSize) return;
+            
+            // Convert to array and sort by LRU (least recently used + least frequently used)
+            const entries = Array.from(this.cache.entries());
+            entries.sort((a, b) => {
+                const [, dataA] = a;
+                const [, dataB] = b;
+                
+                // First sort by load count (ascending - remove least used)
+                if (dataA.loadCount !== dataB.loadCount) {
+                    return dataA.loadCount - dataB.loadCount;
+                }
+                
+                // Then by timestamp (ascending - remove oldest)
+                return dataA.timestamp - dataB.timestamp;
+            });
+            
+            // Remove oldest 25% of entries
+            const toRemove = Math.ceil(entries.length * 0.25);
+            for (let i = 0; i < toRemove; i++) {
+                this.cache.delete(entries[i][0]);
+            }
+            
+            console.log(`Cache trimmed: removed ${toRemove} entries, ${this.cache.size} remaining`);
+        }
+
+        clear() {
+            this.cache.clear();
+            localStorage.removeItem(this.cacheKey);
+            localStorage.removeItem(this.metadataKey);
+        }
+
+        getStats() {
+            const now = Date.now();
+            let totalSize = 0;
+            let recentCount = 0;
+            
+            for (const [, data] of this.cache) {
+                totalSize += data.size;
+                if (now - data.timestamp < 24 * 60 * 60 * 1000) { // Last 24 hours
+                    recentCount++;
+                }
+            }
+            
+            return {
+                totalEntries: this.cache.size,
+                recentEntries: recentCount,
+                estimatedSizeMB: (totalSize / (1024 * 1024)).toFixed(2),
+                maxCacheSize: this.maxCacheSize,
+                maxAge: this.maxAge
+            };
+        }
+    }
+
+    // Enhanced batch loading manager
+    class BatchLoadManager {
+        constructor() {
+            this.maxConcurrent = 3; // Maximum concurrent high-res loads
+            this.batchDelay = 300; // Delay between batches (ms)
+            this.priorityQueues = {
+                deck: [], // Deck cards get highest priority
+                visible: [], // Visible collection cards
+                background: [] // Background collection cards
+            };
+            this.activeLoads = new Set();
+            this.isProcessing = false;
+            this.totalProcessed = 0;
+        }
+
+        addToPriorityQueue(item, priority = 'background') {
+            // Don't add if already queued or loading
+            if (this.isInAnyQueue(item.originalSrc) || this.activeLoads.has(item.originalSrc)) {
+                return;
+            }
+
+            // Add visual loading state
+            this.addLoadingState(item, priority);
+            
+            this.priorityQueues[priority].push(item);
+            this.scheduleProcessing();
+            this.updateProgressIndicator();
+        }
+
+        isInAnyQueue(originalSrc) {
+            return Object.values(this.priorityQueues).some(queue => 
+                queue.some(item => item.originalSrc === originalSrc)
+            );
+        }
+
+        scheduleProcessing() {
+            if (this.isProcessing) return;
+            
+            this.isProcessing = true;
+            requestAnimationFrame(() => this.processBatch());
+        }
+
+        async processBatch() {
+            while (this.activeLoads.size < this.maxConcurrent && this.hasQueuedItems()) {
+                const item = this.getNextItem();
+                if (!item) break;
+
+                this.activeLoads.add(item.originalSrc);
+                this.loadHighResImage(item).finally(() => {
+                    this.activeLoads.delete(item.originalSrc);
+                    if (this.hasQueuedItems()) {
+                        setTimeout(() => this.processBatch(), this.batchDelay);
+                    } else {
+                        this.isProcessing = false;
+                    }
+                });
+            }
+
+            if (!this.hasQueuedItems() && this.activeLoads.size === 0) {
+                this.isProcessing = false;
+            }
+        }
+
+        hasQueuedItems() {
+            return Object.values(this.priorityQueues).some(queue => queue.length > 0);
+        }
+
+        getNextItem() {
+            // Process in priority order: deck -> visible -> background
+            for (const priority of ['deck', 'visible', 'background']) {
+                if (this.priorityQueues[priority].length > 0) {
+                    return this.priorityQueues[priority].shift();
+                }
+            }
+            return null;
+        }
+
+        async loadHighResImage(item) {
+            const { img, originalSrc, highResSrc, highResProxyUrl } = item;
+            
+            try {
+                // Add active loading state
+                item.container?.classList.add('loading-high-res');
+                
+                // Check if already in cache
+                if (highResImageCache.has(highResSrc)) {
+                    img.src = highResProxyUrl;
+                    img.dataset.loadedResolution = 'high';
+                    imageLoadingStats.hits++;
+                    this.updateMatchingImages(originalSrc, highResProxyUrl);
+                    this.removeLoadingState(item);
+                    this.totalProcessed = (this.totalProcessed || 0) + 1;
+                    this.updateProgressIndicator();
+                    return true;
+                }
+
+                // Load the image
+                const success = await loadImageWithDeduplication(highResProxyUrl, highResSrc);
+                if (success && img.parentElement && !img.dataset.replacedByHover) {
+                    img.src = highResProxyUrl;
+                    img.dataset.loadedResolution = 'high';
+                    highResImageCache.add(highResSrc);
+                    imageLoadingStats.hits++;
+                    
+                    // Add transition effect
+                    img.style.transition = 'opacity 0.3s ease';
+                    img.style.opacity = '0.8';
+                    setTimeout(() => {
+                        img.style.opacity = '1';
+                    }, 50);
+                    
+                    this.updateMatchingImages(originalSrc, highResProxyUrl);
+                }
+                
+                this.removeLoadingState(item);
+                this.totalProcessed = (this.totalProcessed || 0) + 1;
+                this.updateProgressIndicator();
+                return success;
+            } catch (error) {
+                console.warn('Failed to load high-res image:', error);
+                imageLoadingStats.errors++;
+                this.removeLoadingState(item);
+                this.updateProgressIndicator();
+                return false;
+            }
+        }
+
+        updateMatchingImages(originalSrc, highResProxyUrl) {
+            // Update any matching cards in the deck display
+            updateDeckImagesWithHighRes(originalSrc, highResProxyUrl);
+        }
+
+        clear() {
+            Object.values(this.priorityQueues).forEach(queue => queue.length = 0);
+            this.activeLoads.clear();
+            this.isProcessing = false;
+            this.totalProcessed = 0;
+            this.updateProgressIndicator();
+        }
+
+        addLoadingState(item, priority) {
+            const container = item.container;
+            if (!container) return;
+
+            container.classList.remove('loading-queued', 'loading-priority', 'loading-deck');
+            container.classList.add('loading-queued');
+            
+            if (priority === 'deck') {
+                container.classList.add('loading-deck');
+            } else if (priority === 'visible') {
+                container.classList.add('loading-priority');
+            }
+        }
+
+        removeLoadingState(item) {
+            const container = item.container;
+            if (!container) return;
+
+            container.classList.remove('loading-queued', 'loading-priority', 'loading-deck', 'loading-high-res');
+        }
+
+        updateProgressIndicator() {
+            // Only show progress indicator if user preference allows it and there are significant loads
+            if (!userPrefs.get('enableProgressIndicator')) {
+                return;
+            }
+
+            const totalQueued = Object.values(this.priorityQueues).reduce((sum, queue) => sum + queue.length, 0);
+            const totalActive = this.activeLoads.size;
+            const total = totalQueued + totalActive;
+            
+            const progressElement = document.getElementById('batch-progress');
+            const textElement = document.getElementById('batch-progress-text');
+            const fillElement = document.getElementById('batch-progress-fill');
+            
+            if (!progressElement) return;
+
+            // Only show if there are more than 5 items loading (avoid showing for small batches)
+            if (total > 5) {
+                progressElement.classList.add('visible');
+                
+                const completed = Math.max(0, this.totalProcessed - totalQueued);
+                const progress = total > 0 ? (completed / (completed + total)) * 100 : 0;
+                
+                textElement.textContent = `${total} images`;
+                fillElement.style.width = `${Math.min(progress, 100)}%`;
+            } else {
+                progressElement.classList.remove('visible');
+            }
+        }
+
+        getStats() {
+            return {
+                maxConcurrent: this.maxConcurrent,
+                activeLoads: this.activeLoads.size,
+                deckQueue: this.priorityQueues.deck.length,
+                visibleQueue: this.priorityQueues.visible.length,
+                backgroundQueue: this.priorityQueues.background.length,
+                totalQueued: Object.values(this.priorityQueues).reduce((sum, queue) => sum + queue.length, 0),
+                isProcessing: this.isProcessing,
+                totalProcessed: this.totalProcessed || 0
+            };
+        }
+    }
+
+    // User preferences manager
+    class UserPreferencesManager {
+        constructor() {
+            this.prefsKey = 'pokemon_tcg_user_prefs_v1';
+            this.defaults = {
+                highResEnabled: true,
+                autoLoadHighRes: false, // Changed to false - only load on hover
+                batchSize: 3,
+                loadingDelay: 300,
+                enableProgressIndicator: false
+            };
+            this.prefs = this.loadPreferences();
+        }
+
+        loadPreferences() {
+            try {
+                const stored = localStorage.getItem(this.prefsKey);
+                return stored ? { ...this.defaults, ...JSON.parse(stored) } : this.defaults;
+            } catch (error) {
+                console.warn('Failed to load user preferences:', error);
+                return this.defaults;
+            }
+        }
+
+        savePreferences() {
+            try {
+                localStorage.setItem(this.prefsKey, JSON.stringify(this.prefs));
+            } catch (error) {
+                console.warn('Failed to save user preferences:', error);
+            }
+        }
+
+        get(key) {
+            return this.prefs[key] !== undefined ? this.prefs[key] : this.defaults[key];
+        }
+
+        set(key, value) {
+            this.prefs[key] = value;
+            this.savePreferences();
+            this.applyPreferences();
+        }
+
+        applyPreferences() {
+            // Apply batch loading preferences
+            if (batchLoadManager) {
+                batchLoadManager.maxConcurrent = this.get('batchSize');
+                batchLoadManager.batchDelay = this.get('loadingDelay');
+            }
+
+            // Apply progress indicator preference
+            const progressElement = document.getElementById('batch-progress');
+            if (progressElement) {
+                progressElement.style.display = this.get('enableProgressIndicator') ? 'block' : 'none';
+            }
+        }
+
+        getAll() {
+            return { ...this.prefs };
+        }
+
+        reset() {
+            this.prefs = { ...this.defaults };
+            this.savePreferences();
+            this.applyPreferences();
+        }
+    }
+
+    let highResImageCache = new ImageCacheManager();
+    let batchLoadManager = new BatchLoadManager();
+    let userPrefs = new UserPreferencesManager();
     let highResLoadTimeout = null;
     let progressiveLoadQueue = new Map(); // Track progressive loading tasks
     let imageLoadingStats = { hits: 0, misses: 0, errors: 0 }; // Performance tracking
     let activeRequests = new Map(); // Track active image requests to prevent duplicates
-    let batchLoadQueue = new Set(); // Queue for batch loading
-    let batchLoadTimer = null; // Timer for batch processing
+    let batchLoadQueue = new Set(); // Queue for batch loading (legacy)
+    let batchLoadTimer = null; // Timer for batch processing (legacy)
 
     let currentSortType = 'set'; 
     let currentSortDirection = 'asc'; 
@@ -1475,6 +1983,9 @@
     document.addEventListener('DOMContentLoaded', function() {
         console.log('Deck Builder DOMContentLoaded: Initializing...');
         
+        // Apply user preferences
+        userPrefs.applyPreferences();
+        
         // Register Service Worker for persistent caching
         registerServiceWorker();
         
@@ -1511,7 +2022,20 @@
 
                     if (img && cardContainer) {
                         const originalSrc = img.getAttribute('data-src');
-                        const proxyUrl = getProxyUrl(originalSrc);
+                        
+                        // Check if high-res version is already cached from previous hover
+                        const highResSrc = originalSrc.replace('/cards/', '/high_res_cards/');
+                        let imageToLoad = originalSrc;
+                        let isHighRes = false;
+                        
+                        // ONLY use cached high-res if it exists - never trigger new loads
+                        if (userPrefs.get('highResEnabled') && highResImageCache.has(highResSrc)) {
+                            imageToLoad = highResSrc;
+                            isHighRes = true;
+                            console.log('Using cached high-res for:', originalSrc.split('/').pop());
+                        }
+                        
+                        const proxyUrl = getProxyUrl(imageToLoad);
 
                         img.onload = () => {
                             cardContainer.classList.add('is-loaded');
@@ -1519,8 +2043,12 @@
                                 cardContainer.classList.remove('is-loading');
                             }, 110);
                             
-                            // Don't auto-load high-res - wait for hover
-                            // startProgressiveHighResLoading(img, originalSrc, cardContainer);
+                            // Mark as high-res if we loaded the cached high-res version
+                            if (isHighRes) {
+                                img.dataset.loadedResolution = 'high';
+                            }
+                            
+                            // NO automatic progressive loading - only load high-res on hover
                         };
                         img.onerror = () => {
                             cardContainer.classList.remove('is-loading');
@@ -1549,6 +2077,12 @@
     }
 
     function startProgressiveHighResLoading(img, originalSrc, cardContainer) {
+        // This function is now ONLY called from hover events, not automatically
+        // Check user preferences
+        if (!userPrefs.get('highResEnabled')) {
+            return;
+        }
+
         // Skip if already loading or loaded high-res
         if (progressiveLoadQueue.has(originalSrc) || img.dataset.loadedResolution === 'high') {
             return;
@@ -1562,7 +2096,7 @@
         const highResSrc = originalSrc.replace('/cards/', '/high_res_cards/');
         const highResProxyUrl = getProxyUrl(highResSrc);
 
-        // Add to progressive load queue
+        // Add to progressive load queue (legacy compatibility)
         progressiveLoadQueue.set(originalSrc, {
             img: img,
             container: cardContainer,
@@ -1570,22 +2104,44 @@
             status: 'queued'
         });
 
-        // Start loading high-res version with delay based on network conditions
-        const networkStatus = monitorNetworkStatus();
-        let baseDelay = 1000;
-        let randomDelay = 2000;
+        // Determine priority based on card location
+        let priority = 'background';
         
-        if (networkStatus === 'slow') {
-            baseDelay = 3000;
-            randomDelay = 5000;
-        } else if (networkStatus === 'fast') {
-            baseDelay = 500;
-            randomDelay = 1000;
+        // Check if this is a deck card (higher priority)
+        if (cardContainer?.closest('#current-deck')) {
+            priority = 'deck';
+        } 
+        // Check if this card is currently visible in the viewport
+        else if (isElementVisible(cardContainer)) {
+            priority = 'visible';
         }
+
+        // Use the new batch loading manager
+        const loadItem = {
+            img,
+            originalSrc,
+            highResSrc,
+            highResProxyUrl,
+            container: cardContainer
+        };
+
+        batchLoadManager.addToPriorityQueue(loadItem, priority);
+    }
+
+    // Helper function to check if element is visible in viewport
+    function isElementVisible(element) {
+        if (!element) return false;
         
-        setTimeout(() => {
-            loadHighResImage(img, highResSrc, highResProxyUrl, originalSrc);
-        }, Math.random() * randomDelay + baseDelay);
+        const rect = element.getBoundingClientRect();
+        const windowHeight = window.innerHeight || document.documentElement.clientHeight;
+        const windowWidth = window.innerWidth || document.documentElement.clientWidth;
+        
+        return (
+            rect.top < windowHeight &&
+            rect.bottom > 0 &&
+            rect.left < windowWidth &&
+            rect.right > 0
+        );
     }
 
     function loadHighResImage(img, highResSrc, highResProxyUrl, originalSrc) {
@@ -1706,20 +2262,9 @@
 
     // Enhanced caching with size limits and intelligent eviction
     function manageImageCache() {
-        const maxCacheSize = 200; // Increase cache size for better performance
-        
-        if (highResImageCache.size > maxCacheSize) {
-            // Convert Set to Array for easier manipulation
-            const cacheArray = Array.from(highResImageCache);
-            
-            // Remove oldest 20% of entries (simple FIFO)
-            const toRemove = Math.floor(cacheArray.length * 0.2);
-            for (let i = 0; i < toRemove; i++) {
-                highResImageCache.delete(cacheArray[i]);
-            }
-            
-            console.log(`Cache trimmed: removed ${toRemove} entries, ${highResImageCache.size} remaining`);
-        }
+        // Cache management is now handled automatically by ImageCacheManager
+        // This function is kept for compatibility but delegates to the cache manager
+        highResImageCache.manageSize();
     }
 
     // Service Worker registration for persistent caching
@@ -1737,12 +2282,16 @@
 
     // Performance monitoring and metrics
     function getImageLoadingStats() {
+        const cacheStats = highResImageCache.getStats();
+        const batchStats = batchLoadManager.getStats();
         return {
             ...imageLoadingStats,
+            ...cacheStats,
+            ...batchStats,
             cacheSize: highResImageCache.size,
             queueSize: progressiveLoadQueue.size,
             activeRequests: activeRequests.size,
-            batchQueueSize: batchLoadQueue.size,
+            batchQueueSize: batchLoadQueue.size, // Legacy
             progressiveLoadingActive: progressiveLoadQueue.size > 0,
             cacheHitRate: imageLoadingStats.hits / (imageLoadingStats.hits + imageLoadingStats.misses) || 0,
             errorRate: imageLoadingStats.errors / (imageLoadingStats.hits + imageLoadingStats.misses + imageLoadingStats.errors) || 0
@@ -1756,12 +2305,76 @@
         console.log('Cache Hit Rate:', (stats.cacheHitRate * 100).toFixed(1) + '%');
         console.log('Error Rate:', (stats.errorRate * 100).toFixed(1) + '%');
         console.log('Cache Size:', stats.cacheSize);
+        console.log('Recent Cache Entries (24h):', stats.recentEntries);
+        console.log('Estimated Cache Size:', stats.estimatedSizeMB + ' MB');
+        console.log('--- Batch Loading ---');
+        console.log('Active Concurrent Loads:', stats.activeLoads);
+        console.log('Max Concurrent:', stats.maxConcurrent);
+        console.log('Deck Queue:', stats.deckQueue);
+        console.log('Visible Queue:', stats.visibleQueue);
+        console.log('Background Queue:', stats.backgroundQueue);
+        console.log('Total Queued:', stats.totalQueued);
+        console.log('Is Processing:', stats.isProcessing);
+        console.log('--- Legacy Stats ---');
         console.log('Active Requests:', stats.activeRequests);
         console.log('Queue Size:', stats.queueSize);
-        console.log('Batch Queue Size:', stats.batchQueueSize);
         console.log('Progressive Loading Active:', stats.progressiveLoadingActive);
         console.log('Raw Stats:', stats);
         return stats;
+    };
+
+    // Cache management console commands
+    window.clearImageCache = function() {
+        highResImageCache.clear();
+        batchLoadManager.clear();
+        console.log('Image cache and batch queues cleared');
+    };
+
+    window.getCacheStats = function() {
+        return highResImageCache.getStats();
+    };
+
+    window.getBatchStats = function() {
+        return batchLoadManager.getStats();
+    };
+
+    window.adjustBatchSettings = function(maxConcurrent = 3, batchDelay = 300) {
+        userPrefs.set('batchSize', maxConcurrent);
+        userPrefs.set('loadingDelay', batchDelay);
+        console.log(`Batch settings updated: maxConcurrent=${maxConcurrent}, batchDelay=${batchDelay}ms`);
+    };
+
+    // User preference console commands
+    window.getUserPrefs = function() {
+        const prefs = userPrefs.getAll();
+        console.log('=== User Preferences ===');
+        Object.entries(prefs).forEach(([key, value]) => {
+            console.log(`${key}: ${value}`);
+        });
+        return prefs;
+    };
+
+    window.setUserPref = function(key, value) {
+        userPrefs.set(key, value);
+        console.log(`Preference updated: ${key} = ${value}`);
+    };
+
+    window.resetUserPrefs = function() {
+        userPrefs.reset();
+        console.log('User preferences reset to defaults');
+    };
+
+    window.toggleHighRes = function() {
+        const current = userPrefs.get('highResEnabled');
+        userPrefs.set('highResEnabled', !current);
+        console.log(`High-res images ${!current ? 'enabled' : 'disabled'}`);
+    };
+
+    window.toggleAutoLoad = function() {
+        const current = userPrefs.get('autoLoadHighRes');
+        userPrefs.set('autoLoadHighRes', !current);
+        console.log(`Auto-load high-res ${!current ? 'enabled' : 'disabled'}`);
+        console.log('Note: Auto-load is disabled by default to save bandwidth. High-res images load on hover.');
     };
 
     // Automatic performance monitoring every 30 seconds
@@ -2392,6 +3005,10 @@
                         selectedDeckEnergies.push(energyType);
                     }
                     deckSaved = false;
+                } else {
+                    if (window.showGlobalToast) {
+                        window.showGlobalToast("You can only select up to 3 energy types for your deck.", "default");
+                    }
                 }
             }
             updateEnergyCounter();
@@ -2676,14 +3293,19 @@
         const lowResProxyUrl = getProxyUrl(lowResSrc);
         const highResProxyUrl = getProxyUrl(highResSrc);
 
-        if (highResImageCache.has(highResSrc)) {
-            // If cached, show high-res instantly.
+        // Check if high-res is already cached or if the thumbnail is already high-res
+        if (highResImageCache.has(highResSrc) || hoveredImgElement.dataset.loadedResolution === 'high') {
+            // If cached or thumbnail is already high-res, show high-res instantly and update thumbnail if needed
             zoomImg.src = highResProxyUrl;
+            if (hoveredImgElement.dataset.loadedResolution !== 'high') {
+                hoveredImgElement.src = highResProxyUrl;
+                hoveredImgElement.dataset.loadedResolution = 'high';
+            }
         } else {
-            // If not cached, show low-res instantly.
+            // If not cached, show low-res instantly
             zoomImg.src = lowResProxyUrl;
             
-            // Schedule the high-res download to start after a delay.
+            // Schedule the high-res download to start after a delay
             highResLoadTimeout = setTimeout(() => {
                 const highResImage = new Image();
                 highResImage.src = highResProxyUrl;
