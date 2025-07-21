@@ -54,8 +54,7 @@
         transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
     }
     .friend-actions-dropdown .dropdown-toggle:hover,
-    .friend-actions-dropdown .dropdown-toggle:focus,
-    .friend-actions-dropdown .dropdown-toggle:active {
+    .friend-actions-dropdown .dropdown-toggle[aria-expanded="true"] {
         background-color: rgba(0, 0, 0, 0.075);
         color: var(--bs-body-color, #212529);
         box-shadow: none;
@@ -100,8 +99,7 @@
         color: var(--bs-gray-500, #adb5bd);
     }
     [data-theme="dark"] .friend-actions-dropdown .dropdown-toggle:hover,
-    [data-theme="dark"] .friend-actions-dropdown .dropdown-toggle:focus,
-    [data-theme="dark"] .friend-actions-dropdown .dropdown-toggle:active {
+    [data-theme="dark"] .friend-actions-dropdown .dropdown-toggle[aria-expanded="true"] {
         background-color: rgba(255, 255, 255, 0.1);
         color: var(--bs-light, #f8f9fa);
     }
