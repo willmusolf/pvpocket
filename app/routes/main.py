@@ -16,54 +16,11 @@ main_bp = Blueprint("main", __name__)
 
 
 @main_bp.route("/health")
-def health_check():
-    """Health check endpoint for internal services."""
-    try:
-        from ..cache_manager import cache_manager
-        from ..db_service import db_service
-        from ..task_queue import task_queue
-        
-        health_status = {
-            "cache": cache_manager.health_check(),
-            "database": db_service.health_check(),
-            "task_queue": task_queue.health_check(),
-            "timestamp": datetime.utcnow().isoformat()
-        }
-        
-        overall_healthy = all(health_status.values())
-        status_code = 200 if overall_healthy else 503
-        
-        return jsonify({
-            "status": "healthy" if overall_healthy else "unhealthy",
-            "components": health_status
-        }), status_code
-        
-    except Exception as e:
-        return jsonify({
-            "status": "error", 
-            "error": str(e)
-        }), 500
+def simple_health_check():
+    """Simple public health check endpoint."""
+    return jsonify({"status": "ok", "timestamp": datetime.utcnow().isoformat()}), 200
 
 
-@main_bp.route("/metrics")
-def get_metrics():
-    """Get comprehensive application metrics."""
-    try:
-        from ..cache_manager import cache_manager
-        from ..monitoring import performance_monitor
-        
-        # Comprehensive metrics
-        metrics = {
-            "cache_healthy": cache_manager.health_check(),
-            "performance": performance_monitor.get_dashboard_data(),
-            "timestamp": datetime.utcnow().isoformat(),
-            "app_version": current_app.config.get("VERSION", "unknown")
-        }
-        
-        return jsonify(metrics), 200
-        
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
 
 @main_bp.route("/")

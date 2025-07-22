@@ -65,7 +65,30 @@ def handle_task(task_type: str):
 @internal_bp.route("/health", methods=["GET"])
 def health_check():
     """Health check endpoint for internal services."""
-    return jsonify({"status": "ok"}), 200
+    try:
+        from ..cache_manager import cache_manager
+        from ..db_service import db_service
+        
+        health_status = {
+            "cache": cache_manager.health_check(),
+            "database": db_service.health_check(),
+            "task_queue": task_queue.health_check(),
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+        overall_healthy = all(health_status.values())
+        status_code = 200 if overall_healthy else 503
+        
+        return jsonify({
+            "status": "healthy" if overall_healthy else "unhealthy",
+            "components": health_status
+        }), status_code
+        
+    except Exception as e:
+        return jsonify({
+            "status": "error", 
+            "error": str(e)
+        }), 500
 
 
 @internal_bp.route("/metrics", methods=["GET"])
