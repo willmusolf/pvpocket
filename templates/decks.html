@@ -5171,13 +5171,28 @@
                     }
 
                     // Secondary sort: Set (newness), respecting primary sort direction.
-                    const indexA = orderedSetNamesForSort.indexOf(a.set_name);
-                    const indexB = orderedSetNamesForSort.indexOf(b.set_name);
-                    const effectiveIndexA = indexA === -1 ? Infinity : indexA;
-                    const effectiveIndexB = indexB === -1 ? Infinity : indexB;
+                    const promoSetName = "Promo-A"; 
+                    const isAPromo = (a.set_name === promoSetName);
+                    const isBPromo = (b.set_name === promoSetName);
+                    
+                    if (isAPromo && !isBPromo) {
+                        // A is promo, B is not - when desc, promo comes first; when asc, promo comes last
+                        return directionMultiplier === -1 ? -1 : 1;
+                    }
+                    if (!isAPromo && isBPromo) {
+                        // B is promo, A is not - when desc, promo comes first; when asc, promo comes last
+                        return directionMultiplier === -1 ? 1 : -1;
+                    }
+                    
+                    if (!(isAPromo && isBPromo)) { // If not both promos, compare by set order
+                        const indexA = orderedSetNamesForSort.indexOf(a.set_name);
+                        const indexB = orderedSetNamesForSort.indexOf(b.set_name);
+                        const effectiveIndexA = indexA === -1 ? Infinity : indexA;
+                        const effectiveIndexB = indexB === -1 ? Infinity : indexB;
 
-                    if (effectiveIndexA !== effectiveIndexB) {
-                        return (effectiveIndexA - effectiveIndexB) * directionMultiplier;
+                        if (effectiveIndexA !== effectiveIndexB) {
+                            return (effectiveIndexA - effectiveIndexB) * directionMultiplier;
+                        }
                     }
 
                     // Tertiary sort: by global integer card ID (ascending) for stability.
@@ -5190,15 +5205,21 @@
                 return (a, b) => {
                     const promoSetName = "Promo-A"; // Or your exact promo set name
 
-                    // Handle Promo-A always being last
+                    // Handle Promo-A position based on direction
                     const isAPromo = (a.set_name === promoSetName);
                     const isBPromo = (b.set_name === promoSetName);
-                    if (isAPromo && !isBPromo) return 1;  // A is promo, B is not -> A comes last
-                    if (!isAPromo && isBPromo) return -1; // B is promo, A is not -> B comes last
+                    
+                    if (isAPromo && !isBPromo) {
+                        // A is promo, B is not - when desc, promo comes first; when asc, promo comes last
+                        return directionMultiplier === -1 ? -1 : 1;
+                    }
+                    if (!isAPromo && isBPromo) {
+                        // B is promo, A is not - when desc, promo comes first; when asc, promo comes last
+                        return directionMultiplier === -1 ? 1 : -1;
+                    }
                     if (isAPromo && isBPromo) { // Both are promo, sort by card number
                         const numA = parseInt(a.card_number, 10) || 0;
                         const numB = parseInt(b.card_number, 10) || 0;
-                        // Promo sort direction might be independent, but let's follow main direction
                         return (numA - numB) * directionMultiplier;
                     }
 
@@ -5234,8 +5255,14 @@
                     const isAPromo = (a.set_name === promoSetName);
                     const isBPromo = (b.set_name === promoSetName);
 
-                    if (isAPromo && !isBPromo) return 1 * directionMultiplier;
-                    if (!isAPromo && isBPromo) return -1 * directionMultiplier;
+                    if (isAPromo && !isBPromo) {
+                        // A is promo, B is not - when desc, promo comes first; when asc, promo comes last
+                        return directionMultiplier === -1 ? -1 : 1;
+                    }
+                    if (!isAPromo && isBPromo) {
+                        // B is promo, A is not - when desc, promo comes first; when asc, promo comes last
+                        return directionMultiplier === -1 ? 1 : -1;
+                    }
                     
                     if (!(isAPromo && isBPromo)) { // If not both promos, compare by set order
                         const indexA = orderedSetNamesForSort.indexOf(a.set_name);

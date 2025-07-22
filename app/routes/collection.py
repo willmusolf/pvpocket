@@ -51,6 +51,29 @@ def _does_deck_name_exist_for_user_firestore(
             continue
         return True
     return False
+
+def passes_filters(deck_data: dict, search_text: str, energy_types: list, privacy_filter: str) -> bool:
+    """Check if a deck passes the given filters."""
+    # Privacy filter
+    if privacy_filter == "public" and not deck_data.get("is_public", False):
+        return False
+    elif privacy_filter == "private" and deck_data.get("is_public", False):
+        return False
+    
+    # Energy type filter
+    if energy_types:
+        deck_types = deck_data.get("deck_types", [])
+        # Require exact match - same length and all selected types present
+        if len(deck_types) != len(energy_types) or not all(energy_type in deck_types for energy_type in energy_types):
+            return False
+    
+    # Search text filter (applied to deck name)
+    if search_text:
+        deck_name = deck_data.get("name", "").lower()
+        if search_text not in deck_name:
+            return False
+    
+    return True
 # --- END HELPERS ---
 
 
@@ -167,6 +190,11 @@ def get_user_decks_api():
             return jsonify({"error": "Invalid pagination parameters", "decks": []}), 400
         
         offset = (page - 1) * limit
+        
+        # Get filter parameters
+        search_text = request.args.get("search", "").strip().lower()
+        energy_types = request.args.getlist("energy_types")  # Can have multiple
+        privacy_filter = request.args.get("privacy", "all")  # all, public, private
 
         current_user_app_id = str(flask_login_current_user.id)
         user_doc_ref = db.collection("users").document(current_user_app_id)
@@ -187,11 +215,16 @@ def get_user_decks_api():
         ]
         all_deck_docs = db.get_all(deck_refs)
 
-        # Sort all decks by updated_at (most recent first)
+        # Sort all decks by updated_at (most recent first) and apply filters
         valid_decks = []
         for deck_doc in all_deck_docs:
             if deck_doc.exists:
                 deck_data = deck_doc.to_dict()
+                
+                # Apply server-side filtering
+                if not passes_filters(deck_data, search_text, energy_types, privacy_filter):
+                    continue
+                    
                 valid_decks.append((deck_doc, deck_data))
 
         default_time = datetime.min.replace(tzinfo=timezone.utc)

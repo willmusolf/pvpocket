@@ -572,6 +572,15 @@
         privacyFilter: 'all'
     };
     
+    // Debounce utility function
+    function debounce(func, delay) {
+        let timeoutId;
+        return function(...args) {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => func.apply(this, args), delay);
+        };
+    }
+    
     // Pagination variables
     let currentPage = 1;
     let isLoading = false;
@@ -649,25 +658,81 @@
             </div>`;
     }
 
+    function getImageUrl(originalUrl) {
+        if (!originalUrl) return '';
+        
+        // If the URL already includes the CDN domain, return as-is
+        if (originalUrl.startsWith('https://cdn.pvpocket.xyz')) {
+            return originalUrl;
+        }
+        
+        // Convert Firebase Storage URLs to CDN URLs
+        if (originalUrl.includes('firebasestorage.googleapis.com') || originalUrl.includes('storage.googleapis.com')) {
+            // Extract the path from Firebase Storage URLs
+            let path = '';
+            
+            if (originalUrl.includes('firebasestorage.googleapis.com')) {
+                // Handle Firebase Storage URLs with encoded paths
+                const pathMatch = originalUrl.match(/\/o\/([^?]+)/);
+                if (pathMatch) {
+                    path = '/' + decodeURIComponent(pathMatch[1]);
+                }
+            } else if (originalUrl.includes('storage.googleapis.com')) {
+                // Handle Google Cloud Storage URLs  
+                const pathMatch = originalUrl.match(/pvpocket-dd286\.firebasestorage\.app\/(.+)$/);
+                if (pathMatch) {
+                    path = '/' + pathMatch[1];
+                }
+            }
+            
+            if (path) {
+                return 'https://cdn.pvpocket.xyz' + path;
+            }
+        }
+        
+        // If it's a relative path, prepend the CDN base URL
+        if (originalUrl.startsWith('/') || !originalUrl.includes('://')) {
+            return 'https://cdn.pvpocket.xyz' + (originalUrl.startsWith('/') ? originalUrl : '/' + originalUrl);
+        }
+        
+        // For any other URLs, return as-is (fallback)
+        return originalUrl;
+    }
+
+    // Global image observer
+    let globalImageObserver = null;
+    
     function initializeImageLazyLoader() {
         if (!('IntersectionObserver' in window)) return;
-        const imageObserver = new IntersectionObserver((entries, observer) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const img = entry.target;
-                    const wrapper = img.parentElement;
-                    img.onload = () => {
-                        wrapper.classList.remove('is-loading');
-                        wrapper.classList.add('is-loaded');
-                    };
-                    img.onerror = () => wrapper.classList.remove('is-loading');
-                    img.src = getImageUrl(img.dataset.src);
-                    img.removeAttribute('data-src');
-                    observer.unobserve(img);
-                }
-            });
-        }, { rootMargin: '250px' });
-        document.querySelectorAll('.cover-card-image-wrapper img[data-src]').forEach(img => imageObserver.observe(img));
+        
+        // Create observer only once
+        if (!globalImageObserver) {
+            globalImageObserver = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const img = entry.target;
+                        const wrapper = img.parentElement;
+                        img.onload = () => {
+                            wrapper.classList.remove('is-loading');
+                            wrapper.classList.add('is-loaded');
+                        };
+                        img.onerror = () => wrapper.classList.remove('is-loading');
+                        img.src = getImageUrl(img.dataset.src);
+                        img.removeAttribute('data-src');
+                        observer.unobserve(img);
+                    }
+                });
+            }, { rootMargin: '250px' });
+        }
+        
+        // Only observe new images that haven't been observed yet
+        document.querySelectorAll('.cover-card-image-wrapper img[data-src]').forEach(img => {
+            // Check if this image is already being observed by checking if it has data-observed attribute
+            if (!img.dataset.observed) {
+                img.dataset.observed = 'true';
+                globalImageObserver.observe(img);
+            }
+        });
     }
 
     async function loadDecksPage(page = 1, append = false) {
@@ -682,7 +747,26 @@
         }
 
         try {
-            const response = await fetch(`${window.pageData.api_url}?page=${page}&limit=12`);
+            // Build query parameters with filters
+            const params = new URLSearchParams({
+                page: page.toString(),
+                limit: '12'
+            });
+            
+            // Add filter parameters
+            if (activeFilters.searchText.trim()) {
+                params.append('search', activeFilters.searchText.trim());
+            }
+            
+            activeFilters.energyTypes.forEach(type => {
+                params.append('energy_types', type);
+            });
+            
+            if (activeFilters.privacyFilter !== 'all') {
+                params.append('privacy', activeFilters.privacyFilter);
+            }
+            
+            const response = await fetch(`${window.pageData.api_url}?${params.toString()}`);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             
             const data = await response.json();
@@ -708,15 +792,6 @@
                 totalDecks = data.pagination.total_count;
                 currentPage = page;
                 
-                // Add "no results" message container if not exists
-                if (!document.getElementById('no-results-message')) {
-                    decksContainer.insertAdjacentHTML('beforeend', `
-                        <div id="no-results-message" class="col-12 text-center p-5" style="display: none;">
-                            <p class="h5">No decks match your current filters.</p>
-                        </div>
-                    `);
-                }
-                
                 // Set up infinite scroll for more decks
                 if (hasMoreDecks) {
                     setupInfiniteScroll();
@@ -735,8 +810,14 @@
                 });
                 
             } else if (!append) {
-                // No decks at all
-                decksContainer.innerHTML = `<div class="col-12"><div class="alert alert-info"><p>You don't have any decks yet. <a href="${window.pageData.deck_builder_url}">Create your first deck!</a></p></div></div>`;
+                // No decks match filters or no decks at all
+                if (activeFilters.searchText.trim() || activeFilters.energyTypes.length > 0 || activeFilters.privacyFilter !== 'all') {
+                    // Filters are active, show "no matches" message
+                    decksContainer.innerHTML = `<div class="col-12 text-center p-5"><p class="h5" style="color: var(--text-color); opacity: 0.7;">No decks match your current filters.</p></div>`;
+                } else {
+                    // No filters active, user has no decks
+                    decksContainer.innerHTML = `<div class="col-12"><div class="alert alert-info"><p>You don't have any decks yet. <a href="${window.pageData.deck_builder_url}">Create your first deck!</a></p></div></div>`;
+                }
                 hasMoreDecks = false;
             }
             
@@ -788,15 +869,16 @@
                     text.textContent = 'Loading more decks...';
                     
                     loadDecksPage(currentPage + 1, true).then(() => {
+                        // Reinitialize image lazy loading for newly loaded decks
+                        initializeImageLazyLoader();
+                        
                         // Hide loading spinner after load
                         spinner.style.display = 'none';
-                        text.textContent = hasMoreDecks ? 'Scroll for more decks' : 'All decks loaded';
+                        text.textContent = hasMoreDecks ? 'Scroll for more decks' : '';
                         
                         // Hide the entire indicator if no more decks
                         if (!hasMoreDecks) {
-                            setTimeout(() => {
-                                scrollSentinel.style.display = 'none';
-                            }, 2000);
+                            scrollSentinel.style.display = 'none';
                         }
                     }).catch(() => {
                         // Hide spinner on error
@@ -812,58 +894,24 @@
         window.deckScrollObserver.observe(scrollSentinel);
     }
 
-    function applyFilters() {
-        const searchText = activeFilters.searchText.toLowerCase().trim();
-        const selectedEnergies = activeFilters.energyTypes;
-        let visibleCount = 0;
-
-        allDecks.forEach(deck => {
-            const deckElement = document.getElementById(`deck-col-${deck.deck_id}`);
-            if (!deckElement) return;
-
-            const deckTypes = deck.types || [];
-            let energyMatch = true;
-            if (selectedEnergies.length > 0) {
-                if (deckTypes.length !== selectedEnergies.length) {
-                    energyMatch = false;
-                } else {
-                    energyMatch = selectedEnergies.every(energy => deckTypes.includes(energy));
-                }
-            }
-
-            const coverNames = (deck.resolved_cover_cards || []).map(c => c.name.toLowerCase());
-            let textMatch = true;
-            if (searchText) {
-                textMatch = deck.name.toLowerCase().includes(searchText) ||
-                            coverNames.some(name => name.includes(searchText));
-            }
-            
-            // Privacy filter
-            let privacyMatch = true;
-            if (activeFilters.privacyFilter === 'public') {
-                privacyMatch = deck.is_public === true;
-            } else if (activeFilters.privacyFilter === 'private') {
-                privacyMatch = deck.is_public !== true;
-            }
-
-            if (energyMatch && textMatch && privacyMatch) {
-                deckElement.style.display = '';
-                visibleCount++;
-            } else {
-                deckElement.style.display = 'none';
-            }
-        });
-
-        const noResultsMessage = document.getElementById('no-results-message');
-        if (noResultsMessage) {
-            noResultsMessage.style.display = visibleCount === 0 ? 'block' : 'none';
-        }
+    function triggerSearch() {
+        // Reset pagination for new search
+        currentPage = 1;
+        hasMoreDecks = true;
+        
+        // Load first page with current filters
+        loadDecksPage(1, false);
     }
 
     function setupFilterListeners() {
+        // Debounced search input
+        const debouncedSearch = debounce(() => {
+            triggerSearch();
+        }, 300);
+        
         document.getElementById('deck-search-input').addEventListener('input', (e) => {
             activeFilters.searchText = e.target.value;
-            applyFilters();
+            debouncedSearch();
         });
         
         // Privacy filter dropdown
@@ -877,7 +925,7 @@
                 const dropdownButton = document.getElementById('privacyFilterDropdown');
                 dropdownButton.textContent = e.target.textContent;
                 
-                applyFilters();
+                triggerSearch();
             });
         });
 
@@ -890,13 +938,13 @@
                 if (isCurrentlyActive) {
                     icon.classList.remove('active');
                     activeFilters.energyTypes = activeFilters.energyTypes.filter(e => e !== energyType);
-                    applyFilters();
+                    triggerSearch();
                 } 
                 // If it's not active, only allow selecting it if fewer than 3 are already selected.
                 else if (activeFilters.energyTypes.length < 3) {
                     icon.classList.add('active');
                     activeFilters.energyTypes.push(energyType);
-                    applyFilters();
+                    triggerSearch();
                 }
                 // If 3 are already active and you click an inactive one, do nothing.
             });

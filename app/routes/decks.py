@@ -650,22 +650,93 @@ def get_cards_paginated():
         if sort_type == "name":
             filtered_card_objects.sort(key=lambda card: card.name.lower() if card.name else "", reverse=(direction == "desc"))
         elif sort_type == "rarity":
-            # Define rarity order (common=1, uncommon=2, rare=3, ultra rare=4)
+            # Define rarity order - matches frontend exactly
             rarity_order = {
-                "Common": 1, "♦": 1,
-                "Uncommon": 2, "♦♦": 2, 
-                "Rare": 3, "♦♦♦": 3,
-                "Ultra Rare": 4, "♦♦♦♦": 4,
-                "Crown Rare": 5
+                'Crown Rare': 0, '✵✵': 1, '✵': 2,
+                '☆☆☆': 3, '☆☆': 4, '☆': 5,
+                '◊◊◊◊': 6, '◊◊◊': 7, '◊◊': 8, '◊': 9,
+                # Legacy mappings for compatibility
+                "Ultra Rare": 1, "♦♦♦♦": 1,
+                "Rare": 2, "♦♦♦": 2,
+                "Uncommon": 3, "♦♦": 3,
+                "Common": 4, "♦": 4
             }
+            def rarity_sort_key(card):
+                # Primary sort: Rarity
+                rarity_priority = rarity_order.get(card.rarity, 99) if card.rarity else 99
+                
+                # Secondary sort: Most recent set (using same logic as set sorting)
+                set_name = card.set_name if card.set_name else ""
+                set_release_order = {
+                    "Eevee Grove": 1,
+                    "Extradimensional Crisis": 2, 
+                    "Celestial Guardians": 3,
+                    "Mythical Island": 4,
+                    "Genetic Apex": 5,
+                    "Promo-A": 6,
+                }
+                set_priority = set_release_order.get(set_name, 999)
+                
+                return (rarity_priority, set_priority)
+            
             filtered_card_objects.sort(
-                key=lambda card: rarity_order.get(card.rarity, 99) if card.rarity else 99, 
+                key=rarity_sort_key, 
                 reverse=(direction == "desc")
             )
         elif sort_type == "type":
-            # Sort by card type (Pokemon, Trainer, etc.)
+            # Sort by card type with sophisticated ordering
+            def get_card_sort_key(card):
+                if not card.card_type:
+                    return (99, "", "")
+                
+                # Use type order that matches frontend exactly
+                type_priority = {
+                    'Grass': 0, 'Fire': 1, 'Water': 2, 'Lightning': 3, 
+                    'Psychic': 4, 'Fighting': 5, 'Darkness': 6, 'Metal': 7, 
+                    'Dragon': 8, 'Colorless': 9, 'Trainer': 10,
+                    # Legacy mappings for compatibility
+                    'Electric': 3, 'Dark': 6
+                }.get(card.energy_type if card.is_pokemon else 'Trainer', 99)
+                
+                # Stage order that matches frontend exactly
+                if card.is_pokemon:
+                    stage_priority = {
+                        'Stage 2': 0, 'Stage 1': 1, 'Basic': 2, 'Ultra Beast': 6
+                    }.get(getattr(card, 'stage', None) or 'Basic', 99)
+                elif card.is_trainer:
+                    stage_priority = {
+                        'Item': 3, 'Supporter': 4, 'Tool': 5
+                    }.get(card.trainer_subtype, 99)
+                else:
+                    stage_priority = 99
+                
+                # Add set-based secondary sorting (same logic as set sorting)
+                # Define set release order (same as in main set sorting)
+                set_release_order = {
+                    "Eevee Grove": 1,           # Most recent
+                    "Extradimensional Crisis": 2,
+                    "Celestial Guardians": 3,
+                    "Shining Revelry": 4,
+                    "Triumphant Light": 5,
+                    "Space-Time Smackdown": 6,
+                    "Mythical Island": 7,
+                    "Genetic Apex": 8,
+                    "Promo-A": 9,  # Special set - last in ascending, first in descending
+                }
+                set_priority = set_release_order.get(card.set_name, 999)
+                
+                # Handle direction for set sorting (same logic as main set sort)
+                if direction == "desc":
+                    if card.set_name == "Promo-A":
+                        set_priority = 0  # Make Promo-A come first in descending
+                elif direction == "asc":
+                    if card.set_name == "Promo-A":
+                        set_priority = 999  # Make Promo-A come last in ascending
+                
+                return (type_priority, stage_priority, set_priority, 0)
+            
             filtered_card_objects.sort(
-                key=lambda card: card.card_type.lower() if card.card_type else "", 
+                key=get_card_sort_key, 
                 reverse=(direction == "desc")
             )
         elif sort_type == "set":
@@ -673,18 +744,34 @@ def get_cards_paginated():
             def set_sort_key(card):
                 set_name = card.set_name if card.set_name else ""
                 
-                # Define set release order (most recent first)
+                # Define set release order (most recent first, lower number = more recent)
+                # Order matches the dropdown: Eevee Grove → Extradimensional Crisis → Celestial Guardians → etc.
                 set_release_order = {
-                    "Eevee Grove": 1,
-                    "Extradimensional Crisis": 2, 
+                    "Eevee Grove": 1,           # Most recent
+                    "Extradimensional Crisis": 2,
                     "Celestial Guardians": 3,
-                    "Mythical Island": 4,
-                    "Genetic Apex": 5,
-                    "Promo-A": 6,  # Promos typically last
+                    "Shining Revelry": 4,
+                    "Triumphant Light": 5,
+                    "Space-Time Smackdown": 6,
+                    "Mythical Island": 7,
+                    "Genetic Apex": 8,
+                    "Promo-A": 9,  # Special set - last in ascending, first in descending
                 }
                 
                 # Get set priority (lower number = more recent)
                 set_priority = set_release_order.get(set_name, 999)  # Unknown sets go to the end
+                
+                # Handle direction for set sorting
+                if direction == "desc":
+                    if set_name == "Promo-A":
+                        set_priority = 0  # Make Promo-A come first in descending
+                    # For other sets, keep original order (Eevee Grove=1 first, then Extradimensional Crisis=2, etc.)
+                elif direction == "asc":
+                    # For ascending (default), we want newest first: Eevee Grove → ... → Genetic Apex
+                    # Keep original priorities: Eevee Grove=1, Extradimensional Crisis=2, ..., Genetic Apex=8
+                    # Promo-A comes last
+                    if set_name == "Promo-A":
+                        set_priority = 999  # Make Promo-A come last in ascending
                 
                 # Use card_number (integer) if available, otherwise try to extract from card_number_str
                 card_num = card.card_number if card.card_number is not None else 0
@@ -699,7 +786,7 @@ def get_cards_paginated():
                         
                 return (set_priority, card_num)
             
-            filtered_card_objects.sort(key=set_sort_key, reverse=(direction == "desc"))
+            filtered_card_objects.sort(key=set_sort_key)
 
         # Calculate pagination metadata
         total_count = len(filtered_card_objects)
