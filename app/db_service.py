@@ -270,11 +270,17 @@ class DatabaseService:
     def health_check() -> bool:
         """Check if Firestore connection is healthy."""
         try:
-            client = DatabaseService.get_client()
-            # Try a simple operation
-            test_collection = client.collection('__health_check__')
-            list(test_collection.limit(1).stream())
-            DatabaseService.return_client(client)
+            from flask import current_app
+            
+            # Get Firestore client from app config as fallback
+            db_client = current_app.config.get("FIRESTORE_DB")
+            if not db_client:
+                print("Database health check failed: No Firestore client available")
+                return False
+            
+            # Try a simple operation - just test the connection
+            users_collection = db_client.collection('users')
+            list(users_collection.limit(1).stream())
             return True
         except Exception as e:
             print(f"Database health check failed: {e}")
