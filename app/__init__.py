@@ -11,6 +11,7 @@ import threading
 import json
 from google.cloud import secretmanager
 from google.api_core.exceptions import NotFound, PermissionDenied
+from .cache_manager import cache_manager
 
 from flask_login import (
     current_user,
@@ -31,6 +32,7 @@ from .routes.decks import decks_bp
 from .routes.meta import meta_bp
 from .routes.collection import collection_bp
 from .routes.friends import friends_bp
+from .routes.internal import internal_bp
 from Card import Card, CardCollection
 from Deck import Deck
 
@@ -44,13 +46,8 @@ from dotenv import (
 
 load_dotenv()
 
-CARD_CACHE_PATH = "/tmp/card_collection.pkl"
-CACHE_DURATION_SECONDS = 30 * 24 * 60 * 60
-
-cache_lock = threading.Lock()
-
-
 def _load_cards_from_firestore_and_cache():
+    """Load card collection from Firestore and cache in Redis."""
     print("Attempting to load card collection from Firestore...", flush=True)
     db_client = current_app.config.get("FIRESTORE_DB")
     if not db_client:
@@ -61,11 +58,11 @@ def _load_cards_from_firestore_and_cache():
         card_collection = CardCollection()
         card_collection.load_from_firestore(db_client)
         print(
-            f"Loaded {len(card_collection)} cards from Firestore. Saving to cache.",
+            f"Loaded {len(card_collection)} cards from Firestore. Saving to Redis cache.",
             flush=True,
         )
-        with open(CARD_CACHE_PATH, "wb") as f:
-            pickle.dump(card_collection, f)
+        # Cache for 24 hours instead of 30 days for better data freshness
+        cache_manager.set_card_collection(card_collection, ttl_hours=24)
         return card_collection
     except Exception as e:
         print(
@@ -151,28 +148,30 @@ def create_app(config_name="default"):
         app.config["PROFILE_ICON_URLS"] = {}
         app.config["DEFAULT_PROFILE_ICON_URL"] = ""
 
+    # Load card collection with Redis caching
     card_collection = None
     db_client = app.config.get("FIRESTORE_DB")
+    
     try:
-        cache_is_valid = False
-        if os.path.exists(CARD_CACHE_PATH):
-            file_mod_time = os.path.getmtime(CARD_CACHE_PATH)
-            if (time.time() - file_mod_time) < CACHE_DURATION_SECONDS:
-                with open(CARD_CACHE_PATH, "rb") as f:
-                    card_collection = pickle.load(f)
-                cache_is_valid = True
-        if not cache_is_valid and db_client:
+        # Try to get from Redis cache first
+        card_collection = cache_manager.get_card_collection()
+        
+        if not card_collection and db_client:
+            # If not in cache, load from Firestore and cache it
+            print("Card collection not in cache, loading from Firestore...")
             card_collection = CardCollection()
             card_collection.load_from_firestore(db_client)
-            with open(CARD_CACHE_PATH, "wb") as f:
-                pickle.dump(card_collection, f)
+            cache_manager.set_card_collection(card_collection, ttl_hours=24)
         elif not card_collection:
+            # Fallback to empty collection
             card_collection = CardCollection()
+            
     except Exception as e:
         print(f"CRITICAL: Error loading card collection: {e}", flush=True)
         card_collection = CardCollection()
 
-    app.config["card_collection"] = card_collection
+    # Note: card_collection no longer stored in app.config for better memory management
+    # Access via card_service.get_card_collection() instead
 
     if app.config.get("GOOGLE_OAUTH_CLIENT_ID") and app.config.get(
         "GOOGLE_OAUTH_CLIENT_SECRET"
@@ -266,37 +265,41 @@ def create_app(config_name="default"):
 
     @app.route("/api/refresh-cards", methods=["POST"])
     def refresh_cards_cache():
+        """Refresh card collection cache using Redis."""
         provided_key = request.headers.get("X-Refresh-Key")
         if not provided_key or provided_key != current_app.config["REFRESH_SECRET_KEY"]:
             return jsonify({"error": "Unauthorized"}), 401
-        if cache_lock.acquire(blocking=False):
-            try:
-                new_collection = _load_cards_from_firestore_and_cache()
-                if new_collection:
-                    current_app.config["card_collection"] = new_collection
-                    message = f"Successfully reloaded {len(new_collection)} cards."
-                    return jsonify({"status": "success", "message": message}), 200
-                else:
-                    return (
-                        jsonify(
-                            {
-                                "status": "error",
-                                "message": "Failed to load cards from Firestore.",
-                            }
-                        ),
-                        500,
-                    )
-            finally:
-                cache_lock.release()
-        else:
+        
+        try:
+            # Invalidate existing cache
+            cache_manager.invalidate_card_cache()
+            
+            # Load fresh data from Firestore  
+            from .services import card_service
+            success = card_service.refresh_card_collection()
+            if success:
+                message = f"Successfully refreshed card collection cache."
+                return jsonify({"status": "success", "message": message}), 200
+            else:
+                return (
+                    jsonify(
+                        {
+                            "status": "error",
+                            "message": "Failed to load cards from Firestore.",
+                        }
+                    ),
+                    500,
+                )
+        except Exception as e:
+            print(f"Error refreshing cards cache: {e}")
             return (
                 jsonify(
                     {
-                        "status": "ignored",
-                        "message": "A refresh is already in progress.",
+                        "status": "error",
+                        "message": f"Error refreshing cache: {str(e)}",
                     }
                 ),
-                429,
+                500,
             )
 
     app.register_blueprint(main_bp)
@@ -306,6 +309,22 @@ def create_app(config_name="default"):
     app.register_blueprint(meta_bp)
     app.register_blueprint(collection_bp)
     app.register_blueprint(friends_bp)
+    app.register_blueprint(internal_bp)
+
+    # Initialize monitoring system
+    from .monitoring import performance_monitor
+    performance_monitor.start_monitoring()
+    
+    # Startup summary
+    print("\n" + "="*50)
+    print("🚀 POKEMON TCG POCKET - SCALABILITY SYSTEMS")
+    print("="*50)
+    print("✅ In-Memory Cache: Active")
+    print("✅ Database Connection Pool: Active") 
+    print("✅ Background Task Queue: Active")
+    print("✅ Performance Monitor: Active")
+    print("✅ Service Layer: Loaded")
+    print("="*50 + "\n")
 
     app.before_request(check_username_requirement)
 

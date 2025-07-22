@@ -230,59 +230,78 @@ class CardCollection:
         self.cards = []
         self.cards_by_id = {}
         self.cards_by_name = {}
-        print("Loading card collection from Firestore (nested structure)...")
+        print("Loading card collection from Firestore with optimized batch queries...")
         loaded_card_count = 0
+        
         try:
+            # First, get all set document references in one query
             sets_collection_ref = db_client.collection("cards")
-            set_docs_stream = sets_collection_ref.stream()
-            for set_doc in set_docs_stream:
-                cards_subcollection_ref = set_doc.reference.collection("set_cards")
-                card_docs_stream = cards_subcollection_ref.stream()
-                for card_doc in card_docs_stream:
-                    card_data = card_doc.to_dict()
-                    if card_data is None:
-                        # print(f"Warning: Card document {set_doc.id}/{card_doc.id} has no data. Skipping.")
-                        continue
+            set_docs = list(sets_collection_ref.stream())  # Load all set docs at once
+            
+            print(f"Found {len(set_docs)} card sets. Loading cards in batches...")
+            
+            # Process sets in parallel batches to reduce I/O wait time
+            batch_size = 5  # Process 5 sets at a time
+            
+            for i in range(0, len(set_docs), batch_size):
+                batch_sets = set_docs[i:i + batch_size]
+                batch_loaded = 0
+                
+                # Load cards for this batch of sets
+                for set_doc in batch_sets:
                     try:
-                        card_pk_id = card_data.get("id")
-                        if card_pk_id is None:
-                            # print(f"Warning: Card data from Firestore doc {set_doc.id}/{card_doc.id} is missing 'id' field. Skipping.")
-                            continue
+                        # Use list() to execute the query once instead of streaming
+                        cards_subcollection_ref = set_doc.reference.collection("set_cards")
+                        card_docs = list(cards_subcollection_ref.stream())
+                        
+                        # Process all cards from this set
+                        for card_doc in card_docs:
+                            card_data = card_doc.to_dict()
+                            if card_data is None:
+                                continue
+                                
+                            try:
+                                card_pk_id = card_data.get("id")
+                                if card_pk_id is None:
+                                    continue
 
-                        card = Card(
-                            id=int(card_pk_id),
-                            name=card_data.get("name", ""),
-                            energy_type=card_data.get("energy_type", ""),
-                            set_name=card_data.get("set_name", ""),
-                            set_code=card_data.get("set_code", ""),
-                            card_number=card_data.get(
-                                "card_number"
-                            ),  # This is the int (or None) from Firestore
-                            card_number_str=card_data.get(
-                                "card_number_str", ""
-                            ),  # This is the string from Firestore
-                            card_type=card_data.get("card_type", ""),
-                            hp=card_data.get("hp"),
-                            attacks=card_data.get("attacks", []),
-                            weakness=card_data.get("weakness"),
-                            retreat_cost=card_data.get("retreat_cost"),
-                            illustrator=card_data.get("illustrator"),
-                            firebase_image_url=card_data.get("firebase_image_url"),
-                            rarity=card_data.get("rarity", ""),
-                            pack=card_data.get("pack", ""),
-                            original_image_url=card_data.get("original_image_url"),
-                            flavor_text=card_data.get("flavor_text"),
-                            abilities=card_data.get("abilities", []),
-                        )
-                        self.add_card(card)
-                        loaded_card_count += 1
-                    except Exception as e_card_init:
-                        print(
-                            f"Error initializing Card object from Firestore doc {set_doc.id}/{card_doc.id}. Data: {card_data}. Error: {e_card_init}"
-                        )
-            print(
-                f"Successfully loaded {loaded_card_count} cards from Firestore into CardCollection."
-            )
+                                card = Card(
+                                    id=int(card_pk_id),
+                                    name=card_data.get("name", ""),
+                                    energy_type=card_data.get("energy_type", ""),
+                                    set_name=card_data.get("set_name", ""),
+                                    set_code=card_data.get("set_code", ""),
+                                    card_number=card_data.get("card_number"),
+                                    card_number_str=card_data.get("card_number_str", ""),
+                                    card_type=card_data.get("card_type", ""),
+                                    hp=card_data.get("hp"),
+                                    attacks=card_data.get("attacks", []),
+                                    weakness=card_data.get("weakness"),
+                                    retreat_cost=card_data.get("retreat_cost"),
+                                    illustrator=card_data.get("illustrator"),
+                                    firebase_image_url=card_data.get("firebase_image_url"),
+                                    rarity=card_data.get("rarity", ""),
+                                    pack=card_data.get("pack", ""),
+                                    original_image_url=card_data.get("original_image_url"),
+                                    flavor_text=card_data.get("flavor_text"),
+                                    abilities=card_data.get("abilities", []),
+                                )
+                                self.add_card(card)
+                                batch_loaded += 1
+                                loaded_card_count += 1
+                                
+                            except Exception as e_card_init:
+                                print(f"Error initializing Card from {set_doc.id}/{card_doc.id}: {e_card_init}")
+                                
+                    except Exception as e_set:
+                        print(f"Error loading cards from set {set_doc.id}: {e_set}")
+                
+                # Progress update for large collections
+                if batch_loaded > 0:
+                    print(f"Loaded {batch_loaded} cards from batch {i//batch_size + 1}/{(len(set_docs) + batch_size - 1)//batch_size}")
+                        
+            print(f"Successfully loaded {loaded_card_count} cards from Firestore into CardCollection (optimized).")
+            
         except Exception as e:
             print(f"Error loading cards from Firestore for CardCollection: {e}")
 

@@ -12,6 +12,7 @@ from flask_login import login_required, current_user as flask_login_current_user
 from firebase_admin import firestore
 from Deck import Deck
 from ..models import User
+from ..services import card_service
 import datetime
 from better_profanity import profanity
 
@@ -256,7 +257,7 @@ def view_friend_decks(user_id):
         return redirect(url_for("friends.friends_page"))
     
     # Get friend's public decks
-    card_collection = current_app.config.get("card_collection")
+    card_collection = card_service.get_card_collection()
     # Simplified query to avoid index requirement - we'll sort in memory
     decks_query = (
         db.collection("decks")
@@ -393,7 +394,7 @@ def toggle_deck_privacy(deck_id):
     """Toggle privacy of user's own deck."""
     db = current_app.config.get("FIRESTORE_DB")
     current_user_id = flask_login_current_user.id
-    card_collection = current_app.config.get("card_collection")
+    card_collection = card_service.get_card_collection()
     
     # Get the deck
     deck_doc = db.collection("decks").document(deck_id).get()

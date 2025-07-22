@@ -5,6 +5,7 @@ import random
 import time
 from .auth import is_logged_in, get_current_user_data, profanity_check
 import uuid
+from ..services import card_service
 
 from flask import Blueprint, jsonify, current_app, request, session  # Existing imports
 from flask_login import (
@@ -139,7 +140,7 @@ def list_decks():
 @decks_bp.route("/api/cards", methods=["GET"])
 def get_all_cards():
     """API endpoint to get all cards from the pre-loaded CardCollection with optional filtering."""
-    card_collection = current_app.config.get("card_collection")
+    card_collection = card_service.get_card_collection()
 
     if not card_collection or not hasattr(card_collection, "cards"):
         current_app.logger.error(
@@ -252,7 +253,7 @@ def get_all_cards():
 def get_deck(deck_id: str):  # Changed 'filename' to 'deck_id'
     """API endpoint to get a specific deck by its Firestore ID."""
     db = get_db()  # Use your helper to get the Firestore client
-    card_collection = current_app.config.get("card_collection")
+    card_collection = card_service.get_card_collection()
 
     if not card_collection:
         current_app.logger.critical(
@@ -369,7 +370,7 @@ def create_deck():
         if not deck_data_from_request:
             return jsonify({"success": False, "error": "No data received"}), 400
 
-        card_collection = current_app.config.get("card_collection")
+        card_collection = card_service.get_card_collection()
         if not card_collection:
             current_app.logger.critical("Card Collection not loaded during create_deck")
             return (
@@ -579,7 +580,7 @@ def update_deck(deck_id: str):
                 400,
             )
 
-        card_collection = current_app.config.get("card_collection")
+        card_collection = card_service.get_card_collection()
         if not card_collection:
             current_app.logger.critical("Card Collection not loaded during update_deck")
             return (
@@ -907,7 +908,7 @@ def copy_deck(
             403,
         )
 
-    card_collection = current_app.config.get("card_collection")
+    card_collection = card_service.get_card_collection()
     if not card_collection:
         current_app.logger.critical(
             "Card Collection not loaded during copy_deck (Python)"
@@ -1049,7 +1050,7 @@ def export_deck(deck_id, format):
     """Export a deck in various formats (json, text)."""
     db = get_db()
     current_user_id = flask_login_current_user.id
-    card_collection = current_app.config.get("card_collection")
+    card_collection = card_service.get_card_collection()
     
     # Get the deck
     deck_doc = db.collection("decks").document(deck_id).get()
@@ -1237,7 +1238,7 @@ def export_deck(deck_id, format):
 def view_public_deck(deck_id):
     """Public deck viewing page (accessible without login if deck is public)."""
     db = get_db()
-    card_collection = current_app.config.get("card_collection")
+    card_collection = card_service.get_card_collection()
     
     # Get the deck
     deck_doc = db.collection("decks").document(deck_id).get()

@@ -160,3 +160,52 @@ def proxy_image():
         return jsonify({"error": "Internal server error"}), 500
 
 
+@main_bp.route("/test-scalability-dashboard")
+def test_scalability_dashboard():
+    """Web-based scalability testing dashboard."""
+    return render_template("test_scalability.html")
+
+
+@main_bp.route("/test-scalability")
+def test_scalability():
+    """Test endpoint to verify scalability systems are working."""
+    try:
+        from ..services import card_service
+        from ..cache_manager import cache_manager
+        from ..db_service import db_service
+        
+        print("🧪 TESTING SCALABILITY SYSTEMS")
+        
+        results = {
+            "cache_status": "❌ Failed",
+            "db_status": "❌ Failed", 
+            "card_service_status": "❌ Failed",
+            "total_cards": 0
+        }
+        
+        # Test cache
+        if cache_manager.health_check():
+            results["cache_status"] = "✅ Healthy"
+            print("✅ Cache system is working")
+        
+        # Test database
+        if db_service.health_check():
+            results["db_status"] = "✅ Healthy"
+            print("✅ Database system is working")
+        
+        # Test card service
+        try:
+            collection = card_service.get_card_collection()
+            results["card_service_status"] = "✅ Working"
+            results["total_cards"] = len(collection)
+            print(f"✅ Card service loaded {len(collection)} cards")
+        except Exception as e:
+            print(f"❌ Card service error: {e}")
+        
+        print("🧪 SCALABILITY TEST COMPLETE")
+        return jsonify(results)
+        
+    except Exception as e:
+        print(f"❌ TEST ERROR: {e}")
+        return jsonify({"error": str(e)}), 500
+

@@ -1,6 +1,7 @@
 # app/models.py
 from flask_login import UserMixin, LoginManager
 from flask import current_app
+from .cache_manager import cache_manager
 
 login_manager = LoginManager()
 login_manager.login_view = "auth.login_prompt_page"
@@ -39,7 +40,21 @@ class User(UserMixin):
 
 @login_manager.user_loader
 def load_user(user_id_from_session):
-    """Loads a user from Firestore given their user_id."""
+    """Loads a user from cache first, then Firestore if needed."""
+    if not user_id_from_session:
+        return None
+        
+    user_id_str = str(user_id_from_session)
+    
+    # Try to get from Redis cache first
+    try:
+        cached_user_data = cache_manager.get_user_data(user_id_str)
+        if cached_user_data:
+            return User(user_id=user_id_str, data=cached_user_data)
+    except Exception as e:
+        print(f"[LOAD_USER_CACHE] Error loading user from cache: {e}", flush=True)
+    
+    # Fallback to Firestore if not in cache
     db = current_app.config.get("FIRESTORE_DB")
     if not db:
         print(
@@ -49,12 +64,13 @@ def load_user(user_id_from_session):
         return None
 
     try:
-        user_id_str = str(user_id_from_session)
         user_doc_ref = db.collection("users").document(user_id_str)
         user_doc = user_doc_ref.get()
 
         if user_doc.exists:
             user_data = user_doc.to_dict()
+            # Cache the user data for future requests (30 minute TTL)
+            cache_manager.set_user_data(user_id_str, user_data, ttl_minutes=30)
             return User(user_id=user_id_str, data=user_data)
         else:
             print(

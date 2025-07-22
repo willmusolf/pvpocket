@@ -3352,19 +3352,14 @@
     function showCardZoom(hoveredImgElement, event) {
         const cardElement = hoveredImgElement.closest('.card-item') || hoveredImgElement.closest('.card-slot-container.filled');
         if (!cardElement) {
-            console.log('[ZOOM] No card element found');
+            // No card element found
             return;
         }
 
         const highResSrc = cardElement.dataset.highResSrc;
         const lowResSrc = hoveredImgElement.src;
         
-        console.log('[ZOOM] Hover detected on card:', {
-            cardName: cardElement.dataset.cardName,
-            lowResSrc: lowResSrc,
-            highResSrc: highResSrc,
-            thumbnailResolution: hoveredImgElement.dataset.loadedResolution
-        });
+        // Hover detected on card
 
         // Early return if no high-res source available
         if (!highResSrc || highResSrc === 'undefined' || highResSrc === 'null') {
@@ -3382,7 +3377,7 @@
         if (!zoomImg) {
             zoomImg = document.createElement('img');
             zoomContainer.appendChild(zoomImg);
-            console.log('[ZOOM] Created new zoom image element');
+            // [ZOOM] Created new zoom image element');
         }
 
         // Always clear any pending high-res download from a previous hover.
@@ -3393,59 +3388,51 @@
         const lowResProxyUrl = lowResSrc;
         const highResProxyUrl = getImageUrl(highResSrc);
         
-        console.log('[ZOOM] URL Processing:', {
-            original_highResSrc: highResSrc,
-            processed_highResProxyUrl: highResProxyUrl,
-            lowResProxyUrl: lowResProxyUrl
-        });
+        // [ZOOM] URL Processing complete
 
         // Check if high-res is already cached or if the thumbnail is already high-res
         const isCached = highResImageCache.has(highResSrc);
         const isAlreadyHighRes = hoveredImgElement.dataset.loadedResolution === 'high';
         
-        console.log('[ZOOM] Cache check:', {
-            isCached: isCached,
-            isAlreadyHighRes: isAlreadyHighRes,
-            cacheSize: highResImageCache.size
-        });
+        // [ZOOM] Cache check complete
         
         if (isCached || isAlreadyHighRes) {
             // If cached or thumbnail is already high-res, show high-res instantly and update thumbnail if needed
-            console.log('[ZOOM] Using cached/existing high-res image');
+            // [ZOOM] Using cached/existing high-res image');
             zoomImg.src = highResProxyUrl;
             if (hoveredImgElement.dataset.loadedResolution !== 'high') {
-                console.log('[ZOOM] Updating thumbnail to high-res (from cache)');
+                // [ZOOM] Updating thumbnail to high-res (from cache)');
                 hoveredImgElement.src = highResProxyUrl;
                 hoveredImgElement.dataset.loadedResolution = 'high';
             }
         } else {
             // If not cached, show low-res instantly
-            console.log('[ZOOM] Loading high-res image (not cached)');
+            // [ZOOM] Loading high-res image (not cached)');
             zoomImg.src = lowResProxyUrl;
             
             // Schedule the high-res download to start after a delay
             highResLoadTimeout = setTimeout(() => {
-                console.log('[ZOOM] Starting high-res download:', highResProxyUrl);
+                // [ZOOM] Starting high-res download
                 const highResImage = new Image();
                 highResImage.src = highResProxyUrl;
                 highResImage.onload = () => {
-                    console.log('[ZOOM] High-res image loaded successfully');
+                    // [ZOOM] High-res image loaded successfully');
                     highResImageCache.add(highResSrc);
                     if (zoomContainer.style.display === 'block' && zoomContainer.dataset.intendedSrc === highResSrc) {
-                        console.log('[ZOOM] Updating zoom image to high-res');
+                        // [ZOOM] Updating zoom image to high-res
                         zoomImg.src = highResProxyUrl;
                     }
                     
                     // Also update the thumbnail with high-res version
                     if (hoveredImgElement && hoveredImgElement.parentElement) {
-                        console.log('[ZOOM] Updating thumbnail to high-res (after download)');
+                        // [ZOOM] Updating thumbnail to high-res (after download)
                         hoveredImgElement.src = highResProxyUrl;
                         hoveredImgElement.dataset.loadedResolution = 'high';
                         
                         // Update any matching cards in the deck display
                         const originalSrc = hoveredImgElement.dataset.originalSrc || hoveredImgElement.getAttribute('data-original-src');
                         if (originalSrc) {
-                            console.log('[ZOOM] Updating matching deck images:', originalSrc);
+                            // [ZOOM] Updating matching deck images
                             updateDeckImagesWithHighRes(originalSrc, highResProxyUrl);
                         }
                     }
@@ -3532,16 +3519,16 @@
     }
 
     function hideCardZoom() {
-        console.log('[ZOOM] Hiding zoom');
+        // [ZOOM] Hiding zoom');
         const zoomContainer = document.getElementById('card-zoom-container');
         if (zoomContainer) {
             zoomContainer.style.display = 'none';
             zoomContainer.dataset.intendedSrc = '';
             // Cancel any pending high-res download.
             clearTimeout(highResLoadTimeout);
-            console.log('[ZOOM] Zoom hidden and timeout cleared');
+            // [ZOOM] Zoom hidden and timeout cleared');
         } else {
-            console.log('[ZOOM] No zoom container to hide');
+            // [ZOOM] No zoom container to hide');
         }
     }
 
@@ -3815,12 +3802,7 @@
                     colDiv.dataset.highResSrc = cardHighResSrc;
                 }
                 
-                console.log('[CARDS] Setting card highResSrc:', card.name, {
-                    display_image_path: card.display_image_path,
-                    apiHighRes: card.high_res_image_path,
-                    generatedHighRes: generatedHighRes,
-                    finalHighRes: cardHighResSrc
-                });
+                // Debug logging removed for production
                 const cardContainer = document.createElement('div');
                 cardContainer.className = 'position-relative clickable-card is-loading';
 
@@ -4107,9 +4089,9 @@
                 const highResPath = getHighResUrl(cardInSlot.display_image_path);
                 if (highResPath) {
                     cardContainer.dataset.highResSrc = highResPath;
-                    console.log('[DECK] Setting deck slot highResSrc:', cardInSlot.name, 'original:', cardInSlot.display_image_path, 'highRes:', highResPath);
+                    // Debug logging removed for production
                 } else {
-                    console.log('[DECK] No high-res path for deck slot:', cardInSlot.name, 'display_image_path:', cardInSlot.display_image_path);
+                    // No high-res path available
                 }
 
                 const img = document.createElement('img');

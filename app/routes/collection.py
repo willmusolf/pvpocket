@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 import uuid
 from typing import Optional
 from Deck import Deck
+from ..services import card_service
 
 from firebase_admin import (
     firestore,
@@ -65,7 +66,7 @@ def view_collection():
     if deck_id_to_copy:
         try:
             db = get_db()
-            card_collection = current_app.config.get("card_collection")
+            card_collection = card_service.get_card_collection()
             current_user_id = flask_login_current_user.id
 
             # 1. Check user's deck limit
@@ -179,7 +180,7 @@ def get_user_decks_api():
         deck_docs = db.get_all(deck_refs)
 
         user_decks_details = []
-        card_collection_obj = current_app.config.get("card_collection")
+        card_collection_obj = card_service.get_card_collection()
         meta_stats = current_app.config.get("meta_stats", {})
 
         for deck_doc in deck_docs:

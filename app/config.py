@@ -4,6 +4,7 @@ from datetime import timedelta
 class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY")
     REFRESH_SECRET_KEY = os.environ.get("REFRESH_SECRET_KEY")
+    TASK_AUTH_TOKEN = os.environ.get("TASK_AUTH_TOKEN", "dev-token-change-in-production")
 
     GOOGLE_OAUTH_CLIENT_ID = os.environ.get("GOOGLE_OAUTH_CLIENT_ID")
     GOOGLE_OAUTH_CLIENT_SECRET = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET")
