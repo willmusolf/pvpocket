@@ -133,17 +133,45 @@
         display: block;
         line-height: 1;
     }
+    .filter-container {
+        display: flex;
+        flex-direction: column;
+        min-height: 74px;
+        justify-content: flex-start;
+    }
     .filter-bar .dropdown button {
         width: 100%;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        text-align: left;
+        min-width: 80px;
+        min-height: 44px;
         font-size: 14px;
         padding: 10px 15px;
         border: 1px solid var(--border-color);
         background-color: var(--input-bg);
         color: var(--input-text);
+        line-height: 1.3;
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        text-align: left;
+    }
+    .filter-bar .dropdown button .btn-text {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        flex: 1;
+        min-width: 0;
+    }
+    .filter-bar .dropdown-toggle::after {
+        content: "";
+        border-top: 4px solid;
+        border-right: 4px solid transparent;
+        border-left: 4px solid transparent;
+        margin-left: 8px;
+        flex-shrink: 0;
+        width: 0;
+        height: 0;
+        vertical-align: middle;
     }
     .filter-bar .dropdown-menu {
         width: 100%;
@@ -872,6 +900,8 @@
         }
         .filter-bar .dropdown button {
             width: 100%;
+            min-width: 80px;
+            min-height: 44px;
         }
         .filter-bar .row {
             flex-direction: column;
@@ -1256,7 +1286,7 @@
                                     <div class="filter-label-top">Card Type</div>
                                     <div class="dropdown w-100">
                                         <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" id="cardTypeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                            All
+                                            <span class="btn-text">All</span>
                                         </button>
                                         <ul class="dropdown-menu w-100" id="card-type-dropdown">
                                             <li><a class="dropdown-item active" href="#" data-value="All">All</a></li>
@@ -1272,7 +1302,7 @@
                                     <div class="filter-label-top">Stage/Trainer</div>
                                     <div class="dropdown w-100">
                                         <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" id="stageTypeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                            All
+                                            <span class="btn-text">All</span>
                                         </button>
                                         <ul class="dropdown-menu w-100" id="stage-type-dropdown">
                                             <li><a class="dropdown-item active" href="#" data-value="All">All</a></li>
@@ -1294,7 +1324,8 @@
                                     <div class="filter-label-top">Set</div>
                                     <div class="dropdown w-100">
                                         <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" id="setDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                            All </button>
+                                            <span class="btn-text">All</span>
+                                        </button>
                                         <ul class="dropdown-menu w-100" id="set-dropdown">
                                             </ul>
                                     </div>
@@ -1306,7 +1337,7 @@
                                     <div class="filter-label-top">Rarity</div>
                                     <div class="dropdown w-100">
                                         <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" id="rarityDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                            All
+                                            <span class="btn-text">All</span>
                                         </button>
                                         <ul class="dropdown-menu w-100" id="rarity-dropdown">
                                             <li><a class="dropdown-item active" href="#" data-value="All">All</a></li>
@@ -2520,7 +2551,10 @@
                 
                 orderedSetNamesForSort = uniqueSetsData.map(setObj => setObj.name);
                 populateDropdown('set-dropdown', ['All', ...orderedSetNamesForSort]);
-                if (document.getElementById('setDropdown')) document.getElementById('setDropdown').textContent = 'All';
+                const setBtn = document.getElementById('setDropdown');
+                if (setBtn && setBtn.querySelector('.btn-text')) {
+                    setBtn.querySelector('.btn-text').textContent = 'All';
+                }
             }
         } catch (error) {
         }
@@ -2907,20 +2941,32 @@
 
     function updateDropdownDisplays() {
         // Card Type dropdown - just show the selected value without a label
-        document.getElementById('cardTypeDropdown').textContent =
-            selectedFilters.cardType === 'All' ? 'All' : selectedFilters.cardType;
+        const cardTypeBtn = document.getElementById('cardTypeDropdown');
+        if (cardTypeBtn && cardTypeBtn.querySelector('.btn-text')) {
+            cardTypeBtn.querySelector('.btn-text').textContent = 
+                selectedFilters.cardType === 'All' ? 'All' : selectedFilters.cardType;
+        }
 
         // Stage/Trainer Type dropdown - just show the selected value without a label
-        document.getElementById('stageTypeDropdown').textContent =
-            selectedFilters.stageType === 'All' ? 'All' : selectedFilters.stageType;
+        const stageTypeBtn = document.getElementById('stageTypeDropdown');
+        if (stageTypeBtn && stageTypeBtn.querySelector('.btn-text')) {
+            stageTypeBtn.querySelector('.btn-text').textContent = 
+                selectedFilters.stageType === 'All' ? 'All' : selectedFilters.stageType;
+        }
 
         // Rarity dropdown - just show the selected value without a label
-        document.getElementById('rarityDropdown').textContent =
-            selectedFilters.rarity === 'All' ? 'All' : selectedFilters.rarity;
+        const rarityBtn = document.getElementById('rarityDropdown');
+        if (rarityBtn && rarityBtn.querySelector('.btn-text')) {
+            rarityBtn.querySelector('.btn-text').textContent = 
+                selectedFilters.rarity === 'All' ? 'All' : selectedFilters.rarity;
+        }
 
         // Set dropdown - just show the selected value without a label
-        document.getElementById('setDropdown').textContent =
-            selectedFilters.set === 'All' ? 'All' : selectedFilters.set;
+        const setBtn = document.getElementById('setDropdown');
+        if (setBtn && setBtn.querySelector('.btn-text')) {
+            setBtn.querySelector('.btn-text').textContent = 
+                selectedFilters.set === 'All' ? 'All' : selectedFilters.set;
+        }
     }
 
     function loadExistingDeck(filename) {
@@ -3063,12 +3109,13 @@
                     e.target.classList.add('active');
 
                     const button = document.getElementById(config.labelId);
-                    if (button) {
+                    if (button && button.querySelector('.btn-text')) {
+                        const btnText = button.querySelector('.btn-text');
                         // Use textContent for most, but handle emoji for Crown Rare
                         if (selectedValue === 'Crown Rare' && config.property === 'rarity') {
-                            button.textContent = e.target.innerHTML; // To get the emoji
+                            btnText.textContent = e.target.innerHTML; // To get the emoji
                         } else {
-                            button.textContent = e.target.textContent;
+                            btnText.textContent = e.target.textContent;
                         }
                     }
                     applyFilters();
@@ -3193,7 +3240,9 @@
             // Reset UI dropdowns only for filters that were typed
             if (selectedFilters.cardType === 'All') {
                 const button1 = document.getElementById('cardTypeDropdown');
-                if (button1) button1.textContent = 'All';
+                if (button1 && button1.querySelector('.btn-text')) {
+                    button1.querySelector('.btn-text').textContent = 'All';
+                }
                 document.querySelectorAll('#card-type-dropdown a').forEach(item => {
                     item.classList.remove('active');
                     if (item.dataset.value === 'All') {
@@ -3203,7 +3252,9 @@
             }
             if (selectedFilters.stageType === 'All') {
                 const button2 = document.getElementById('stageTypeDropdown');
-                if (button2) button2.textContent = 'All';
+                if (button2 && button2.querySelector('.btn-text')) {
+                    button2.querySelector('.btn-text').textContent = 'All';
+                }
                 document.querySelectorAll('#stage-type-dropdown a').forEach(item => {
                     item.classList.remove('active');
                     if (item.dataset.value === 'All') {
@@ -3213,7 +3264,9 @@
             }
             if (selectedFilters.rarity === 'All') {
                 const button3 = document.getElementById('rarityDropdown');
-                if (button3) button3.textContent = 'All';
+                if (button3 && button3.querySelector('.btn-text')) {
+                    button3.querySelector('.btn-text').textContent = 'All';
+                }
                 document.querySelectorAll('#rarity-dropdown a').forEach(item => {
                     item.classList.remove('active');
                     if (item.dataset.value === 'All') {
@@ -3223,7 +3276,9 @@
             }
             if (selectedFilters.set === 'All') {
                 const button4 = document.getElementById('setDropdown');
-                if (button4) button4.textContent = 'All';
+                if (button4 && button4.querySelector('.btn-text')) {
+                    button4.querySelector('.btn-text').textContent = 'All';
+                }
                 document.querySelectorAll('#set-dropdown a').forEach(item => {
                     item.classList.remove('active');
                     if (item.dataset.value === 'All') {
@@ -3288,8 +3343,8 @@
             selectedFilters.cardType = keywords.cardType;
             typedFilters.add('cardType'); // Mark as typed
             const button = document.getElementById('cardTypeDropdown');
-            if (button) {
-                button.textContent = keywords.cardType;
+            if (button && button.querySelector('.btn-text')) {
+                button.querySelector('.btn-text').textContent = keywords.cardType;
             }
             // Update dropdown active state
             document.querySelectorAll('#card-type-dropdown a').forEach(item => {
@@ -3305,8 +3360,8 @@
             selectedFilters.stageType = keywords.stageType;
             typedFilters.add('stageType'); // Mark as typed
             const button = document.getElementById('stageTypeDropdown');
-            if (button) {
-                button.textContent = keywords.stageType;
+            if (button && button.querySelector('.btn-text')) {
+                button.querySelector('.btn-text').textContent = keywords.stageType;
             }
             // Update dropdown active state
             document.querySelectorAll('#stage-type-dropdown a').forEach(item => {
@@ -3322,12 +3377,13 @@
             selectedFilters.rarity = keywords.rarity;
             typedFilters.add('rarity'); // Mark as typed
             const button = document.getElementById('rarityDropdown');
-            if (button) {
+            if (button && button.querySelector('.btn-text')) {
+                const btnText = button.querySelector('.btn-text');
                 // Special handling for Crown Rare emoji
                 if (keywords.rarity === 'Crown Rare') {
-                    button.textContent = '👑';
+                    btnText.textContent = '👑';
                 } else {
-                    button.textContent = keywords.rarity;
+                    btnText.textContent = keywords.rarity;
                 }
             }
             // Update dropdown active state
@@ -3344,8 +3400,8 @@
             selectedFilters.set = keywords.set;
             typedFilters.add('set'); // Mark as typed
             const button = document.getElementById('setDropdown');
-            if (button) {
-                button.textContent = keywords.set;
+            if (button && button.querySelector('.btn-text')) {
+                button.querySelector('.btn-text').textContent = keywords.set;
             }
             // Update dropdown active state
             document.querySelectorAll('#set-dropdown a').forEach(item => {
