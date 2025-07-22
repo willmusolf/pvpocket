@@ -249,11 +249,11 @@ class CacheManager:
         except Exception as e:
             print(f"Error invalidating user cache: {e}")
     
-    def invalidate_card_cache(self) -> None:
-        """Invalidate global card collection cache."""
+    def invalidate_card_cache(self, cache_key: str = "global_cards") -> None:
+        """Invalidate card collection cache."""
         try:
-            self.client.delete("cards:global_cards")
-            print("Invalidated global card cache")
+            self.client.delete(f"cards:{cache_key}")
+            print(f"Invalidated card cache: {cache_key}")
         except Exception as e:
             print(f"Error invalidating card cache: {e}")
     

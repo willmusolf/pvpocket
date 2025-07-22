@@ -4,6 +4,7 @@ Provides clean interfaces for accessing cached data without storing in app confi
 """
 
 from typing import Optional, List, Dict, Any
+import threading
 from flask import current_app
 from Card import CardCollection, Card
 from .cache_manager import cache_manager
@@ -13,40 +14,248 @@ from .db_service import db_service
 class CardService:
     """Service for handling card collection operations."""
     
+    # Define priority sets for initial loading (most recent/popular sets)
+    # NOTE: This should be updated when new sets are released
+    PRIORITY_SETS = [
+        "Eevee Grove",          # Most recent
+        "Extradimensional Crisis",  # Second most recent
+        "Celestial Guardians"   # Third most recent
+    ]
+    
+    # Track background loading state
+    _background_loading_lock = threading.Lock()
+    _background_loading_active = False
+    
+    @staticmethod
+    def get_dynamic_priority_sets() -> List[str]:
+        """Get priority sets dynamically based on release order.
+        This allows for automatic adaptation when new sets are released.
+        """
+        # In the future, this could query the database for the most recent sets
+        # For now, return the hardcoded list but this makes it easier to update
+        return CardService.PRIORITY_SETS
+    
+    @staticmethod
+    def _is_background_loading_active() -> bool:
+        """Check if background loading is currently active."""
+        with CardService._background_loading_lock:
+            return CardService._background_loading_active
+    
+    @staticmethod
+    def _set_background_loading_active(active: bool):
+        """Set background loading state."""
+        with CardService._background_loading_lock:
+            CardService._background_loading_active = active
+    
     @staticmethod
     def get_card_collection() -> CardCollection:
-        """Get card collection from cache or load from Firestore."""
-        # Try Redis cache first
-        collection = cache_manager.get_card_collection()
+        """Get card collection with priority loading optimization."""
+        # Always try full collection from cache first
+        full_collection = cache_manager.get_card_collection(cache_key="global_cards")
         
-        if collection:
-            return collection
+        if full_collection and len(full_collection.cards) > 1000:  # Full collection threshold
+            print(f"✅ Returning cached full collection with {len(full_collection)} cards.")
+            return full_collection
         
-        # If not in cache, load from Firestore
+        # If no full collection, check if we have a priority collection cached
+        priority_collection = cache_manager.get_card_collection(cache_key="global_cards_priority")
+        
+        # If we have priority collection but no background loading started, start it
+        if priority_collection and len(priority_collection.cards) > 0:
+            print(f"✅ Found cached priority collection with {len(priority_collection)} cards.")
+            # Check if full collection loading is already in progress
+            if not CardService._is_background_loading_active():
+                print("🔄 Starting background loading of full collection...")
+                CardService._background_load_remaining_sets()
+            return priority_collection
+        
+        # No cached collections available - load full collection immediately
+        # This ensures users always get all cards available for search
+        print("⚠️ No cached collections found. Loading full collection immediately.")
+        return CardService._load_full_collection()
+    
+    @staticmethod
+    def _get_priority_card_collection() -> Optional[CardCollection]:
+        """Get card collection with only priority sets loaded."""
+        # Try priority collection from cache
+        priority_collection = cache_manager.get_card_collection(cache_key="global_cards_priority")
+        
+        if priority_collection:
+            print(f"Using cached priority collection with {len(priority_collection)} cards.")
+            return priority_collection
+        
+        # Load priority sets from Firestore
+        db_client = current_app.config.get("FIRESTORE_DB")
+        if not db_client:
+            print("ERROR: Firestore client not available for priority card loading.")
+            return None
+        
+        try:
+            priority_sets = CardService.get_dynamic_priority_sets()
+            print(f"🔄 Loading priority card sets: {priority_sets}")
+            collection = CardCollection()
+            
+            total_loaded = 0
+            for set_name in priority_sets:
+                loaded_count = CardService._load_cards_from_set(db_client, collection, set_name)
+                total_loaded += loaded_count
+                print(f"   ✅ Set '{set_name}': {loaded_count} cards loaded")
+            
+            if total_loaded > 0:
+                # Cache priority collection with shorter TTL
+                cache_manager.set_card_collection(collection, cache_key="global_cards_priority", ttl_hours=12)
+                print(f"✅ Successfully loaded and cached {len(collection)} priority cards from {len(priority_sets)} sets.")
+                return collection
+            else:
+                print(f"⚠️ No cards loaded from priority sets. Check set names: {priority_sets}")
+                return None
+                
+        except Exception as e:
+            print(f"❌ Error loading priority card collection: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+    
+    @staticmethod
+    def _load_cards_from_set(db_client, collection: CardCollection, set_name: str) -> int:
+        """Load cards from a specific set into the collection."""
+        try:
+            sets_collection_ref = db_client.collection("cards")
+            all_set_docs = list(sets_collection_ref.stream())
+            
+            loaded_count = 0
+            set_found = False
+            
+            for set_doc in all_set_docs:
+                # Load cards from this set's subcollection
+                cards_subcollection_ref = set_doc.reference.collection("set_cards")
+                card_docs = list(cards_subcollection_ref.stream())
+                
+                set_loaded_count = 0
+                for card_doc in card_docs:
+                    card_data = card_doc.to_dict()
+                    if card_data is None:
+                        continue
+                    
+                    # Check if this card belongs to our target set
+                    card_set_name = card_data.get("set_name", "")
+                    if card_set_name != set_name:
+                        continue
+                    
+                    set_found = True
+                    try:
+                        card_pk_id = card_data.get("id")
+                        if card_pk_id is None:
+                            continue
+
+                        card = Card(
+                            id=int(card_pk_id),
+                            name=card_data.get("name", ""),
+                            energy_type=card_data.get("energy_type", ""),
+                            set_name=card_data.get("set_name", ""),
+                            set_code=card_data.get("set_code", ""),
+                            card_number=card_data.get("card_number"),
+                            card_number_str=card_data.get("card_number_str", ""),
+                            card_type=card_data.get("card_type", ""),
+                            hp=card_data.get("hp"),
+                            attacks=card_data.get("attacks", []),
+                            weakness=card_data.get("weakness"),
+                            retreat_cost=card_data.get("retreat_cost"),
+                            illustrator=card_data.get("illustrator"),
+                            firebase_image_url=card_data.get("firebase_image_url"),
+                            rarity=card_data.get("rarity", ""),
+                            pack=card_data.get("pack", ""),
+                            original_image_url=card_data.get("original_image_url"),
+                            flavor_text=card_data.get("flavor_text"),
+                            abilities=card_data.get("abilities", []),
+                        )
+                        collection.add_card(card)
+                        set_loaded_count += 1
+                        loaded_count += 1
+                        
+                    except Exception as e_card_init:
+                        print(f"Error initializing Card from {set_doc.id}/{card_doc.id}: {e_card_init}")
+                
+                # Progress update for this set document
+                if set_loaded_count > 0:
+                    print(f"Found {set_loaded_count} cards from set '{set_name}' in document {set_doc.id}")
+            
+            if not set_found:
+                print(f"WARNING: No cards found for set '{set_name}' - may need to update PRIORITY_SETS")
+            else:
+                print(f"Successfully loaded {loaded_count} cards from set '{set_name}'")
+            
+            return loaded_count
+            
+        except Exception as e:
+            print(f"Error loading cards from set '{set_name}': {e}")
+            return 0
+    
+    @staticmethod
+    def _background_load_remaining_sets():
+        """Trigger background loading of remaining card sets (non-priority)."""
+        # This would typically be handled by a background task queue
+        # For now, we'll use a simple approach that doesn't block the main request
+        from threading import Thread
+        
+        def load_remaining():
+            try:
+                CardService._set_background_loading_active(True)
+                print("Starting background load of remaining card sets...")
+                # Import current_app here to avoid circular imports
+                from flask import current_app
+                
+                with current_app.app_context():
+                    CardService._load_full_collection(cache_as_full=True)
+                    print("Background loading of remaining sets completed.")
+            except Exception as e:
+                print(f"Error in background loading: {e}")
+                import traceback
+                traceback.print_exc()
+            finally:
+                CardService._set_background_loading_active(False)
+        
+        # Start background thread (non-blocking)
+        thread = Thread(target=load_remaining, daemon=True)
+        thread.start()
+    
+    @staticmethod
+    def _load_full_collection(cache_as_full: bool = True) -> CardCollection:
+        """Load the complete card collection from Firestore."""
         db_client = current_app.config.get("FIRESTORE_DB")
         if not db_client:
             print("ERROR: Firestore client not available for card loading.")
             return CardCollection()
         
         try:
-            print("Loading card collection from Firestore (cache miss)...")
+            print("Loading complete card collection from Firestore...")
             collection = CardCollection()
             collection.load_from_firestore(db_client)
             
-            # Cache for future requests
-            cache_manager.set_card_collection(collection, ttl_hours=24)
-            print(f"Loaded and cached {len(collection)} cards.")
+            if cache_as_full:
+                # Cache as full collection
+                cache_manager.set_card_collection(collection, ttl_hours=24)
+                print(f"Loaded and cached {len(collection)} cards (full collection).")
             
             return collection
         except Exception as e:
-            print(f"Error loading card collection: {e}")
+            print(f"Error loading full card collection: {e}")
             return CardCollection()
     
     @staticmethod
     def get_card_by_id(card_id: int) -> Optional[Card]:
         """Get a specific card by ID."""
         collection = CardService.get_card_collection()
-        return collection.get_card_by_id(card_id)
+        card = collection.get_card_by_id(card_id)
+        
+        # If card not found in current collection and we're using priority loading,
+        # try loading full collection immediately
+        if not card and len(collection.cards) < 1000:
+            print(f"Card {card_id} not found in priority collection. Loading full collection...")
+            full_collection = CardService._load_full_collection(cache_as_full=True)
+            card = full_collection.get_card_by_id(card_id)
+        
+        return card
     
     @staticmethod
     def get_cards_by_name(name: str) -> List[Card]:
@@ -61,22 +270,47 @@ class CardService:
         return collection.filter(**kwargs)
     
     @staticmethod
+    def get_full_card_collection() -> CardCollection:
+        """Get the full card collection, loading it immediately if needed.
+        This is used by API endpoints that need access to all cards.
+        """
+        # Try full collection from cache first
+        full_collection = cache_manager.get_card_collection(cache_key="global_cards")
+        
+        if full_collection and len(full_collection.cards) > 1000:
+            return full_collection
+        
+        # Load full collection immediately
+        print("🔄 API request requires full collection. Loading immediately...")
+        full_collection = CardService._load_full_collection(cache_as_full=True)
+        return full_collection
+    
+    @staticmethod
     def refresh_card_collection() -> bool:
         """Force refresh of card collection from Firestore."""
         try:
-            # Invalidate cache
+            # Invalidate both full and priority caches
             cache_manager.invalidate_card_cache()
+            cache_manager.invalidate_card_cache(cache_key="global_cards_priority")
             
-            # Load fresh data
+            # Load fresh priority data first
             db_client = current_app.config.get("FIRESTORE_DB")
             if not db_client:
                 return False
             
-            collection = CardCollection()
-            collection.load_from_firestore(db_client)
+            # Load priority collection
+            priority_collection = CardCollection()
+            priority_sets = CardService.get_dynamic_priority_sets()
+            for set_name in priority_sets:
+                CardService._load_cards_from_set(db_client, priority_collection, set_name)
             
-            # Update cache
-            cache_manager.set_card_collection(collection, ttl_hours=24)
+            # Cache priority collection
+            cache_manager.set_card_collection(priority_collection, cache_key="global_cards_priority", ttl_hours=12)
+            
+            # Load and cache full collection
+            full_collection = CardCollection()
+            full_collection.load_from_firestore(db_client)
+            cache_manager.set_card_collection(full_collection, ttl_hours=24)
             
             return True
         except Exception as e:

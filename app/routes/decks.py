@@ -291,7 +291,8 @@ def list_decks():
 @decks_bp.route("/api/cards", methods=["GET"])
 def get_all_cards():
     """API endpoint to get all cards from the pre-loaded CardCollection with optional filtering."""
-    card_collection = card_service.get_card_collection()
+    # Use get_full_card_collection to ensure all cards are available for search
+    card_collection = card_service.get_full_card_collection()
 
     if not card_collection or not hasattr(card_collection, "cards"):
         current_app.logger.error(
@@ -472,7 +473,8 @@ def get_all_cards():
 @decks_bp.route("/api/cards/paginated", methods=["GET"])
 def get_cards_paginated():
     """API endpoint to get cards with pagination and server-side filtering."""
-    card_collection = card_service.get_card_collection()
+    # Use get_full_card_collection to ensure all cards are available for search
+    card_collection = card_service.get_full_card_collection()
 
     if not card_collection or not hasattr(card_collection, "cards"):
         current_app.logger.error(

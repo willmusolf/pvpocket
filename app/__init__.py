@@ -148,26 +148,25 @@ def create_app(config_name="default"):
         app.config["PROFILE_ICON_URLS"] = {}
         app.config["DEFAULT_PROFILE_ICON_URL"] = ""
 
-    # Load card collection with Redis caching
-    card_collection = None
-    db_client = app.config.get("FIRESTORE_DB")
-    
+    # Initialize card collection - always ensure full collection is available
     try:
-        # Try to get from Redis cache first
-        card_collection = cache_manager.get_card_collection()
+        from .services import CardService
+        print("🔄 Initializing card collection...")
         
-        if not card_collection and db_client:
-            # If not in cache, load from Firestore and cache it
-            print("Card collection not in cache, loading from Firestore...")
-            card_collection = CardCollection()
-            card_collection.load_from_firestore(db_client)
-            cache_manager.set_card_collection(card_collection, ttl_hours=24)
-        elif not card_collection:
-            # Fallback to empty collection
-            card_collection = CardCollection()
+        # Use the app context to access the CardService
+        with app.app_context():
+            card_collection = CardService.get_card_collection()
+            print(f"✅ Card collection initialized with {len(card_collection)} cards.")
+            
+            # If we got less than expected, it means we're using priority loading
+            # and background loading will fill in the rest
+            if len(card_collection) < 1000:
+                print(f"🔄 Priority collection active. Full collection will load in background.")
             
     except Exception as e:
-        print(f"CRITICAL: Error loading card collection: {e}", flush=True)
+        print(f"CRITICAL: Error initializing card collection: {e}", flush=True)
+        import traceback
+        traceback.print_exc()
         card_collection = CardCollection()
 
     # Note: card_collection no longer stored in app.config for better memory management

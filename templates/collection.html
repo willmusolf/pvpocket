@@ -1071,6 +1071,13 @@
                     body: JSON.stringify({description: description})
                 });
                 
+                // Check if the HTTP response is ok
+                if (!response.ok) {
+                    const errorResult = await response.json().catch(() => ({ error: 'Server error occurred' }));
+                    alert(errorResult.error || `Server error: ${response.status}`);
+                    return;
+                }
+                
                 const result = await response.json();
                 if (result.success) {
                     // Update the deck in our local data
@@ -1078,43 +1085,74 @@
                     if (deckIndex !== -1) {
                         allDecks[deckIndex].is_public = result.is_public;
                     }
-                    // Update just the badge and dropdown content without re-rendering entire deck
-                    const deckElement = document.getElementById(`deck-col-${deckId}`);
-                    if (deckElement && deckIndex !== -1) {
-                        const badgeContainer = deckElement.querySelector('.deck-header-right-actions .d-flex');
-                        const privacyLink = deckElement.querySelector('.deck-action-privacy');
-                        const privacyIcon = privacyLink.querySelector('i');
-                        
-                        // Update or add/remove the public badge
-                        let publicBadge = badgeContainer.querySelector('.badge.bg-success');
-                        if (result.is_public) {
-                            if (!publicBadge) {
-                                badgeContainer.insertAdjacentHTML('beforeend', '<span class="badge bg-success"><i class="bi bi-eye"></i> Public</span>');
+                    
+                    // Update UI elements with null checks
+                    try {
+                        const deckElement = document.getElementById(`deck-col-${deckId}`);
+                        if (deckElement && deckIndex !== -1) {
+                            const badgeContainer = deckElement.querySelector('.deck-header-right-actions .d-flex');
+                            const privacyLink = deckElement.querySelector('.deck-action-privacy');
+                            
+                            // Only proceed if required elements exist
+                            if (badgeContainer && privacyLink) {
+                                const privacyIcon = privacyLink.querySelector('i');
+                                
+                                // Update or add/remove the public badge
+                                let publicBadge = badgeContainer.querySelector('.badge.bg-success');
+                                if (result.is_public) {
+                                    if (!publicBadge) {
+                                        badgeContainer.insertAdjacentHTML('beforeend', '<span class="badge bg-success"><i class="bi bi-eye"></i> Public</span>');
+                                    }
+                                    // Update dropdown link
+                                    if (privacyIcon) {
+                                        privacyIcon.className = 'bi bi-eye-slash me-2';
+                                    }
+                                    privacyLink.innerHTML = '<i class="bi bi-eye-slash me-2"></i>Make Private';
+                                } else {
+                                    if (publicBadge) {
+                                        publicBadge.remove();
+                                    }
+                                    // Update dropdown link
+                                    if (privacyIcon) {
+                                        privacyIcon.className = 'bi bi-eye me-2';
+                                    }
+                                    privacyLink.innerHTML = '<i class="bi bi-eye me-2"></i>Make Public';
+                                }
+                                
+                                // Update data attributes
+                                privacyLink.setAttribute('data-is-public', result.is_public);
+                                if (description) {
+                                    privacyLink.setAttribute('data-has-description', 'true');
+                                }
                             }
-                            // Update dropdown link
-                            privacyIcon.className = 'bi bi-eye-slash me-2';
-                            privacyLink.innerHTML = '<i class="bi bi-eye-slash me-2"></i>Make Private';
-                        } else {
-                            if (publicBadge) {
-                                publicBadge.remove();
-                            }
-                            // Update dropdown link
-                            privacyIcon.className = 'bi bi-eye me-2';
-                            privacyLink.innerHTML = '<i class="bi bi-eye me-2"></i>Make Public';
                         }
-                        
-                        // Update data attributes
-                        privacyLink.setAttribute('data-is-public', result.is_public);
-                        if (description) {
-                            privacyLink.setAttribute('data-has-description', 'true');
-                        }
+                        applyFilters(); // Reapply filters to reflect changes
+                    } catch (domError) {
+                        console.error('DOM manipulation error:', domError);
+                        // Don't show error to user as the operation succeeded on server
+                        // Just log it for debugging
                     }
-                    applyFilters(); // Reapply filters to reflect changes
                 } else {
-                    alert(result.error || 'An error occurred');
+                    // Only show error if the backend actually reported an error
+                    alert(result.error || 'Unexpected response from server');
                 }
             } catch (error) {
-                alert('An error occurred while updating deck privacy');
+                // Log detailed error information for debugging
+                console.error('Error in updateDeckPrivacy:', error);
+                console.error('Error type:', error.constructor.name);
+                console.error('Error message:', error.message);
+                console.error('Error stack:', error.stack);
+                
+                // More specific error messages based on error type
+                if (error instanceof TypeError) {
+                    alert('JavaScript error occurred during deck update. Check console for details.');
+                } else if (error instanceof SyntaxError) {
+                    alert('Server response parsing error. The deck may have been updated successfully.');
+                } else if (error.name === 'NetworkError' || error.message.includes('fetch')) {
+                    alert('Network error occurred. Please check your connection and try again.');
+                } else {
+                    alert(`Unexpected error: ${error.message}. Check console for details.`);
+                }
             }
         }
         

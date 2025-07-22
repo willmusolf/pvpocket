@@ -7,6 +7,14 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
 {# STYLE #}
 <style>
+    /* Utility classes for common patterns */
+    .smooth-transition { transition: all 0.2s ease; }
+    .transform-transition { transition: transform 0.2s ease; }
+    .hover-scale:hover { transform: scale(1.05); }
+    .card-radius { border-radius: 3.5%; }
+    .btn-radius { border-radius: 8px; }
+    .circle-radius { border-radius: 50%; }
+    
     .navbar {
         margin-bottom: 0px;
     }
@@ -82,7 +90,6 @@
     .filter-bar {
         padding: 15px;
         margin-bottom: 20px;
-        border-radius: 8px;
         background-color: var(--settings-bg);
         border: 1px solid var(--border-color);
     }
@@ -245,7 +252,7 @@
         width: 100%;
         border-radius: 3.5%;
         box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        transition: transform 0.2s ease;
+        transition: all 0.2s ease;
         cursor: pointer;
     }
     .card-item:hover {
@@ -279,7 +286,6 @@
         background-color: rgba(0, 13, 130, 0.826) !important;
         color: white;
         font-weight: 600;
-        border-radius: 50%;
         border: none;
         font-size: 12px;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
@@ -304,15 +310,16 @@
         align-items: center;
         justify-content: center;
         opacity: 0;
-        transition: opacity 0.2s ease;
         z-index: 10;
         padding-bottom: 4px;
         font-weight: bold;
         font-size: 24px;
         pointer-events: none;
+        transition: all 0.2s ease;
     }
     .clickable-card:hover::before {
         opacity: 0.9;
+        transform: translate(-50%, -50%) scale(1.05);
     }
     [data-theme="dark"] .clickable-card::before {
         background-color: rgba(60, 60, 60, 0.8);
@@ -545,8 +552,8 @@
         z-index: 10;
         background-color: rgba(220, 53, 69, 0.85);
         color: white;
-        border-radius: 50%;
         border: none;
+        border-radius: 50%;
         font-size: 14px;
         transition: all 0.2s ease;
     }
@@ -615,7 +622,6 @@
         display: none;
         z-index: 9999;
         pointer-events: none;
-        transition: all 0.1s ease-out;
     }
     .card-zoom-container img {
         max-height: 90vh;
@@ -644,7 +650,6 @@
         margin: 5% auto;
         padding: 25px 30px;
         border: 1px solid var(--border-color, #888);
-        border-radius: 8px;
         width: 80%;
         max-width: 450px;
         box-shadow: 0 5px 15px rgba(0,0,0,0.3);
@@ -682,13 +687,6 @@
         margin: 5px;
         min-width: 100px;
         font-weight: 500;
-    }
-    .filter-bar .row,
-    .filter-bar .col-md-8,
-    .filter-bar .col-md-4,
-    .filter-bar .dropdown button,
-    .energy-icon-wrapper {
-        transition: all 0.15s ease-out;
     }
     @keyframes shimmer {
         100% {
@@ -729,7 +727,7 @@
     }
     .clickable-card.is-loaded > img {
         opacity: 1;
-        transition: opacity 0.1s ease-in-out;
+        transition: opacity 0.2s ease-in-out;
     }
     :root:not([data-theme="dark"]) {
         .current-deck-container .input-group #deck-name {
@@ -971,12 +969,10 @@
             height: 36px;
             background-color: rgba(40, 40, 40, 0.8);
             color: #2ecc71;
-            border-radius: 50%;
-            display: flex;
+                display: flex;
             align-items: center;
             justify-content: center;
             opacity: 0.9;
-            transition: opacity 0.2s ease-in-out;
             z-index: 10;
             padding-bottom: 4px;
             font-weight: bold;
@@ -1011,8 +1007,7 @@
             height: 24px;
             border: 2px solid rgba(255,255,255,0.2);
             border-top-color: #007bff;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
+                animation: spin 0.8s linear infinite;
             z-index: 10;
             pointer-events: none;
             background: rgba(0,0,0,0.5);
@@ -1027,8 +1022,7 @@
             width: 8px;
             height: 8px;
             background: #ffc107;
-            border-radius: 50%;
-            z-index: 5;
+                z-index: 5;
             animation: pulse 2s infinite;
         }
 
@@ -1061,7 +1055,6 @@
             font-size: 0.8rem;
             z-index: 1000;
             opacity: 0;
-            transition: opacity 0.3s ease;
         }
 
         .batch-progress.visible {
@@ -1081,7 +1074,6 @@
             height: 100%;
             background: #007bff;
             border-radius: 2px;
-            transition: width 0.3s ease;
         }
         
         #save-deck-btn, #clear-deck-btn, #export-deck-btn {
@@ -1181,8 +1173,7 @@
         }
         .current-deck-container .card-header #deck-name {
             flex-basis: 100%;
-            border-radius: 8px;
-            margin-bottom: 5px;
+                margin-bottom: 5px;
         }
         .current-deck-container .card-header .btn,
         .current-deck-container .card-header .deck-counter {
@@ -1468,7 +1459,7 @@
     let allCards = [];
     let filteredCards = []; // For backward compatibility with existing code
     let currentDeck = [];
-    let selectedCoverCardIds = [];
+    let coverCardIds = [];
     let loadedDeckId = null;
     let selectedFilters = { 
         cardType: 'All',
@@ -1479,16 +1470,14 @@
     };
     let rawSearchText = ''; 
     let deckSaved = false;
-    let cardObserver = null; // Manages loading for visible images
-    let progressiveLoadTimeout = null; // Manages the background loading of off-screen images
+    let cardObserver = null;
+    let loadTimeout = null;
     
-    // New pagination variables
     let currentPage = 1;
     let isLoading = false;
     let hasMoreCards = true;
-    let loadedCardIds = new Set(); // Track already loaded cards to prevent duplicates
+    let loadedIds = new Set();
     
-    // Debounce utility function
     function debounce(func, delay) {
         let timeoutId;
         return function(...args) {
@@ -1497,7 +1486,6 @@
         };
     }
     
-    // Enhanced persistent cache manager
     class ImageCacheManager {
         constructor() {
             this.cacheKey = 'pokemon_tcg_high_res_cache_v2';
@@ -1518,7 +1506,6 @@
                     const meta = JSON.parse(metadata);
                     const now = Date.now();
                     
-                    // Load valid (non-expired) entries
                     for (const [url, timestamp] of Object.entries(cache)) {
                         if (now - timestamp < this.maxAge) {
                             this.cache.set(url, {
@@ -1529,10 +1516,8 @@
                         }
                     }
                     
-                    console.log(`Loaded ${this.cache.size} images from persistent cache`);
                 }
             } catch (error) {
-                console.warn('Failed to load cache from localStorage:', error);
                 this.cache.clear();
             }
         }
@@ -1553,7 +1538,6 @@
                 localStorage.setItem(this.cacheKey, JSON.stringify(cacheData));
                 localStorage.setItem(this.metadataKey, JSON.stringify(metadata));
             } catch (error) {
-                console.warn('Failed to save cache to localStorage:', error);
             }
         }
 
@@ -1561,7 +1545,6 @@
             const entry = this.cache.get(url);
             if (!entry) return false;
             
-            // Check if expired
             if (Date.now() - entry.timestamp > this.maxAge) {
                 this.cache.delete(url);
                 return false;
@@ -1574,12 +1557,10 @@
             const now = Date.now();
             
             if (this.cache.has(url)) {
-                // Update existing entry
                 const entry = this.cache.get(url);
                 entry.loadCount++;
                 entry.timestamp = now; // Update timestamp for LRU
             } else {
-                // Add new entry
                 this.cache.set(url, {
                     timestamp: now,
                     size,
@@ -1606,28 +1587,23 @@
         manageSize() {
             if (this.cache.size <= this.maxCacheSize) return;
             
-            // Convert to array and sort by LRU (least recently used + least frequently used)
             const entries = Array.from(this.cache.entries());
             entries.sort((a, b) => {
                 const [, dataA] = a;
                 const [, dataB] = b;
                 
-                // First sort by load count (ascending - remove least used)
                 if (dataA.loadCount !== dataB.loadCount) {
                     return dataA.loadCount - dataB.loadCount;
                 }
                 
-                // Then by timestamp (ascending - remove oldest)
                 return dataA.timestamp - dataB.timestamp;
             });
             
-            // Remove oldest 25% of entries
             const toRemove = Math.ceil(entries.length * 0.25);
             for (let i = 0; i < toRemove; i++) {
                 this.cache.delete(entries[i][0]);
             }
             
-            console.log(`Cache trimmed: removed ${toRemove} entries, ${this.cache.size} remaining`);
         }
 
         clear() {
@@ -1658,11 +1634,9 @@
         }
     }
 
-    // Helper function to convert any image URL to its high-res version
     function getHighResUrl(originalUrl) {
         if (!originalUrl) return null;
         
-        // Simply replace /cards/ with /high_res_cards/ in the URL
         if (originalUrl.includes('/cards/')) {
             return originalUrl.replace('/cards/', '/high_res_cards/');
         }
@@ -1679,7 +1653,6 @@
             return originalUrl;
         }
         
-        // Convert Firebase Storage URLs to CDN URLs
         if (originalUrl.includes('firebasestorage.googleapis.com') || originalUrl.includes('storage.googleapis.com')) {
             // Extract the path from Firebase Storage URLs
             // Examples:
@@ -1712,11 +1685,9 @@
             return 'https://cdn.pvpocket.xyz' + (originalUrl.startsWith('/') ? originalUrl : '/' + originalUrl);
         }
         
-        // For any other URLs, return as-is (fallback)
         return originalUrl;
     }
 
-    // Enhanced batch loading manager
     class BatchLoadManager {
         constructor() {
             this.maxConcurrent = 3; // Maximum concurrent high-res loads
@@ -1737,7 +1708,6 @@
                 return;
             }
 
-            // Add visual loading state
             this.addLoadingState(item, priority);
             
             this.priorityQueues[priority].push(item);
@@ -1797,10 +1767,8 @@
             const { img, originalSrc, highResSrc, highResProxyUrl } = item;
             
             try {
-                // Add active loading state
                 item.container?.classList.add('loading-high-res');
                 
-                // Check if already in cache
                 if (highResImageCache.has(highResSrc)) {
                     img.src = highResProxyUrl;
                     img.dataset.loadedResolution = 'high';
@@ -1812,7 +1780,6 @@
                     return true;
                 }
 
-                // Load the image
                 const success = await loadImageWithDeduplication(highResProxyUrl, highResSrc);
                 if (success && img.parentElement && !img.dataset.replacedByHover) {
                     img.src = highResProxyUrl;
@@ -1820,7 +1787,6 @@
                     highResImageCache.add(highResSrc);
                     imageLoadingStats.hits++;
                     
-                    // Add transition effect
                     img.style.transition = 'opacity 0.3s ease';
                     img.style.opacity = '0.8';
                     setTimeout(() => {
@@ -1835,7 +1801,6 @@
                 this.updateProgressIndicator();
                 return success;
             } catch (error) {
-                console.warn('Failed to load high-res image:', error);
                 imageLoadingStats.errors++;
                 this.removeLoadingState(item);
                 this.updateProgressIndicator();
@@ -1940,7 +1905,6 @@
                 const stored = localStorage.getItem(this.prefsKey);
                 return stored ? { ...this.defaults, ...JSON.parse(stored) } : this.defaults;
             } catch (error) {
-                console.warn('Failed to load user preferences:', error);
                 return this.defaults;
             }
         }
@@ -1949,7 +1913,6 @@
             try {
                 localStorage.setItem(this.prefsKey, JSON.stringify(this.prefs));
             } catch (error) {
-                console.warn('Failed to save user preferences:', error);
             }
         }
 
@@ -2017,7 +1980,6 @@
             sortTypeDirections[currentSortType] = directionParam;
         }
         
-        console.log('setSortTypeFromURL: Set sort to', currentSortType, currentSortDirection);
     } 
     let sortTypeDirections = {
         'set': 'asc',  
@@ -2076,7 +2038,6 @@
     };
 
     document.addEventListener('DOMContentLoaded', function() {
-        console.log('Deck Builder DOMContentLoaded: Initializing...');
         
         // Apply user preferences
         userPrefs.applyPreferences();
@@ -2092,7 +2053,6 @@
 
     function initializeCardObserver() {
         if (!('IntersectionObserver' in window)) {
-            console.warn("IntersectionObserver not supported. All images will load in the background.");
             return;
         }
 
@@ -2127,7 +2087,6 @@
                         if (userPrefs.get('highResEnabled') && highResImageCache.has(highResSrc)) {
                             imageToLoad = highResSrc;
                             isHighRes = true;
-                            console.log('Using cached high-res for:', originalSrc.split('/').pop());
                         }
                         
                         const proxyUrl = getImageUrl(imageToLoad);
@@ -2303,7 +2262,6 @@
             };
 
             requestInfo.image.onerror = () => {
-                console.warn('Image load failed:', originalSrc);
                 requestInfo.callbacks.forEach(callback => callback(false));
                 activeRequests.delete(originalSrc);
                 imageLoadingStats.errors++;
@@ -2363,10 +2321,8 @@
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/static/js/image-cache-sw.js')
                 .then(registration => {
-                    console.log('Image cache service worker registered:', registration);
                 })
                 .catch(error => {
-                    console.error('Service worker registration failed:', error);
                 });
         }
     }
@@ -2392,25 +2348,6 @@
     // Performance monitoring console command
     window.getImagePerformanceStats = function() {
         const stats = getImageLoadingStats();
-        console.log('=== Image Loading Performance Stats ===');
-        console.log('Cache Hit Rate:', (stats.cacheHitRate * 100).toFixed(1) + '%');
-        console.log('Error Rate:', (stats.errorRate * 100).toFixed(1) + '%');
-        console.log('Cache Size:', stats.cacheSize);
-        console.log('Recent Cache Entries (24h):', stats.recentEntries);
-        console.log('Estimated Cache Size:', stats.estimatedSizeMB + ' MB');
-        console.log('--- Batch Loading ---');
-        console.log('Active Concurrent Loads:', stats.activeLoads);
-        console.log('Max Concurrent:', stats.maxConcurrent);
-        console.log('Deck Queue:', stats.deckQueue);
-        console.log('Visible Queue:', stats.visibleQueue);
-        console.log('Background Queue:', stats.backgroundQueue);
-        console.log('Total Queued:', stats.totalQueued);
-        console.log('Is Processing:', stats.isProcessing);
-        console.log('--- Legacy Stats ---');
-        console.log('Active Requests:', stats.activeRequests);
-        console.log('Queue Size:', stats.queueSize);
-        console.log('Progressive Loading Active:', stats.progressiveLoadingActive);
-        console.log('Raw Stats:', stats);
         return stats;
     };
 
@@ -2418,7 +2355,6 @@
     window.clearImageCache = function() {
         highResImageCache.clear();
         batchLoadManager.clear();
-        console.log('Image cache and batch queues cleared');
     };
 
     window.getCacheStats = function() {
@@ -2432,75 +2368,43 @@
     window.adjustBatchSettings = function(maxConcurrent = 3, batchDelay = 300) {
         userPrefs.set('batchSize', maxConcurrent);
         userPrefs.set('loadingDelay', batchDelay);
-        console.log(`Batch settings updated: maxConcurrent=${maxConcurrent}, batchDelay=${batchDelay}ms`);
     };
 
     // User preference console commands
     window.getUserPrefs = function() {
         const prefs = userPrefs.getAll();
-        console.log('=== User Preferences ===');
         Object.entries(prefs).forEach(([key, value]) => {
-            console.log(`${key}: ${value}`);
         });
         return prefs;
     };
 
     window.setUserPref = function(key, value) {
         userPrefs.set(key, value);
-        console.log(`Preference updated: ${key} = ${value}`);
     };
 
     window.resetUserPrefs = function() {
         userPrefs.reset();
-        console.log('User preferences reset to defaults');
     };
 
     window.toggleHighRes = function() {
         const current = userPrefs.get('highResEnabled');
         userPrefs.set('highResEnabled', !current);
-        console.log(`High-res images ${!current ? 'enabled' : 'disabled'}`);
     };
 
     window.toggleAutoLoad = function() {
         const current = userPrefs.get('autoLoadHighRes');
         userPrefs.set('autoLoadHighRes', !current);
-        console.log(`Auto-load high-res ${!current ? 'enabled' : 'disabled'}`);
-        console.log('Note: Auto-load is disabled by default to save bandwidth. High-res images load on hover.');
     };
 
     // Automatic performance monitoring every 30 seconds
     setInterval(() => {
         const stats = getImageLoadingStats();
         if (stats.errorRate > 0.1) { // More than 10% error rate
-            console.warn('High image loading error rate detected:', (stats.errorRate * 100).toFixed(1) + '%');
         }
         
         // Manage cache size
         manageImageCache();
     }, 30000);
-
-    // Network status monitoring
-    function monitorNetworkStatus() {
-        if ('connection' in navigator) {
-            const connection = navigator.connection;
-            const networkInfo = {
-                effectiveType: connection.effectiveType,
-                downlink: connection.downlink,
-                rtt: connection.rtt
-            };
-            
-            // Adjust progressive loading based on network conditions
-            if (connection.effectiveType === 'slow-2g' || connection.effectiveType === '2g') {
-                // Reduce progressive loading frequency on slow connections
-                console.log('Slow network detected, reducing progressive loading frequency');
-                return 'slow';
-            } else if (connection.effectiveType === '4g') {
-                // Increase progressive loading on fast connections
-                return 'fast';
-            }
-        }
-        return 'normal';
-    }
 
     // Mobile high-res loading on tap
     let isTouchDevice = false;
@@ -2510,11 +2414,9 @@
         isTouchDevice = window.matchMedia("(hover: none)").matches || 'ontouchstart' in window;
         
         if (!isTouchDevice) {
-            console.log('Not a touch device, skipping mobile image loading setup');
             return;
         }
         
-        console.log('Mobile device detected - high-res images will load when cards are added to deck');
     }
 
     function loadHighResForMobile(img) {
@@ -2621,7 +2523,6 @@
                 if (document.getElementById('setDropdown')) document.getElementById('setDropdown').textContent = 'All';
             }
         } catch (error) {
-            console.error('Error initializing filters data:', error);
         }
     }
 
@@ -2637,7 +2538,7 @@
                 if (cardCollectionDiv) {
                     cardCollectionDiv.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-primary"></div><p>Loading cards...</p></div>';
                 }
-                loadedCardIds.clear();
+                loadedIds.clear();
                 filteredCards = [];
             }
 
@@ -2679,7 +2580,6 @@
                 params.append('direction', currentSortDirection);
             }
 
-            console.log(`Loading cards page ${page} with filters:`, Object.fromEntries(params));
 
             const response = await fetch(`/api/cards/paginated?${params}`);
             if (!response.ok) {
@@ -2689,12 +2589,10 @@
             const data = await response.json();
             
             if (data.success && data.cards) {
-                console.log('✅ API Response Success:', data.cards.length, 'cards received');
-                console.log('📊 Pagination Info:', data.pagination);
                 
                 // Filter out duplicates
-                const newCards = data.cards.filter(card => !loadedCardIds.has(card.id));
-                newCards.forEach(card => loadedCardIds.add(card.id));
+                const newCards = data.cards.filter(card => !loadedIds.has(card.id));
+                newCards.forEach(card => loadedIds.add(card.id));
                 
                 if (append) {
                     filteredCards.push(...newCards);
@@ -2706,19 +2604,12 @@
                 hasMoreCards = data.pagination.has_more;
                 currentPage = page;
 
-                console.log(`✅ Loaded ${newCards.length} new cards, total: ${filteredCards.length}, hasMore: ${hasMoreCards}`);
-                console.log('🔍 DEBUG: Reached after cards loaded');
-                console.log('🔄 About to call updateCardDisplay()...');
-                console.log('🔍 updateCardDisplay function exists?', typeof updateCardDisplay);
                 
                 if (typeof updateCardDisplay === 'function') {
                     updateCardDisplay();
-                    console.log('✅ updateCardDisplay() completed');
                 } else {
-                    console.error('❌ updateCardDisplay is not a function!');
                 }
                 
-                console.log('🔄 After updateCardDisplay call');
                 
                 const count = data.pagination.total_count || filteredCards.length;
                 const cardText = (count === 1) ? 'card' : 'cards';
@@ -2731,7 +2622,6 @@
 
                 // IMPORTANT: Force load images for newly added cards
                 setTimeout(() => {
-                    console.log('Triggering image loading for new cards...');
                     const cardCollection = document.getElementById('card-collection');
                     if (!cardCollection) return;
                     
@@ -2739,7 +2629,6 @@
                     newCardItems.forEach(cardItem => {
                         const img = cardItem.querySelector('img[data-src]');
                         if (img && img.dataset.src && !img.src) {
-                            console.log('Loading image:', img.dataset.src);
                             // Force load the image immediately for now
                             img.src = img.dataset.src;
                             img.removeAttribute('data-src');
@@ -2762,8 +2651,6 @@
             }
 
         } catch (error) {
-            console.error('❌ Error loading cards page:', error);
-            console.error('❌ Error stack:', error.stack);
             if (!append && cardCollectionDiv) {
                 cardCollectionDiv.innerHTML = `<div class="text-center p-3"><p>Error loading cards: ${error.message}. Please refresh.</p></div>`;
             }
@@ -2789,14 +2676,13 @@
         }
 
         // Set up intersection observer for infinite scroll
-        if (window.infiniteScrollObserver) {
-            window.infiniteScrollObserver.disconnect();
+        if (window.scrollObserver) {
+            window.scrollObserver.disconnect();
         }
 
-        window.infiniteScrollObserver = new IntersectionObserver((entries) => {
+        window.scrollObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting && hasMoreCards && !isLoading) {
-                    console.log('Loading next page due to infinite scroll...');
                     loadCardsPage(currentPage + 1, true);
                 }
             });
@@ -2804,16 +2690,14 @@
             rootMargin: '100px'
         });
 
-        window.infiniteScrollObserver.observe(sentinel);
+        window.scrollObserver.observe(sentinel);
     }
 
     // Load ALL cards for deck building, then load first page for display
     async function loadCards() {
-        console.log('loadCards: Starting full card loading for deck building...');
         
         // First load ALL cards for deck building
         try {
-            console.log('🔄 Loading all cards for deck building...');
             const response = await fetch('/api/cards');
             if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
@@ -2821,28 +2705,21 @@
             const data = await response.json();
             if (data && data.cards && data.cards.length > 0) {
                 allCards = data.cards;
-                console.log(`🎯 LOADED ALL CARDS for deck building: ${allCards.length} cards`);
             } else {
-                console.warn('❌ No cards received from /api/cards');
                 allCards = [];
             }
         } catch (error) {
-            console.error('❌ Error loading all cards:', error);
             allCards = [];
         }
         
         // Then initialize filters and load first page for display
-        console.log('🔄 Starting pagination initialization...');
         
         try {
             await initializeFiltersData();
-            console.log('✅ Filters initialized');
             
             await loadCardsPage(1, false);
-            console.log('✅ First page loaded');
             
             // Code after loading
-            console.log('🔄 Processing post-load tasks...');
             // Handle deck restoration after cards are loaded
             let restoredPendingDeck = false;
             let userIsAuthenticated = window.IS_USER_AUTHENTICATED || false;
@@ -2856,18 +2733,16 @@
                         sessionStorage.removeItem(ACTION_AFTER_AUTH_KEY);
                         try {
                             const pendingDeck = JSON.parse(pendingDeckJSON);
-                            console.log("Restoring pending deck after login:", pendingDeck);
                             document.getElementById('deck-name').value = pendingDeck.name || '';
                             // Note: For pending deck restoration, we might need to fetch specific cards
                             // This is a limitation of the new paginated approach
                             selectedDeckEnergies = pendingDeck.deck_types || [];
-                            selectedCoverCardIds = (pendingDeck.cover_card_ids || []).map(id => String(id));
+                            coverCardIds = (pendingDeck.cover_card_ids || []).map(id => String(id));
                             loadedDeckId = null; 
                             deckSaved = false;
                             updateAllDeckUI();
                             restoredPendingDeck = true;
                         } catch (error) {
-                            console.error("Error parsing/restoring pending deck:", error);
                         }
                     } else {
                         sessionStorage.removeItem(ACTION_AFTER_AUTH_KEY); 
@@ -2880,18 +2755,15 @@
                 if (autoSavedDeckJSON && !restoredPendingDeck) {
                     try {
                         const autoSavedDeck = JSON.parse(autoSavedDeckJSON);
-                        console.log("Found auto-saved deck data:", autoSavedDeck);
                         if (autoSavedDeck.cards && autoSavedDeck.cards.length > 0) {
                             document.getElementById('deck-name').value = autoSavedDeck.name || '';
                             // Note: For auto-saved deck restoration, we might need to fetch specific cards
                             selectedDeckEnergies = autoSavedDeck.deck_types || [];
-                            selectedCoverCardIds = (autoSavedDeck.cover_card_ids || []).map(id => String(id));
+                            coverCardIds = (autoSavedDeck.cover_card_ids || []).map(id => String(id));
                             loadedDeckId = null;
                             deckSaved = false;
-                            console.log("Auto-saved deck restored on mobile.");
                         }
                     } catch (error) {
-                        console.error("Error restoring auto-saved deck:", error);
                     }
                 }
             }
@@ -2902,31 +2774,26 @@
                 }
             }
 
-            const currentEditDeckId = new URLSearchParams(window.location.search).get('edit');
-            if (currentEditDeckId) {
-                console.log(`loadCards: URL param 'edit' found: '${currentEditDeckId}'. Loading deck for editing.`);
-                loadDeckData(currentEditDeckId, false);
+            const editDeckId = new URLSearchParams(window.location.search).get('edit');
+            if (editDeckId) {
+                loadDeckData(editDeckId, false);
             }
 
             setSortTypeFromURL();
             updateSortDropdownUI();
             
             // Initialize deck display if no deck was loaded
-            if (!currentEditDeckId && !restoredPendingDeck) {
-                console.log('🔄 Initializing deck display (no edit/restore)');
+            if (!editDeckId && !restoredPendingDeck) {
                 updateDeckDisplay();
             } else {
-                console.log('🔄 Skipping deck display init: editDeckId=', currentEditDeckId, 'restoredPending=', restoredPendingDeck);
             }
             
             // Always ensure deck display is initialized for empty decks
             if (currentDeck.length === 0) {
-                console.log('🔄 Ensuring empty deck display is properly initialized');
                 updateDeckDisplay();
             }
             
         } catch (error) {
-            console.error('❌ loadCards: Error in paginated loading:', error);
             const cardCollectionDiv = document.getElementById('card-collection');
             if (cardCollectionDiv) {
                 cardCollectionDiv.innerHTML = `<div class="text-center p-3"><p>Error loading card data: ${error.message}. Please refresh.</p></div>`;
@@ -2935,188 +2802,7 @@
         }
     }
 
-    function loadCardsOLD() {
-        console.log('loadCards: Fetching all card data...');
-        const cardCollectionDiv = document.getElementById('card-collection');
-        if (cardCollectionDiv) {
-            cardCollectionDiv.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-primary"></div><p>Loading cards...</p></div>';
-        }
-
-        fetch('/api/cards')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status} fetching /api/cards`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data && data.cards && data.cards.length > 0) {
-                    allCards = data.cards;
-                    filteredCards = [...allCards];
-                    console.log(`🎯 SETTING allCards: ${allCards.length} cards loaded.`);
-                    console.log('📊 Sample card from allCards:', allCards[0]?.name, 'ID:', allCards[0]?.id);
-                    
-                    // Debug: Check if high_res_image_path is present in API response
-                    const sampleCard = allCards[0];
-                    console.log('[API] Sample card data:', {
-                        name: sampleCard.name,
-                        display_image_path: sampleCard.display_image_path,
-                        high_res_image_path: sampleCard.high_res_image_path,
-                        hasHighRes: !!sampleCard.high_res_image_path
-                    });
-                } else {
-                    console.log('❌ CLEARING allCards - No cards data received.');
-                    allCards = [];
-                    filteredCards = [];
-                    console.warn('loadCards: No cards data received.');
-                    if (cardCollectionDiv) {
-                        cardCollectionDiv.innerHTML = '<div class="text-center p-3"><p>No card data found.</p></div>';
-                    }
-                }
-
-                const uniqueSetsData = [];
-                const encounteredSetCodes = new Set();
-
-                allCards.forEach(card => {
-                    if (card.set_name && card.set_name.trim() !== "" && card.set_code && card.set_code.trim() !== "") {
-                        const setName = card.set_name.trim();
-                        const setCode = card.set_code.trim();
-                        if (!encounteredSetCodes.has(setCode)) {
-                            encounteredSetCodes.add(setCode);
-                            uniqueSetsData.push({ name: setName, code: setCode });
-                        }
-                    }
-                });
-
-                function parseSetCode(code) {
-                    const promoMatch = code.match(/^P[A-Z]*-([A-Z0-9]+(?:[a-z]?))$/i) || code.match(/^P-([A-Z0-9]+(?:[a-z]?))$/i) || code.match(/^P([A-Z0-9]+(?:[a-z]?))$/i);
-                    if (promoMatch) {
-                        return { isPromo: true, prefix: "P", suffix: promoMatch[1] || code, original: code };
-                    }
-                    const match = code.match(/^([A-Z]+)([0-9A-Za-z].*)$/);
-                    if (match) {
-                        return { isPromo: false, prefix: match[1], suffix: match[2], original: code };
-                    }
-                    return { isPromo: false, prefix: "", suffix: code, original: code };
-                }
-
-                uniqueSetsData.sort((a, b) => {
-                    const parsedA = parseSetCode(a.code);
-                    const parsedB = parseSetCode(b.code);
-                    if (parsedA.isPromo && !parsedB.isPromo) return 1;
-                    if (!parsedA.isPromo && parsedB.isPromo) return -1;
-                    if (parsedA.isPromo && parsedB.isPromo) {
-                        return parsedA.original.localeCompare(parsedB.original);
-                    }
-                    if (parsedA.prefix > parsedB.prefix) return -1;
-                    if (parsedA.prefix < parsedB.prefix) return 1;
-                    if (parsedA.suffix > parsedB.suffix) return -1;
-                    if (parsedA.suffix < parsedB.suffix) return 1;
-                    return 0;
-                });
-                
-                orderedSetNamesForSort = uniqueSetsData.map(setObj => setObj.name);
-                populateDropdown('set-dropdown', ['All', ...orderedSetNamesForSort]);
-                if (document.getElementById('setDropdown')) document.getElementById('setDropdown').textContent = 'All';
-
-                let restoredPendingDeck = false;
-                let userIsAuthenticated = window.IS_USER_AUTHENTICATED || false;
-
-                if (userIsAuthenticated) {
-                    const actionAfterAuth = sessionStorage.getItem('ACTION_AFTER_AUTH_KEY');
-                    if (actionAfterAuth === 'savePendingDeck') {
-                        const pendingDeckJSON = sessionStorage.getItem(PENDING_DECK_KEY);
-                        if (pendingDeckJSON) {
-                            sessionStorage.removeItem(PENDING_DECK_KEY);
-                            sessionStorage.removeItem(ACTION_AFTER_AUTH_KEY);
-                            try {
-                                const pendingDeck = JSON.parse(pendingDeckJSON);
-                                console.log("Restoring pending deck after login:", pendingDeck);
-                                document.getElementById('deck-name').value = pendingDeck.name || '';
-                                currentDeck = [];
-                                if (pendingDeck.cards && Array.isArray(pendingDeck.cards)) {
-                                    pendingDeck.cards.forEach(deckCardInfo => {
-                                        const fullCard = allCards.find(c => c.id === deckCardInfo.id);
-                                        if (fullCard) currentDeck.push(fullCard);
-                                    });
-                                }
-                                selectedDeckEnergies = pendingDeck.deck_types || [];
-                                selectedCoverCardIds = (pendingDeck.cover_card_ids || []).map(id => String(id));
-                                loadedDeckId = null; 
-                                deckSaved = false;
-                                updateAllDeckUI();
-                                restoredPendingDeck = true;
-                            } catch (error) {
-                                console.error("Error parsing/restoring pending deck:", error);
-                            }
-                        } else {
-                            sessionStorage.removeItem(ACTION_AFTER_AUTH_KEY); 
-                        }
-                    }
-                }
-
-                if (window.matchMedia("(hover: none)").matches) {
-                    const autoSavedDeckJSON = sessionStorage.getItem('autoSavedDeck');
-                    if (autoSavedDeckJSON) {
-                        sessionStorage.removeItem('autoSavedDeck');
-                        try {
-                            const savedDeck = JSON.parse(autoSavedDeckJSON);
-                            if (savedDeck && savedDeck.cards && savedDeck.cards.length > 0) {
-                                if (window.showGlobalToast) {
-                                    window.showGlobalToast("Restoring unsaved deck...", "default");
-                                }
-                                document.getElementById('deck-name').value = savedDeck.name || '';
-                                currentDeck = [];
-                                savedDeck.cards.forEach(savedCard => {
-                                    const fullCard = allCards.find(c => c.id === savedCard.id);
-                                    if (fullCard) currentDeck.push(fullCard);
-                                });
-                                selectedDeckEnergies = savedDeck.deck_types || [];
-                                selectedCoverCardIds = savedDeck.cover_card_ids || [];
-                                loadedDeckId = null;
-                                deckSaved = false;
-                                deckWasRestored = true;
-                            }
-                        } catch (error) {
-                            console.error("Error restoring auto-saved deck:", error);
-                        }
-                    }
-                }
-
-                if (deckWasRestored) {
-                    updateAllDeckUI();
-                } else if (!restoredPendingDeck) { 
-                    if (!userIsAuthenticated) {
-                        clearDeck(false);
-                        updateAllDeckUI();
-                    } else {
-                        const urlParams = new URLSearchParams(window.location.search);
-                        const deckIdToEdit = urlParams.get('edit'); 
-                        const sourceDeckIdForCopy = urlParams.get('copy_from'); 
-                        if (deckIdToEdit) {
-                            loadDeckData(deckIdToEdit, false); 
-                        } else if (sourceDeckIdForCopy) { 
-                            loadDeckData(sourceDeckIdForCopy, true); 
-                        } else {
-                            updateAllDeckUI();
-                        }
-                    }
-                }
-
-                applyFilters(); 
-                updateSortDropdownUI(); 
-            })
-            .catch(error => {
-                console.error('loadCards: Error fetching or processing card data:', error);
-                const cardCollectionDiv = document.getElementById('card-collection');
-                if (cardCollectionDiv) {
-                    cardCollectionDiv.innerHTML = `<div class="text-center p-3"><p>Error loading card data: ${error.message}. Please refresh.</p></div>`;
-                }
-                clearDeck(false);
-            });
-    }
     function loadDeckData(deckIdToLoad, isCopyOperation) {
-        console.log(`loadDeckData: Fetching data for deck ID '${deckIdToLoad}'. isCopyOperation: ${isCopyOperation}`);
         
         fetch(`/api/decks/${deckIdToLoad}`) 
             .then(response => {
@@ -3145,7 +2831,7 @@
                 }
 
                 selectedDeckEnergies = deckFromServer.deck_types || [];
-                selectedCoverCardIds = (deckFromServer.cover_card_ids || []).map(id => String(id)); 
+                coverCardIds = (deckFromServer.cover_card_ids || []).map(id => String(id)); 
 
                 if (isCopyOperation) {
                     document.getElementById('deck-name').value = `Copy of ${deckFromServer.name || 'Unnamed Deck'}`;
@@ -3161,7 +2847,6 @@
                 updateAllDeckUI(); 
             })
             .catch(error => {
-                console.error(`loadDeckData: Error loading source deck ID '${deckIdToLoad}':`, error);
                 alert(`Could not load data for deck '${deckIdToLoad}'. ${error.message}. Starting with a new deck.`);
                 clearDeck(false);
             });
@@ -3200,52 +2885,6 @@
         });
     }
 
-    function setCoverCardStarVisuals() {
-    const deckSlotsContainer = document.getElementById('current-deck');
-    if (!deckSlotsContainer) {
-        console.error("setCoverCardStarVisuals: Deck container 'current-deck' not found!");
-        return;
-    }
-
-    const starButtons = deckSlotsContainer.querySelectorAll('.btn-favorite'); // These are the star buttons in your rendered deck slots
-    let activeStarHasBeenSetThisPass = false; // Renamed for clarity
-
-    starButtons.forEach(starBtn => {
-        const cardIdInSlot = starBtn.dataset.cardId; // This is the master ID like 'sv1-1' from the card in this slot
-
-        if (selectedCoverCardIds !== null && cardIdInSlot && parseInt(cardIdInSlot, 10) === selectedCoverCardIds && !activeStarHasBeenSetThisPass) {
-            // This slot's card IS the cover card, AND we haven't set an active star yet in this rendering pass
-            starBtn.classList.add('active');
-            const icon = starBtn.querySelector('i');
-            if (icon) {
-                icon.classList.remove('bi-star');
-                icon.classList.add('bi-star-fill');
-            }
-            starBtn.setAttribute('aria-label', 'Unset as cover card');
-            activeStarHasBeenSetThisPass = true; // Mark that THE one active star for this cover card ID has been applied
-        } else {
-            // This slot's card is NOT the cover card, OR the active star for this cover card ID was already applied to an earlier slot
-            starBtn.classList.remove('active');
-            const icon = starBtn.querySelector('i');
-            if (icon) {
-                icon.classList.remove('bi-star-fill');
-                icon.classList.add('bi-star');
-            }
-            starBtn.setAttribute('aria-label', 'Set as cover card');
-        }
-    });
-
-    if (selectedCoverCardIds !== null && !activeStarHasBeenSetThisPass) {
-        // This case should ideally not happen if selectedCoverCardIds refers to a card actually in the currentDeck.
-        // It means selectedCoverCardIds is set, but no card in the rendered slots matched it (or matched it first).
-        // This might happen if selectedCoverCardIds points to a card that was removed from the deck.
-        console.warn("setCoverCardStarVisuals: selectedCoverCardIds is set to", selectedCoverCardIds, "but no matching card was found to star in the current deck display, or it was already set. This might indicate the cover card was removed from the deck.");
-        // Optionally, you could try to auto-select a new cover card here or clear selectedCoverCardIds if the card is truly gone.
-        // For now, just ensure all are unstarred if no valid one is found.
-    }
-    // console.log("setCoverCardStarVisuals: Visuals updated. Current Cover Card ID:", selectedCoverCardIds);
-    }
-
     function updateDropdownDisplays() {
         // Card Type dropdown - just show the selected value without a label
         document.getElementById('cardTypeDropdown').textContent =
@@ -3265,7 +2904,6 @@
     }
 
     function loadExistingDeck(filename) {
-        console.log('Loading existing deck:', filename);
 
         // Optional: Show loading indicator
         // const deckContainer = document.getElementById('current-deck');
@@ -3279,13 +2917,12 @@
                 return response.json();
             })
             .then(data => {
-                console.log("Loaded deck data:", data);
                 document.getElementById('deck-name').value = data.name;
 
                 // Clear current state before loading
                 currentDeck = [];
                 selectedDeckEnergies = []; // Assuming you also have this array
-                selectedCoverCardIds = null; // Reset cover card ID before loading from data
+                coverCardIds = null; // Reset cover card ID before loading from data
                 document.querySelectorAll('.energy-selection-bar .energy-icon-wrapper.active').forEach(icon => icon.classList.remove('active'));
 
                 // Load cards into the deck
@@ -3296,12 +2933,10 @@
                         if (fullCard) {
                             currentDeck.push(fullCard);
                         } else {
-                            console.warn(`Card ID ${deckCardInfo.id} from saved deck not found in loaded card list.`);
                             // Optionally, add placeholder or skip
                         }
                     });
                 } else {
-                    console.warn("Deck data did not contain \"cards\" array or it was empty.");
                 }
 
             // Load deck energy types
@@ -3314,23 +2949,20 @@
                         }
                     });
                 } else {
-                    console.warn("Deck data did not contain 'deck_types' array.");
                     selectedDeckEnergies = []; // Ensure it's an empty array if missing
                 }
 
                 // Load cover card ID from saved data
-                selectedCoverCardIds = data.cover_card_ids || null; // Use null if missing or explicitly null
-                console.log("Loaded cover card ID:", selectedCoverCardIds);
+                coverCardIds = data.cover_card_ids || null; // Use null if missing or explicitly null
                 // Note: If cover_card_ids is null, the backend's default logic likely sets one when saving/displaying if needed.
 
-                // Update displays (updateDeckDisplay will now use selectedCoverCardIds to set the star correctly)
+                // Update displays (updateDeckDisplay will now use coverCardIds to set the star correctly)
                 updateDeckDisplay();
                 updateCardDisplay(); // Refresh collection view (grey out added cards)
                 updateEnergyCounter();
                 deckSaved = true; // Mark as saved after loading
             })
             .catch(error => {
-                console.error('Error loading deck:', error);
                 alert(`Failed to load deck '${filename}'. ${error.message}. Please check the console and try again.`);
                 // Optional: Clear the possibly partial loading indicator
                 // if(deckContainer) deckContainer.innerHTML = '<div class="alert alert-danger">Failed to load deck.</div>';
@@ -3340,7 +2972,6 @@
     function populateDropdown(dropdownId, options) {
         const dropdown = document.getElementById(dropdownId);
         if (!dropdown) {
-            console.warn(`Dropdown element with ID '${dropdownId}' not found.`);
             return;
         }
         dropdown.innerHTML = ''; // Clear existing items
@@ -3395,7 +3026,6 @@
                     if (config.property === 'stageType' && 
                         ['Item', 'Supporter', 'Tool'].includes(selectedValue)) {
                         
-                        console.log(`Stage/Trainer type selected: ${selectedValue}. Resetting energy filters.`);
                         selectedFilters.energyTypes = []; // Clear the internal array
 
                         // Deactivate all energy filter icons visually
@@ -3723,17 +3353,11 @@
 
         // Global click debugging to see ALL clicks
         document.addEventListener('click', function(e) {
-            console.log('🌐 GLOBAL CLICK:', {
-                tag: e.target.tagName,
-                class: e.target.className,
-                id: e.target.id,
-                closest_card: e.target.closest('.card-item') ? 'HAS CARD-ITEM' : 'NO CARD-ITEM'
-            });
+            // Debug object removed for performance
         }, true); // Use capture phase
         
         // Consolidated Click Listener using Event Delegation
         document.addEventListener('click', function(e) {
-            console.log('👂 Main click handler triggered by:', e.target.tagName, e.target.className);
 
             // --- Handle Deck Card Remove Button (-) ---
             const removeBtn = e.target.closest('.btn-remove');
@@ -3756,8 +3380,8 @@
                         currentDeck.splice(slotIndex, 1);
                         deckSaved = false;
 
-                        if (removedCardId === selectedCoverCardIds) {
-                            selectedCoverCardIds = null;
+                        if (removedCardId === coverCardIds) {
+                            coverCardIds = null;
                         }
                         updateDeckDisplay();
                         updateCardStateInCollection(removedCardId);
@@ -3797,12 +3421,12 @@
                 const clickedCardIdStr = favoriteBtn.dataset.cardId;
                 if (!clickedCardIdStr) { return; }
                 const clickedCardId = clickedCardIdStr;
-                const idIndex = selectedCoverCardIds.indexOf(clickedCardId);
+                const idIndex = coverCardIds.indexOf(clickedCardId);
                 if (idIndex > -1) {
-                    selectedCoverCardIds.splice(idIndex, 1);
+                    coverCardIds.splice(idIndex, 1);
                 } else {
-                    if (selectedCoverCardIds.length < 3) {
-                        selectedCoverCardIds.push(clickedCardId);
+                    if (coverCardIds.length < 3) {
+                        coverCardIds.push(clickedCardId);
                     } else {
                         if (window.showGlobalToast) {
                             window.showGlobalToast("You can only select up to 3 cover cards.", "default");
@@ -3819,16 +3443,12 @@
 
             // --- Handle Collection Card Add Click ---
             const cardImage = e.target.closest('.card-item img');
-            console.log('🖱️ Click detected, cardImage:', cardImage);
             
             if (cardImage && !e.target.closest('.btn-remove-small')) {
-                console.log('✅ Card image clicked (not a remove button)');
                 const cardItem = cardImage.closest('.card-item');
                 const cardContainer = cardItem ? cardItem.querySelector('.position-relative') : null;
-                console.log('📦 cardItem:', cardItem?.dataset?.cardId, 'cardContainer:', cardContainer);
 
                 if (cardItem && cardItem.dataset.cardId && cardContainer) {
-                    console.log('✅ Card data validated, cardId:', cardItem.dataset.cardId);
                     
                     // Always try to load high-res image when card is tapped (on mobile)
                     const isMobile = window.matchMedia("(hover: none)").matches;
@@ -3841,20 +3461,14 @@
                     
                     if (cardContainer.classList.contains('max-copies')) {
                         const cardName = cardItem.dataset.cardName;
-                        console.log('⚠️ Max copies reached for:', cardName);
                         if (window.showGlobalToast) {
                             window.showGlobalToast(`Max 2 copies of '${cardName}' allowed.`, "default");
                         }
                     } else {
-                        console.log('🎯 Calling addCardToDeck with cardId:', cardItem.dataset.cardId);
                         addCardToDeck(cardItem.dataset.cardId, cardItem);
                     }
                 } else {
-                    console.log('❌ Card validation failed:', {
-                        hasCardItem: !!cardItem,
-                        hasCardId: !!cardItem?.dataset?.cardId,
-                        hasContainer: !!cardContainer
-                    });
+                    // Debug info removed for performance
                 }
                 return;
             }
@@ -3880,12 +3494,11 @@
         if (window.matchMedia("(hover: none)").matches) {
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'hidden' && !deckSaved && loadedDeckId === null && currentDeck.length > 0) {
-                    console.log('Unsaved changes detected on mobile. Saving deck...');
                     const deckData = {
                         name: document.getElementById('deck-name').value,
                         cards: currentDeck.map(c => ({ id: c.id })),
                         deck_types: selectedDeckEnergies,
-                        cover_card_ids: selectedCoverCardIds
+                        cover_card_ids: coverCardIds
                     };
                     sessionStorage.setItem('autoSavedDeck', JSON.stringify(deckData));
                 }
@@ -3982,13 +3595,11 @@
 
         // Early return if no high-res source available
         if (!highResSrc || highResSrc === 'undefined' || highResSrc === 'null') {
-            console.warn('[ZOOM] No valid high-res source available for card:', cardElement.dataset.cardName);
             return;
         }
 
         const zoomContainer = document.getElementById('card-zoom-container');
         if (!zoomContainer) {
-            console.error('[ZOOM] Zoom container not found!');
             return;
         }
 
@@ -4057,10 +3668,7 @@
                     }
                 };
                 highResImage.onerror = () => {
-                    console.error('[ZOOM] High-res image failed to load:', {
-                        original: highResSrc,
-                        processed: highResProxyUrl
-                    });
+                    // Error logging removed for performance
                 };
             }, 250); 
         }
@@ -4157,7 +3765,6 @@
     }, 300);
 
     function applyFilters() {
-        console.log('applyFilters: Triggering paginated server-side filtering...');
         debouncedApplyFilters();
     }
 
@@ -4165,273 +3772,16 @@
     function resetPaginationAndLoadCards() {
         currentPage = 1;
         hasMoreCards = true;
-        loadedCardIds.clear();
+        loadedIds.clear();
         
         // Disconnect infinite scroll observer
-        if (window.infiniteScrollObserver) {
-            window.infiniteScrollObserver.disconnect();
+        if (window.scrollObserver) {
+            window.scrollObserver.disconnect();
         }
         
         loadCardsPage(1, false);
     }
 
-    function applyFiltersOLD() {
-        // Define keyword mappings
-        const energyTypeKeywords = {
-            'grass': 'Grass', 'fire': 'Fire', 'water': 'Water',
-            'lightning': 'Lightning', 'electric': 'Lightning', 'psychic': 'Psychic',
-            'fighting': 'Fighting', 'darkness': 'Darkness', 'dark': 'Darkness',
-            'metal': 'Metal', 'steel': 'Metal', 'dragon': 'Dragon',
-            'colorless': 'Colorless', 'normal': 'Colorless'
-        };
-        const cardTypeKeywords = {'trainer': 'Trainer', 'pokémon': 'Pokémon', 'pokemon': 'Pokémon'};
-        // MODIFIED: Separated multi-word keywords from single-word ones.
-        const singleWordStageTypeKeywords = {'item': 'Item', 'tool': 'Tool', 'supporter': 'Supporter', 'basic': 'Basic', 'ex': 'EX', 'stage1': 'Stage 1', 'stage2': 'Stage 2'};
-        const multiWordStageTypeKeywords = {'stage 1': 'Stage 1', 'stage 2': 'Stage 2', 'ultra beast': 'Ultra Beast'};
-        const rarityKeywords = {
-            'shiny': ['✵', '✵✵'],
-            'crown': ['Crown Rare']
-        };
-        const setKeywords = {'promo': 'Promo-A'};
-
-
-        let currentRawSearch = rawSearchText.toLowerCase().trim();
-
-        // --- Ephemeral Filters from Search Text ---
-        let ephemeralEnergyTypes = [];
-        let ephemeralCardType = 'All';
-        let ephemeralStageType = 'All';
-        let ephemeralSet = 'All';
-        let ephemeralRarities = [];
-        let excludeEx = false;
-
-        // --- NEW: Process multi-word keywords first ---
-        // This ensures phrases like "ultra beast" are caught before the string is split.
-        let foundStageTypesEphemeral = [];
-        for (const phrase in multiWordStageTypeKeywords) {
-            if (currentRawSearch.includes(phrase)) {
-                foundStageTypesEphemeral.push(multiWordStageTypeKeywords[phrase]);
-                currentRawSearch = currentRawSearch.replace(phrase, ''); // Remove the phrase
-            }
-        }
-
-
-        // Process search terms and remove keywords
-        const terms = currentRawSearch.split(/\s+/).filter(term => term.length > 0);
-        let nonKeywordTerms = [];
-
-        for (const term of terms) {
-            let isKeyword = false;
-
-            if (term === 'noex') {
-                excludeEx = true;
-                isKeyword = true;
-            }
-            if (energyTypeKeywords[term]) {
-                ephemeralEnergyTypes.push(energyTypeKeywords[term]);
-                isKeyword = true;
-            }
-            if (cardTypeKeywords[term]) {
-                ephemeralCardType = cardTypeKeywords[term];
-                isKeyword = true;
-            }
-            // MODIFIED: Check against the new single-word stage keywords object
-            if (singleWordStageTypeKeywords[term]) {
-                foundStageTypesEphemeral.push(singleWordStageTypeKeywords[term]);
-                // Don't mark as keyword yet - we'll decide after collecting all stage types
-            }
-            if (rarityKeywords[term]) {
-                ephemeralRarities.push(...rarityKeywords[term]);
-                isKeyword = true;
-            }
-            if (setKeywords[term]) {
-                ephemeralSet = setKeywords[term];
-                isKeyword = true;
-            }
-
-            if (!isKeyword) {
-                nonKeywordTerms.push(term);
-            }
-        }
-
-        // Only set stage type filter if exactly one stage type was found
-        // If multiple stage types are found, let the server handle it as text search
-        if (foundStageTypesEphemeral.length === 1) {
-            ephemeralStageType = foundStageTypesEphemeral[0];
-            // Remove stage type terms from nonKeywordTerms if we're using them as filters
-            nonKeywordTerms = nonKeywordTerms.filter(term => !singleWordStageTypeKeywords[term]);
-        }
-        // If multiple stage types found, leave them in nonKeywordTerms for text search
-
-        // Rebuild nameSearchTerm from the terms that were NOT keywords
-        let nameSearchTerm = nonKeywordTerms.join(' ');
-        
-        // If multiple stage types found, add them back to the search text
-        if (foundStageTypesEphemeral.length > 1) {
-            const stageTerms = [];
-            // Add back multi-word phrases that were found
-            for (const phrase in multiWordStageTypeKeywords) {
-                if (rawSearchText.toLowerCase().includes(phrase)) {
-                    stageTerms.push(phrase);
-                }
-            }
-            // Add back single-word stage terms
-            const terms = rawSearchText.toLowerCase().split(/\s+/);
-            for (const term of terms) {
-                if (singleWordStageTypeKeywords[term]) {
-                    stageTerms.push(term);
-                }
-            }
-            nameSearchTerm = (nameSearchTerm + ' ' + stageTerms.join(' ')).trim();
-        }
-        
-        nameSearchTerm = nameSearchTerm.replace(/\s\s+/g, ' ').trim();
-        
-        const originalTermsWereAllKeywords = nonKeywordTerms.length === 0 && terms.length > 0;
-        const originalSearchWasJustNoex = nonKeywordTerms.length === 0 && terms.length === 1 && terms[0] === 'noex';
-        // This check needs to account for the new multi-word pre-check
-        const searchHadKeywords = ephemeralCardType !== 'All' || ephemeralEnergyTypes.length > 0 || ephemeralRarities.length > 0 || ephemeralSet !== 'All' || ephemeralStageType !== 'All' || foundStageTypesEphemeral.length > 0 || excludeEx;
-
-        if (nonKeywordTerms.length === 0 && searchHadKeywords) {
-            nameSearchTerm = '';
-        }
-
-
-        // --- Determine Final Effective Filters to Apply ---
-        const finalEffectiveEnergyTypes = [...new Set([...selectedFilters.energyTypes, ...ephemeralEnergyTypes])];
-
-        let finalEffectiveRarities = [];
-        let impossibleRarityFilter = false;
-        if (selectedFilters.rarity !== 'All') {
-            finalEffectiveRarities.push(selectedFilters.rarity);
-            if (ephemeralRarities.length > 0 && !ephemeralRarities.includes(selectedFilters.rarity)) {
-                impossibleRarityFilter = true;
-            }
-        } else if (ephemeralRarities.length > 0) {
-            finalEffectiveRarities = ephemeralRarities;
-        }
-
-        const finalEffectiveCardType = selectedFilters.cardType !== 'All' ? selectedFilters.cardType : ephemeralCardType;
-        const finalEffectiveStageType = selectedFilters.stageType !== 'All' ? selectedFilters.stageType : ephemeralStageType;
-        const finalEffectiveSet = selectedFilters.set !== 'All' ? selectedFilters.set : ephemeralSet;
-
-
-        if (impossibleRarityFilter) {
-            console.log("Impossible filter combination detected. Results will be empty.");
-            filteredCards = [];
-        } else {
-            // --- Filter Cards ---
-            filteredCards = allCards.filter(card => {
-
-                // 1. Set Filter
-                if (finalEffectiveSet !== 'All' && (!card.set_name || card.set_name !== finalEffectiveSet)) {
-                    return false;
-                }
-                // 2. Card Type Filter
-                if (finalEffectiveCardType !== 'All' && (!card.card_type || !card.card_type.includes(finalEffectiveCardType))) {
-                    return false;
-                }
-                // 3. Stage Type Filter (and EX Pokémon logic)
-                const nameLower = card.name.toLowerCase();
-                const cardTypeLower = card.card_type ? card.card_type.toLowerCase() : "";
-                
-                const isExPokemon = (nameLower.endsWith(' ex') && !nameLower.endsWith(' - ex (ultra beast)')) || cardTypeLower.includes('pokemon - ex');
-
-                if (finalEffectiveStageType !== 'All') {
-                    if (finalEffectiveStageType === 'EX') {
-                        if (!isExPokemon) return false;
-                    } else {
-                         // This now correctly checks for "Ultra Beast", "Stage 1", etc.
-                        if (!card.card_type || !card.card_type.includes(finalEffectiveStageType)) {
-                            return false;
-                        }
-                    }
-                }
-                
-                // 4. Energy Type Filter
-                if (finalEffectiveEnergyTypes.length > 0) {
-                    if (!card.energy_type || !finalEffectiveEnergyTypes.includes(card.energy_type)) {
-                        return false;
-                    }
-                }
-                
-                // 5. Rarity Filter
-                if (finalEffectiveRarities.length > 0) {
-                    let cardPassesRarityFilter = false;
-                    if (card.rarity && finalEffectiveRarities.includes(card.rarity)) {
-                        cardPassesRarityFilter = true;
-                    }
-                    if (!cardPassesRarityFilter && (finalEffectiveRarities.includes('✵') || finalEffectiveRarities.includes('✵✵'))) {
-                        const cardNameLower = card.name ? card.name.toLowerCase() : "";
-                        if (cardNameLower === 'mewtwo ex' && card.set_code && card.set_code.toUpperCase() === 'P-A' && card.card_number_str && card.card_number_str === '50') { 
-                            cardPassesRarityFilter = true;
-                        }
-                    }
-                    if (!cardPassesRarityFilter) {
-                        return false;
-                    }
-                }
-
-                // 6. Name Filter and "noex" exclusion
-                const punctuationRegex = /[’'?!:.,]/g; // Regex to find and remove common punctuation
-
-                const normalizedNameForSearch = nameLower.replace(punctuationRegex, '').replace(/poké/g, 'poke');
-                const normalizedSearchTerm = nameSearchTerm.toLowerCase().replace(punctuationRegex, '').replace(/poké/g, 'poke');
-
-                if (nameSearchTerm && !normalizedNameForSearch.includes(normalizedSearchTerm)) {
-                    return false;
-                }
-
-                if (excludeEx && isExPokemon) {
-                    return false; 
-                }
-                
-                return true;
-            });
-        }
-
-
-        // --- SORTING ---
-        sortFilteredCards();
-
-        // --- Update UI Filter Controls (Reflect intended selections) ---
-        document.querySelectorAll('.filter-bar .energy-icons .energy-icon-wrapper').forEach(icon => {
-            const energyType = icon.getAttribute('data-type');
-            icon.classList.toggle('active', finalEffectiveEnergyTypes.includes(energyType));
-        });
-
-        document.getElementById('cardTypeDropdown').textContent = finalEffectiveCardType;
-        document.querySelectorAll('#card-type-dropdown a').forEach(a => {
-            a.classList.toggle('active', a.dataset.value === selectedFilters.cardType);
-        });
-
-        document.getElementById('stageTypeDropdown').textContent = finalEffectiveStageType;
-        document.querySelectorAll('#stage-type-dropdown a').forEach(a => {
-            a.classList.toggle('active', a.dataset.value === selectedFilters.stageType);
-        });
-
-        const rarityButton = document.getElementById('rarityDropdown');
-        if (rarityButton) {
-            const displayRarityValue = selectedFilters.rarity === 'Crown Rare' ? '👑' : selectedFilters.rarity;
-            rarityButton.textContent = displayRarityValue;
-        }
-        document.querySelectorAll('#rarity-dropdown a').forEach(a => {
-            a.classList.toggle('active', a.dataset.value === selectedFilters.rarity);
-        });
-
-        const setButton = document.getElementById('setDropdown');
-        if(setButton) setButton.textContent = finalEffectiveSet;
-        document.querySelectorAll('#set-dropdown a').forEach(a => {
-            a.classList.toggle('active', a.dataset.value === selectedFilters.set);
-        });
-
-
-        // --- Update Card Display & Count ---
-        updateCardDisplay();
-        const count = filteredCards.length;
-        const cardText = (count === 1) ? 'card' : 'cards';
-        document.getElementById('card-count-search').textContent = `${count} ${cardText}`;
-    }
 
     function resetAddCardsScroll() {
         const cardCollectionDiv = document.getElementById('card-collection');
@@ -4441,15 +3791,12 @@
     }
 
     function updateCardDisplay() {
-        console.log('🎨 updateCardDisplay() called with', filteredCards.length, 'cards');
         
         const cardCollection = document.getElementById('card-collection');
         if (!cardCollection) {
-            console.error('❌ cardCollection element not found!');
             return;
         }
 
-        console.log('🔄 Building card display...');
         
         // Always rebuild for paginated system - remove the isBuilt check
         // if (!cardCollection.dataset.isBuilt) {
@@ -4469,10 +3816,8 @@
             noResultsDiv.appendChild(message);
             noResultsDiv.appendChild(resetButton);
 
-            console.log('🃏 Creating', filteredCards.length, 'card elements...');
             
             filteredCards.forEach((card, index) => {
-                console.log(`🃏 Creating card ${index + 1}:`, card.name);
                 
                 const colDiv = document.createElement('div');
                 colDiv.className = 'col-4 col-sm-4 col-md-4 col-lg-3 col-xl-2 mb-3 card-item';
@@ -4497,7 +3842,6 @@
                 img.setAttribute('data-card-name', card.name);
                 
                 // For debugging: force load images immediately in paginated system
-                console.log('Creating card image for:', card.name, 'URL:', card.display_image_path);
                 
                 // Check if high-res version is cached and use it if available
                 const highResSrc = getHighResUrl(card.display_image_path);
@@ -4507,7 +3851,6 @@
                 if (highResSrc && highResImageCache.has(highResSrc)) {
                     imageToLoad = highResSrc;
                     isHighRes = true;
-                    console.log('Using cached high-res for card:', card.name);
                     // Remove loading state since we have cached high-res
                     cardContainer.classList.remove('is-loading');
                 }
@@ -4523,11 +3866,9 @@
                 
                 // Add loading handlers to remove loading state
                 img.onload = () => {
-                    console.log('✅ Image loaded:', card.name);
                     cardContainer.classList.remove('is-loading');
                 };
                 img.onerror = () => {
-                    console.error('❌ Image failed:', card.name, card.display_image_path);
                     cardContainer.classList.remove('is-loading');
                     cardContainer.classList.add('error-loading');
                 };
@@ -4541,7 +3882,6 @@
                 }
             });
             
-            console.log('🔄 Adding elements to DOM...');
             cardCollection.innerHTML = '';
             cardCollection.appendChild(rowDiv);
             cardCollection.appendChild(noResultsDiv);
@@ -4550,29 +3890,18 @@
             setTimeout(() => {
                 const createdCards = cardCollection.querySelectorAll('.card-item');
                 const createdImages = cardCollection.querySelectorAll('.card-item img');
-                console.log('🔍 DOM Check:', createdCards.length, 'cards,', createdImages.length, 'images in DOM');
                 
                 // Check first image specifically
                 if (createdImages.length > 0) {
-                    const firstImg = createdImages[0];
-                    console.log('🖼️ First image details:', {
-                        src: firstImg.src,
-                        alt: firstImg.alt,
-                        style: firstImg.style.cssText,
-                        display: getComputedStyle(firstImg).display,
-                        visibility: getComputedStyle(firstImg).visibility,
-                        parentVisible: getComputedStyle(firstImg.parentElement).display
-                    });
+                    // Debug info for first image removed for performance
                 }
             }, 50);
             
-            console.log('✅ Card display built successfully!');
             // cardCollection.dataset.isBuilt = 'true'; // Removed for paginated system
         // }
 
         // Handle deck restoration highlighting
         if (deckWasRestored) {
-            console.log("Updating collection visuals after deck restore...");
             const uniqueCardIdsInDeck = [...new Set(currentDeck.map(card => card.id))];
             uniqueCardIdsInDeck.forEach(cardId => {
                 updateCardStateInCollection(cardId);
@@ -4594,6 +3923,15 @@
         // Add infinite scroll sentinel if it doesn't exist
         if (hasMoreCards && !cardCollection.querySelector('.scroll-sentinel')) {
             setupInfiniteScroll();
+        }
+        
+        // IMPORTANT: Restore badges and remove buttons for cards already in deck
+        // This ensures that after pagination reloads, cards maintain their visual state
+        if (currentDeck && currentDeck.length > 0) {
+            const uniqueCardIdsInDeck = [...new Set(currentDeck.map(card => card.id))];
+            uniqueCardIdsInDeck.forEach(cardId => {
+                updateCardStateInCollection(cardId);
+            });
         }
     }
     
@@ -4652,7 +3990,6 @@
     }
 
     function resetAllFilters() {
-        console.log("Resetting all filters..."); // For debugging
 
         // 1. Reset internal filter state
         rawSearchText = '';
@@ -4702,13 +4039,11 @@
             icon.classList.remove('active');
         });
 
-        console.log("Filter controls UI reset."); // For debugging
 
         // 3. IMPORTANT: Apply the filters again now that state and UI are reset
         // This will update filteredCards and call updateCardDisplay
         applyFilters();
 
-        console.log("applyFilters() called after reset."); // For debugging
     }
 
     function countCardCopiesInDeck(cardId) {
@@ -4722,40 +4057,31 @@
     }
     
     function addCardToDeck(cardId, clickedElement = null) {
-        console.log('🎯 addCardToDeck called with cardId:', cardId, 'allCards.length:', allCards.length);
         
         const cardItem = clickedElement;
         // --- NEW: Cooldown Check ---
         if (!cardItem || cardItem.dataset.isAnimating === 'true') {
-            console.log('⚠️ Skipping: cooldown active or no cardItem');
             return;
         }
 
-        console.log('🔍 Looking for card with ID:', cardId, 'in allCards');
         const cardToAdd = allCards.find(c => c.id.toString() === cardId);
-        console.log('📋 Found card:', cardToAdd?.name || 'NOT FOUND');
         
         if (!cardToAdd) { 
-            console.log('❌ Card not found in allCards!');
             return; 
         }
 
         const copiesInDeck = currentDeck.filter(c => c.name === cardToAdd.name).length;
-        console.log('📊 Deck state check - copies:', copiesInDeck, 'deck size:', currentDeck.length);
         
         if (copiesInDeck >= 2) {
-            console.log('⚠️ Max copies (2) already in deck');
             return;
         }
         if (currentDeck.length >= 20) {
-            console.log('⚠️ Deck is full (20 cards)');
             if (window.showGlobalToast) {
                 window.showGlobalToast("Your deck is full (20 cards max).", "default");
             }
             return;
         }
         
-        console.log('✅ Adding card to deck!', cardToAdd.name);
 
         // --- NEW: Set Cooldown Flag ---
         cardItem.dataset.isAnimating = 'true';
@@ -4805,7 +4131,6 @@
     function updateDeckDisplay() {
         const deckContainer = document.getElementById('current-deck');
         if (!deckContainer) {
-            console.error("updateDeckDisplay: Deck container 'current-deck' not found!");
             return;
         }
 
@@ -4905,7 +4230,6 @@
 
         // After rendering all slots, call setCoverCardStarVisuals to apply active states and numbers
         setCoverCardStarVisuals(); 
-        console.log("updateDeckDisplay: Deck display refreshed.");
     }
 
     function clearDeck() {
@@ -4920,7 +4244,7 @@
                 // Clear the selected energy types too
                 selectedDeckEnergies = [];
 
-                selectedCoverCardIds = [];
+                coverCardIds = [];
 
                 // Reset the energy icon visual states
                 document.querySelectorAll('.energy-selection-bar .energy-icon-wrapper').forEach(icon => {
@@ -4996,7 +4320,6 @@
 
         // --- Handle Unauthenticated User ---
         if (!authStatus.isAuthenticated) {
-            console.log("User not authenticated. Checking if deck is savable before prompting.");
 
             // Validate deck before saving to sessionStorage and prompting
             if (currentDeck.length === 0) {
@@ -5024,25 +4347,22 @@
                 name: deckNameValue,
                 cards: currentDeck.map(card => ({ id: card.id })), // Store card IDs
                 deck_types: selectedDeckEnergies,
-                cover_card_ids: selectedCoverCardIds
+                cover_card_ids: coverCardIds
             };
             try {
                 sessionStorage.setItem(PENDING_DECK_KEY, JSON.stringify(pendingDeck));
                 sessionStorage.setItem(ACTION_AFTER_AUTH_KEY, 'savePendingDeck');
-                console.log("Pending deck saved to sessionStorage.");
 
                 // Show the modal to prompt login/signup
                 showLoginToSaveModal();
 
             } catch (e) {
-                console.error("Error saving deck to sessionStorage:", e);
                 alert("Could not temporarily save your deck. Browser storage might be full or disabled.");
             }
             return; // Stop further execution of saveDeck
         }
 
         // --- User IS Authenticated: Proceed with Server Save ---
-        console.log("User is authenticated. Proceeding with deck save.");
 
         // Re-check validations for authenticated save
         if (currentDeck.length === 0) {
@@ -5065,7 +4385,7 @@
         }
 
         // Auto-assign cover card logic (same as before)
-        let autoAssignedCoverCardId = selectedCoverCardIds;
+        let autoAssignedCoverCardId = coverCardIds;
         if (autoAssignedCoverCardId === null && currentDeck.length > 0) {
             let candidateCard = null;
             const pokemonCards = currentDeck.filter(card => card.card_type && card.card_type.includes('Pokémon'));
@@ -5085,7 +4405,6 @@
             }
             if (candidateCard !== null) autoAssignedCoverCardId = candidateCard.id;
             else if (currentDeck.length > 0) autoAssignedCoverCardId = currentDeck[0].id;
-            console.log("Auto-assigned cover card ID:", autoAssignedCoverCardId);
         }
 
         const deckData = {
@@ -5095,7 +4414,6 @@
             cover_card_ids: autoAssignedCoverCardId
         };
 
-        console.log("Final deck data to be saved:", JSON.stringify(deckData));
 
         const isUpdating = !!loadedDeckId;
         const url = isUpdating ? `/api/decks/${loadedDeckId}` : '/api/decks'; // Ensure API endpoint is correct
@@ -5120,7 +4438,7 @@
                     loadedDeckId = data.filename;
                 }
                 if (data.cover_card_ids) {
-                    selectedCoverCardIds = data.cover_card_ids;
+                    coverCardIds = data.cover_card_ids;
                 }
                 window.location.href = '/collection'; // Redirect after save
             } else {
@@ -5129,7 +4447,6 @@
             }
         })
         .catch(error => {
-            console.error('Error saving deck:', error);
             // Display the error message from the server if present, otherwise generic
             alert(`Error saving deck: ${error.error || 'An unexpected network or server error occurred.'}`);
         });
@@ -5306,7 +4623,6 @@
         let buttonBaseText = "Sort By"; // Default text if no active sort is found (shouldn't happen if currentSortType is valid)
         let foundActive = false; // Flag to confirm we found the active sort type in the menu
 
-        console.log("updateSortDropdownUI running. currentSortType:", currentSortType, "currentSortDirection:", currentSortDirection);
 
         // Loop through each link (sort option) in the dropdown menu
         sortDropdownMenu.querySelectorAll('a.dropdown-item').forEach(a => {
@@ -5342,21 +4658,18 @@
                     buttonBaseText = a.textContent.replace(arrowSpan.textContent, '').trim();
                 }
 
-                console.log("Match found for sort type:", type, "Link textContent:", a.textContent, "Extracted buttonBaseText:", buttonBaseText);
             }
         });
 
         // --- Set the HTML content of the main sort button ---
         // Include the extracted base text and the correct arrow icon (using the flipped logic)
         const buttonArrowHtml = currentSortDirection === 'asc' ? '<i class="bi bi-arrow-down"></i>' : '<i class="bi bi-arrow-up"></i>';
-        console.log("Setting main button HTML:", `${buttonBaseText} ${buttonArrowHtml}`);
         sortButton.innerHTML = `${buttonBaseText} ${buttonArrowHtml}`;
 
         // Optional: If foundActive is false, it means currentSortType isn't a valid option in the menu.
         // For this application, currentSortType is initialized to 'set' which is in the menu,
         // and sort clicks only set it to other valid menu options, so this case should ideally not be reached.
         if (!foundActive) {
-            console.warn("Current sort type '" + currentSortType + "' does not match any dropdown menu item.");
         }
     }
 
@@ -5370,7 +4683,6 @@
             };
         } else {
             // Fallback or error if the global variables aren't set
-            console.warn("Authentication status global variables (window.IS_USER_AUTHENTICATED) not found. Assuming user is not authenticated. Ensure Flask injects this into the page.");
             return { isAuthenticated: false, user: null }; // Assume not authenticated if check fails
         }
     }
@@ -5381,7 +4693,6 @@
         const googleSignInBtn = document.getElementById('loginToSaveModal_googleBtn');
 
         if (!modal || !closeBtn || !googleSignInBtn) {
-            console.error("Login to Save Modal elements not found!");
             // Fallback to a simple confirm if modal is somehow broken
             if (confirm("You need to sign in with Google to save your deck. Your deck progress has been remembered. Proceed to Google Sign-In?")) {
                 deckSaved = true; // Temporarily mark as saved to bypass unload warning
@@ -5409,11 +4720,9 @@
         closeBtn.onclick = closeModalAndCleanup;
 
         googleSignInBtn.onclick = function() {
-        console.log("Modal 'Sign in with Google & Save' button clicked.");
         deckSaved = true; // To bypass the beforeunload warning
 
         const currentDeckBuilderUrl = window.location.pathname + window.location.search;
-        console.log("[MODAL_DEBUG] Current deck builder URL to be stored:", currentDeckBuilderUrl);
 
         // Step 1: Asynchronously store the currentDeckBuilderUrl in the session via our new endpoint
         fetch('/auth/store-intended-redirect', { // Path to your new Flask route
@@ -5434,16 +4743,13 @@
         })
         .then(data => {
             if (data.success) {
-                console.log("[MODAL_DEBUG] Successfully stored intended redirect URL in session.");
                 // Step 2: Now redirect to Google login.
                 // The `?next=` parameter on this Google login URL is now less critical for *your* app's redirect logic,
                 // as `custom_login_next_url` is set. However, it's good practice to still include it,
                 // as Flask-Dance might use it for its own internal state or if its behavior changes.
                 const googleLoginUrl = `/login/google?next=${encodeURIComponent(currentDeckBuilderUrl)}`;
-                console.log("[MODAL_DEBUG] Redirecting to Google login:", googleLoginUrl);
                 window.location.href = googleLoginUrl;
             } else {
-                console.error("[MODAL_DEBUG] Failed to store intended redirect URL:", data.error || "Unknown error");
                 alert("Could not prepare for login. You may be redirected to the homepage after signing in.");
                 // Fallback: proceed to Google login anyway, hoping for the best or default redirect.
                 const googleLoginUrl = `/login/google?next=${encodeURIComponent(currentDeckBuilderUrl)}`;
@@ -5451,7 +4757,6 @@
             }
         })
         .catch(error => {
-            console.error("[MODAL_DEBUG] Error calling /auth/store-intended-redirect:", error);
             alert("An error occurred while preparing for login. You might be redirected to the homepage after signing in.");
             // Fallback redirect in case of network error etc.
             const googleLoginUrl = `/login/google?next=${encodeURIComponent(currentDeckBuilderUrl)}`;
@@ -5476,22 +4781,19 @@
         // A deck is considered pristine/empty if it has no cards, no name, and no energies selected.
         // This typically represents the initial state of a new deck or a completely cleared deck.
         if (hasNoCards && hasNoName && hasNoEnergies) {
-            console.log("isDeckPristineOrEmpty: Deck is considered pristine or empty.");
             return true;
         }
-        console.log("isDeckPristineOrEmpty: Deck has content or a name/energies.");
         return false;
     }
 
     // In your Deck Builder's JavaScript
     function setCoverCardStarVisuals() {
-        const deckSlotsContainer = document.getElementById('current-deck');
-        if (!deckSlotsContainer) {
-            console.error("setCoverCardStarVisuals: Deck container 'current-deck' not found!");
+        const deckContainer = document.getElementById('current-deck');
+        if (!deckContainer) {
             return;
         }
 
-        const starButtons = deckSlotsContainer.querySelectorAll('.btn-favorite'); // These are the star buttons in your rendered deck slots
+        const starButtons = deckContainer.querySelectorAll('.btn-favorite'); // These are the star buttons in your rendered deck slots
         
         // Iterate through each star button in the deck display
         starButtons.forEach(starBtn => {
@@ -5508,8 +4810,8 @@
             }
 
             // Check if this card's ID is in our list of selected cover card IDs
-            // Ensure consistent type for indexOf, assuming selectedCoverCardIds stores strings
-            const indexOfThisCardInSelection = selectedCoverCardIds.indexOf(cardIdInSlot.toString()); 
+            // Ensure consistent type for indexOf, assuming coverCardIds stores strings
+            const indexOfThisCardInSelection = coverCardIds.indexOf(cardIdInSlot.toString()); 
 
             if (indexOfThisCardInSelection > -1) {
                 // This card IS one of the selected cover cards.
@@ -5539,9 +4841,7 @@
             }
         });
 
-        // console.log("setCoverCardStarVisuals: Visuals updated. Selected IDs:", selectedCoverCardIds);
     }
-
     
 </script>
 {% endblock %}
