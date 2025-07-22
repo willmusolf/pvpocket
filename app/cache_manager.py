@@ -88,11 +88,29 @@ class CacheManager:
             if cached_data:
                 collection = pickle.loads(cached_data)
                 print(f"✅ CACHE HIT: Retrieved {len(collection)} cards from cache")
+                # Record cache hit
+                try:
+                    from .monitoring import performance_monitor
+                    performance_monitor.metrics.record_cache_hit("card_collection")
+                except ImportError:
+                    pass
                 return collection
             print(f"⚠️ CACHE MISS: Card collection not found in cache")
+            # Record cache miss
+            try:
+                from .monitoring import performance_monitor
+                performance_monitor.metrics.record_cache_miss("card_collection")
+            except ImportError:
+                pass
             return None
         except Exception as e:
             print(f"❌ CACHE ERROR: Error retrieving card collection: {e}")
+            # Record cache error
+            try:
+                from .monitoring import performance_monitor
+                performance_monitor.metrics.record_cache_error("card_collection")
+            except ImportError:
+                pass
             return None
     
     def set_card_collection(self, collection: CardCollection, cache_key: str = "global_cards", ttl_hours: int = 24) -> bool:
@@ -111,11 +129,26 @@ class CacheManager:
             cached_data = self.client.get(f"user:{user_id}")
             if cached_data:
                 print(f"✅ USER CACHE HIT: Retrieved data for user {user_id[:8]}...")
+                try:
+                    from .monitoring import performance_monitor
+                    performance_monitor.metrics.record_cache_hit("user_data")
+                except ImportError:
+                    pass
                 return json.loads(cached_data)
             print(f"⚠️ USER CACHE MISS: No cached data for user {user_id[:8]}...")
+            try:
+                from .monitoring import performance_monitor
+                performance_monitor.metrics.record_cache_miss("user_data")
+            except ImportError:
+                pass
             return None
         except Exception as e:
             print(f"❌ USER CACHE ERROR: Error retrieving user data: {e}")
+            try:
+                from .monitoring import performance_monitor
+                performance_monitor.metrics.record_cache_error("user_data")
+            except ImportError:
+                pass
             return None
     
     def set_user_data(self, user_id: str, user_data: Dict, ttl_minutes: int = 30) -> bool:

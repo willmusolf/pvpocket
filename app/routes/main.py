@@ -45,13 +45,35 @@ def health_check():
         }), 500
 
 
+@main_bp.route("/metrics")
+def get_metrics():
+    """Get comprehensive application metrics."""
+    try:
+        from ..cache_manager import cache_manager
+        from ..monitoring import performance_monitor
+        
+        # Comprehensive metrics
+        metrics = {
+            "cache_healthy": cache_manager.health_check(),
+            "performance": performance_monitor.get_dashboard_data(),
+            "timestamp": datetime.utcnow().isoformat(),
+            "app_version": current_app.config.get("VERSION", "unknown")
+        }
+        
+        return jsonify(metrics), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @main_bp.route("/")
 def index():
     db = current_app.config.get("FIRESTORE_DB")  # Get Firestore client
 
-    # Get card collection from app config (still from CardCollection loaded in memory)
-    card_collection = current_app.config.get("card_collection", [])
-    total_cards = len(card_collection)
+    # Get card collection from cache manager for better performance tracking
+    from ..services import card_service
+    card_collection = card_service.get_card_collection()
+    total_cards = len(card_collection) if card_collection else 0
 
     # --- Get Total Users from Firestore ---
     total_users = 0
