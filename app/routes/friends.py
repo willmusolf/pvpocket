@@ -69,6 +69,67 @@ def friends_page():
     )
 
 
+@friends_bp.route("/api/friends", methods=["GET"])
+@login_required
+def get_friends_api():
+    """API endpoint to get friends with pagination support."""
+    db = current_app.config.get("FIRESTORE_DB")
+    user_id = flask_login_current_user.id
+    
+    try:
+        # Get pagination parameters
+        try:
+            page = max(1, int(request.args.get("page", 1)))
+            limit = min(max(1, int(request.args.get("limit", 20))), 100)  # Max 100 friends per page, default 20
+        except ValueError:
+            return jsonify({"error": "Invalid pagination parameters", "friends": []}), 400
+        
+        offset = (page - 1) * limit
+        
+        # Get all friend documents
+        friends_ref = (
+            db.collection("users").document(user_id).collection("friends").stream()
+        )
+        
+        # Convert to list and sort by friended_at (most recent first)
+        all_friends = []
+        for friend in friends_ref:
+            friend_data = friend.to_dict()
+            user_info = _get_user_snapshot(friend.id)
+            if user_info:
+                user_info['friended_at'] = friend_data.get('friended_at')
+                all_friends.append(user_info)
+        
+        # Sort by friended_at (most recent first), then by username
+        all_friends.sort(key=lambda f: (
+            f.get('friended_at') or datetime.datetime.min, 
+            f.get('username', '').lower()
+        ), reverse=True)
+        
+        # Apply pagination
+        total_count = len(all_friends)
+        paginated_friends = all_friends[offset:offset + limit]
+        has_more = offset + limit < total_count
+        
+        # Remove friended_at from response (internal field)
+        for friend in paginated_friends:
+            friend.pop('friended_at', None)
+        
+        return jsonify({
+            "friends": paginated_friends,
+            "pagination": {
+                "current_page": page,
+                "total_count": total_count,
+                "has_more": has_more,
+                "page_size": limit
+            }
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"Error in get_friends_api for user {user_id}: {e}")
+        return jsonify({"error": "An internal error occurred.", "friends": []}), 500
+
+
 @friends_bp.route("/search", methods=["POST"])
 @login_required
 def search_users():
@@ -258,14 +319,15 @@ def view_friend_decks(user_id):
     
     # Get friend's public decks
     card_collection = card_service.get_card_collection()
-    # Simplified query to avoid index requirement - we'll sort in memory
+    # Get all public decks for this user
     decks_query = (
         db.collection("decks")
         .where("owner_id", "==", user_id)
         .where("is_public", "==", True)
     )
     
-    friend_decks = []
+    # Collect all decks first for sorting and pagination
+    all_decks = []
     for deck_doc in decks_query.stream():
         try:
             deck = Deck.from_firestore_doc(deck_doc, card_collection)
@@ -341,18 +403,163 @@ def view_friend_decks(user_id):
             
             # Add resolved cover cards to the deck object
             deck.resolved_cover_cards = resolved_cover_cards
-            friend_decks.append(deck)
+            all_decks.append(deck)
         except Exception as e:
             current_app.logger.error(f"Error loading deck {deck_doc.id}: {e}")
     
-    # Sort by shared_at in memory (most recent first)
-    friend_decks.sort(key=lambda deck: deck.shared_at or deck.created_at or datetime.datetime.min, reverse=True)
+    # Sort by created_at in memory (most recent first)
+    all_decks.sort(key=lambda deck: deck.created_at or datetime.datetime.min, reverse=True)
+    
+    # For initial page load, show up to 12 decks
+    displayed_decks = all_decks[:12]
     
     return render_template(
         "friend_decks.html", 
         friend=friend_info, 
-        decks=friend_decks
+        decks=displayed_decks,
+        total_decks=len(all_decks)
     )
+
+
+@friends_bp.route("/<user_id>/decks/api", methods=["GET"])
+@login_required
+def get_friend_decks_api(user_id):
+    """API endpoint to get friend's public decks with pagination support."""
+    db = current_app.config.get("FIRESTORE_DB")
+    current_user_id = flask_login_current_user.id
+    
+    try:
+        # Get pagination parameters
+        try:
+            page = max(1, int(request.args.get("page", 1)))
+            limit = min(max(1, int(request.args.get("limit", 12))), 50)  # Max 50 decks per page, default 12
+        except ValueError:
+            return jsonify({"error": "Invalid pagination parameters", "decks": []}), 400
+        
+        offset = (page - 1) * limit
+        
+        # Check if user_id is a friend
+        friend_doc = db.collection("users").document(current_user_id).collection("friends").document(user_id).get()
+        if not friend_doc.exists:
+            return jsonify({"error": "You can only view decks of your friends.", "decks": []}), 403
+        
+        # Get friend's public decks
+        card_collection = card_service.get_card_collection()
+        decks_query = (
+            db.collection("decks")
+            .where("owner_id", "==", user_id)
+            .where("is_public", "==", True)
+        )
+        
+        # Collect all decks first for sorting and pagination
+        all_decks = []
+        for deck_doc in decks_query.stream():
+            try:
+                deck = Deck.from_firestore_doc(deck_doc, card_collection)
+                
+                # Resolve cover cards similar to friends.py
+                resolved_cover_cards = []
+                seen_card_ids = set()
+                if deck.cover_card_ids and card_collection:
+                    for c_id_str in deck.cover_card_ids:
+                        if c_id_str and c_id_str not in seen_card_ids:
+                            try:
+                                card_obj = card_collection.get_card_by_id(int(c_id_str))
+                                if card_obj:
+                                    # Get the correct base URL from the app's central config
+                                    base_url = current_app.config['ASSET_BASE_URL']
+                                    
+                                    # Get the original image path
+                                    image_path = getattr(card_obj, "firebase_image_url", None)
+                                    
+                                    if image_path:
+                                        # Same URL processing logic as in friends.py
+                                        if image_path.startswith('https://cdn.pvpocket.xyz'):
+                                            firebase_image_url = image_path
+                                        elif (image_path.startswith('https://') and 
+                                              not base_url.startswith('https://cdn.pvpocket.xyz')):
+                                            firebase_image_url = image_path
+                                        elif (image_path.startswith('https://') and 
+                                              base_url.startswith('https://cdn.pvpocket.xyz')):
+                                            # Extract relative path from Firebase URLs
+                                            relative_path = None
+                                            if 'firebasestorage.googleapis.com' in image_path and '/o/' in image_path:
+                                                # Extract the path after /o/
+                                                path_part = image_path.split('/o/', 1)[1].split('?')[0]
+                                                # URL decode the path
+                                                from urllib.parse import unquote
+                                                relative_path = unquote(path_part)
+                                            elif 'storage.googleapis.com' in image_path:
+                                                # Extract path from Google Cloud Storage URLs
+                                                if 'pvpocket-dd286.firebasestorage.app/' in image_path:
+                                                    relative_path = image_path.split('pvpocket-dd286.firebasestorage.app/', 1)[1]
+                                            
+                                            if relative_path:
+                                                firebase_image_url = f"{base_url}/{relative_path}"
+                                            else:
+                                                firebase_image_url = image_path
+                                        else:
+                                            if base_url.startswith('https://cdn.pvpocket.xyz'):
+                                                # For CDN, the path is direct and clean
+                                                clean_path = image_path.lstrip('/')
+                                                firebase_image_url = f"{base_url}/{clean_path}"
+                                            else: 
+                                                # For local development (Firebase), the path needs URL encoding and a suffix
+                                                from urllib.parse import quote
+                                                clean_path = image_path.lstrip('/')
+                                                encoded_path = quote(clean_path, safe='')
+                                                firebase_image_url = f"{base_url}/{encoded_path}?alt=media"
+                                    else:
+                                        firebase_image_url = image_path
+                                        
+                                    resolved_cover_cards.append({
+                                        "name": getattr(card_obj, "name", "N/A"),
+                                        "firebase_image_url": firebase_image_url,
+                                    })
+                                    seen_card_ids.add(c_id_str)
+                                    # Limit to 3 cover cards maximum
+                                    if len(resolved_cover_cards) >= 3:
+                                        break
+                            except (ValueError, TypeError):
+                                pass
+                
+                # Convert deck to JSON-serializable format
+                deck_data = {
+                    "id": deck.id,
+                    "name": deck.name,
+                    "deck_types": deck.deck_types,
+                    "card_count": len(deck.cards),
+                    "description": deck.description or "",
+                    "resolved_cover_cards": resolved_cover_cards,
+                    "created_at": deck.created_at,
+                    "updated_at": deck.updated_at
+                }
+                all_decks.append(deck_data)
+                
+            except Exception as e:
+                current_app.logger.error(f"Error loading deck {deck_doc.id}: {e}")
+        
+        # Sort by created_at (most recent first)
+        all_decks.sort(key=lambda deck: deck.get("created_at") or datetime.datetime.min, reverse=True)
+        
+        # Apply pagination
+        total_count = len(all_decks)
+        paginated_decks = all_decks[offset:offset + limit]
+        has_more = offset + limit < total_count
+        
+        return jsonify({
+            "decks": paginated_decks,
+            "pagination": {
+                "current_page": page,
+                "total_count": total_count,
+                "has_more": has_more,
+                "page_size": limit
+            }
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"Error in get_friend_decks_api for user {user_id}: {e}")
+        return jsonify({"error": "An internal error occurred.", "decks": []}), 500
 
 
 @friends_bp.route("/<user_id>/profile")

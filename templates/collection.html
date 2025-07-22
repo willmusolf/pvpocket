@@ -478,6 +478,32 @@
         }
     }
 
+    /* Loading indicator styles */
+    .load-more-indicator {
+        padding: 1rem;
+        border-radius: 8px;
+        background-color: var(--settings-bg, #f8f9fa);
+        border: 1px solid var(--border-color, #dee2e6);
+        margin: 1rem 0;
+        transition: all 0.2s ease;
+    }
+
+    .load-more-text {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--text-color, #6c757d);
+    }
+
+    /* Dark mode compatibility for loading indicators */
+    [data-theme="dark"] .load-more-indicator {
+        background-color: var(--settings-bg, #343a40);
+        border-color: var(--border-color, #495057);
+    }
+
+    [data-theme="dark"] .load-more-text {
+        color: var(--bs-gray-400, #adb5bd) !important;
+    }
+
 </style>
 
 <div class="collection-main-content">
@@ -545,6 +571,12 @@
         energyTypes: [],
         privacyFilter: 'all'
     };
+    
+    // Pagination variables
+    let currentPage = 1;
+    let isLoading = false;
+    let hasMoreDecks = true;
+    let totalDecks = 0;
 
     function escapeHTML(str) {
         if (str === null || str === undefined) return '';
@@ -636,6 +668,148 @@
             });
         }, { rootMargin: '250px' });
         document.querySelectorAll('.cover-card-image-wrapper img[data-src]').forEach(img => imageObserver.observe(img));
+    }
+
+    async function loadDecksPage(page = 1, append = false) {
+        if (isLoading) return;
+        
+        isLoading = true;
+        const decksContainer = document.getElementById('decks-container');
+        
+        if (!append) {
+            // Show loading spinner for initial load
+            decksContainer.innerHTML = `<div class="col-12 text-center p-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>`;
+        }
+
+        try {
+            const response = await fetch(`${window.pageData.api_url}?page=${page}&limit=12`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            
+            const data = await response.json();
+            
+            if (!append) {
+                // Clear container for fresh load
+                decksContainer.innerHTML = '';
+                allDecks = [];
+            }
+            
+            if (data.decks && data.decks.length > 0) {
+                // Add new decks to the array
+                allDecks = append ? [...allDecks, ...data.decks] : data.decks;
+                
+                // Add deck HTML to container
+                data.decks.forEach(deck => {
+                    const deckCardHTML = createDeckCardHTML(deck, window.pageData);
+                    decksContainer.insertAdjacentHTML('beforeend', deckCardHTML);
+                });
+                
+                // Update pagination state
+                hasMoreDecks = data.pagination.has_more;
+                totalDecks = data.pagination.total_count;
+                currentPage = page;
+                
+                // Add "no results" message container if not exists
+                if (!document.getElementById('no-results-message')) {
+                    decksContainer.insertAdjacentHTML('beforeend', `
+                        <div id="no-results-message" class="col-12 text-center p-5" style="display: none;">
+                            <p class="h5">No decks match your current filters.</p>
+                        </div>
+                    `);
+                }
+                
+                // Set up infinite scroll for more decks
+                if (hasMoreDecks) {
+                    setupInfiniteScroll();
+                }
+                
+                // Initialize image lazy loading and filters
+                initializeImageLazyLoader();
+                if (!append) {
+                    setupFilterListeners();
+                }
+                
+                // Initialize tooltips for new elements
+                const tooltipTriggerList = [].slice.call(decksContainer.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                tooltipTriggerList.forEach(tooltipTriggerEl => {
+                    new bootstrap.Tooltip(tooltipTriggerEl);
+                });
+                
+            } else if (!append) {
+                // No decks at all
+                decksContainer.innerHTML = `<div class="col-12"><div class="alert alert-info"><p>You don't have any decks yet. <a href="${window.pageData.deck_builder_url}">Create your first deck!</a></p></div></div>`;
+                hasMoreDecks = false;
+            }
+            
+        } catch (error) {
+            console.error('Error loading decks:', error);
+            if (!append) {
+                decksContainer.innerHTML = `<div class="col-12"><div class="alert alert-danger">Could not load decks. Please try again later.</div></div>`;
+            }
+        } finally {
+            isLoading = false;
+        }
+    }
+
+    function setupInfiniteScroll() {
+        // Remove existing observer if any
+        if (window.deckScrollObserver) {
+            window.deckScrollObserver.disconnect();
+        }
+        
+        // Create or update the scroll sentinel with loading indicator
+        let scrollSentinel = document.getElementById('deck-scroll-sentinel');
+        if (!scrollSentinel) {
+            scrollSentinel = document.createElement('div');
+            scrollSentinel.id = 'deck-scroll-sentinel';
+            scrollSentinel.className = 'col-12 text-center py-3';
+            scrollSentinel.innerHTML = `
+                <div class="load-more-indicator">
+                    <div class="d-flex align-items-center justify-content-center">
+                        <div class="spinner-border spinner-border-sm text-primary me-2" role="status" style="display: none;">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <span class="load-more-text text-muted">Scroll for more decks</span>
+                    </div>
+                </div>
+            `;
+            document.getElementById('decks-container').appendChild(scrollSentinel);
+        }
+        
+        // Set up intersection observer for infinite scroll
+        window.deckScrollObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting && hasMoreDecks && !isLoading) {
+                    console.log('Loading next page of decks...');
+                    
+                    // Show loading spinner
+                    const spinner = scrollSentinel.querySelector('.spinner-border');
+                    const text = scrollSentinel.querySelector('.load-more-text');
+                    spinner.style.display = 'inline-block';
+                    text.textContent = 'Loading more decks...';
+                    
+                    loadDecksPage(currentPage + 1, true).then(() => {
+                        // Hide loading spinner after load
+                        spinner.style.display = 'none';
+                        text.textContent = hasMoreDecks ? 'Scroll for more decks' : 'All decks loaded';
+                        
+                        // Hide the entire indicator if no more decks
+                        if (!hasMoreDecks) {
+                            setTimeout(() => {
+                                scrollSentinel.style.display = 'none';
+                            }, 2000);
+                        }
+                    }).catch(() => {
+                        // Hide spinner on error
+                        spinner.style.display = 'none';
+                        text.textContent = 'Error loading more decks';
+                    });
+                }
+            });
+        }, {
+            rootMargin: '100px' // Load more when sentinel is 100px from viewport
+        });
+        
+        window.deckScrollObserver.observe(scrollSentinel);
     }
 
     function applyFilters() {
@@ -742,42 +916,11 @@
 
         const pageData = JSON.parse(pageDataEl.textContent);
 
-        decksContainer.innerHTML = `<div class="col-12 text-center p-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>`;
-
-        fetch(pageData.api_url)
-            .then(response => response.ok ? response.json() : Promise.reject(response))
-            .then(data => {
-                decksContainer.innerHTML = '';
-
-                if (data.decks && data.decks.length > 0) {
-                    allDecks = data.decks;
-                    allDecks.forEach(deck => {
-                        const deckCardHTML = createDeckCardHTML(deck, pageData);
-                        decksContainer.insertAdjacentHTML('beforeend', deckCardHTML);
-                    });
-                    
-                    decksContainer.insertAdjacentHTML('beforeend', `
-                        <div id="no-results-message" class="col-12 text-center p-5" style="display: none;">
-                            <p class="h5">No decks match your current filters.</p>
-                        </div>
-                    `);
-
-                    initializeImageLazyLoader();
-                    setupFilterListeners();
-                    
-                    // Initialize tooltips for description icons
-                    var tooltipTriggerList2 = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-                    var tooltipList2 = tooltipTriggerList2.map(function (tooltipTriggerEl) {
-                        return new bootstrap.Tooltip(tooltipTriggerEl);
-                    });
-                } else {
-                    decksContainer.innerHTML = `<div class="col-12"><div class="alert alert-info"><p>You don't have any decks yet. <a href="${pageData.deck_builder_url}">Create your first deck!</a></p></div></div>`;
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching decks:', error);
-                decksContainer.innerHTML = `<div class="col-12"><div class="alert alert-danger">Could not load decks. Please try again later.</div></div>`;
-            });
+        // Store pageData globally for other functions to use
+        window.pageData = pageData;
+        
+        // Load first page of decks
+        loadDecksPage(1, false);
 
         document.body.addEventListener('click', function(event) {
             const deleteLink = event.target.closest('.deck-action-delete');

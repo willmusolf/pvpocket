@@ -96,12 +96,14 @@ def parse_search_keywords(search_text: str) -> Dict[str, any]:
         
     current_search = search_text.lower().strip()
     
+    # Collect all potential stage types found in the search
+    found_stage_types = []
+    
     # Check multi-word keywords first (longer matches take precedence)
     for keyword, filter_value in multi_word_stage_keywords.items():
         if keyword in current_search:
-            result['stage_type'] = filter_value
+            found_stage_types.append(filter_value)
             current_search = current_search.replace(keyword, '').strip()
-            break
     
     # Split remaining text into terms for single-word keyword matching
     terms = current_search.split()
@@ -124,10 +126,10 @@ def parse_search_keywords(search_text: str) -> Dict[str, any]:
             result['card_type'] = card_type_keywords[term]
             keyword_matched = True
             
-        # Check stage type keywords (if not already set by multi-word)
-        elif not result['stage_type'] and term in single_word_stage_keywords:
-            result['stage_type'] = single_word_stage_keywords[term]
-            keyword_matched = True
+        # Check stage type keywords
+        elif term in single_word_stage_keywords:
+            found_stage_types.append(single_word_stage_keywords[term])
+            # Don't mark as keyword yet - we'll decide later based on stage type count
             
         # Check rarity keywords
         elif term in rarity_keywords:
@@ -148,6 +150,30 @@ def parse_search_keywords(search_text: str) -> Dict[str, any]:
         # If no keyword matched, keep as search text
         if not keyword_matched:
             remaining_terms.append(term)
+    
+    # Only set stage type filter if exactly one stage type was found
+    # If multiple stage types are found, add them back to search text
+    if len(found_stage_types) == 1:
+        result['stage_type'] = found_stage_types[0]
+        # Remove stage type terms from remaining_terms since we're using them as filters
+        remaining_terms = [term for term in remaining_terms if term not in single_word_stage_keywords]
+    elif len(found_stage_types) > 1:
+        # Add stage type terms back to search text for text-based matching
+        original_terms = search_text.lower().split()
+        stage_terms = []
+        
+        # Add back multi-word phrases that were found
+        for keyword in multi_word_stage_keywords:
+            if keyword in search_text.lower():
+                stage_terms.append(keyword)
+                
+        # Add back single-word stage terms that aren't already in remaining_terms
+        for term in original_terms:
+            if term in single_word_stage_keywords and term not in remaining_terms:
+                stage_terms.append(term)
+                
+        # Add stage terms to remaining terms for text search
+        remaining_terms.extend(stage_terms)
     
     # Join remaining terms back into search text
     result['remaining_text'] = ' '.join(remaining_terms).strip()
@@ -583,9 +609,29 @@ def get_cards_paginated():
         # Apply remaining text as name filter (after keyword extraction)
         if parsed_keywords['remaining_text']:
             remaining_text = parsed_keywords['remaining_text'].lower()
+            search_terms = remaining_text.split()
+            
+            def card_matches_search_terms(card):
+                # Create a searchable text from card fields, excluding "evolves from" information
+                card_type_text = ""
+                if card.card_type:
+                    card_type_text = card.card_type.lower()
+                    # Remove "Evolves from X" part from card_type to avoid unwanted matches
+                    if "evolves from" in card_type_text:
+                        card_type_text = card_type_text.split("evolves from")[0].strip()
+                
+                searchable_text = " ".join(filter(None, [
+                    card.name.lower() if card.name else "",
+                    card_type_text,
+                    card.energy_type.lower() if card.energy_type else ""
+                ]))
+                
+                # Check if all search terms are found in the searchable text
+                return all(term in searchable_text for term in search_terms)
+            
             filtered_card_objects = [
                 card for card in filtered_card_objects
-                if card.name and remaining_text in card.name.lower()
+                if card_matches_search_terms(card)
             ]
         
         # Apply exclude_ex filter if requested

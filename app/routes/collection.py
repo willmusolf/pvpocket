@@ -152,42 +152,63 @@ def view_collection():
 @login_required
 def get_user_decks_api():
     """
-    API endpoint to fetch, process, and return all of a user's decks as JSON.
-    This uses the original, reliable one-by-one fetch method.
+    API endpoint to fetch, process, and return user's decks as JSON with pagination support.
     """
     db = current_app.config.get("FIRESTORE_DB")
     if not db:
         return jsonify({"error": "Database service unavailable.", "decks": []}), 503
 
     try:
+        # Get pagination parameters
+        try:
+            page = max(1, int(request.args.get("page", 1)))
+            limit = min(max(1, int(request.args.get("limit", 12))), 50)  # Max 50 decks per page, default 12
+        except ValueError:
+            return jsonify({"error": "Invalid pagination parameters", "decks": []}), 400
+        
+        offset = (page - 1) * limit
+
         current_user_app_id = str(flask_login_current_user.id)
         user_doc_ref = db.collection("users").document(current_user_app_id)
         user_doc = user_doc_ref.get()
 
         if not user_doc.exists:
-            return jsonify({"error": "User not found", "decks": []}), 404
+            return jsonify({"error": "User not found", "decks": [], "pagination": {"has_more": False}}), 404
 
         user_deck_ids = user_doc.to_dict().get("deck_ids", [])
         if not user_deck_ids:
-            return jsonify({"decks": []})
+            return jsonify({"decks": [], "pagination": {"current_page": page, "total_count": 0, "has_more": False}})
 
-        # Use a single batch request to fetch all deck documents at once.
+        # Get all deck documents first to sort by updated_at
         deck_refs = [
             db.collection("decks").document(deck_id)
             for deck_id in user_deck_ids
             if deck_id
         ]
-        deck_docs = db.get_all(deck_refs)
+        all_deck_docs = db.get_all(deck_refs)
+
+        # Sort all decks by updated_at (most recent first)
+        valid_decks = []
+        for deck_doc in all_deck_docs:
+            if deck_doc.exists:
+                deck_data = deck_doc.to_dict()
+                valid_decks.append((deck_doc, deck_data))
+
+        default_time = datetime.min.replace(tzinfo=timezone.utc)
+        valid_decks.sort(
+            key=lambda item: item[1].get("updated_at", default_time), reverse=True
+        )
+
+        # Apply pagination after sorting
+        total_count = len(valid_decks)
+        paginated_decks = valid_decks[offset:offset + limit]
+        has_more = offset + limit < total_count
 
         user_decks_details = []
         card_collection_obj = card_service.get_card_collection()
         meta_stats = current_app.config.get("meta_stats", {})
 
-        for deck_doc in deck_docs:
-            if not deck_doc.exists:
-                continue
-
-            deck_data = deck_doc.to_dict()
+        for deck_doc, deck_data in paginated_decks:
             deck_id_str = deck_doc.id
 
             win_rate = None
@@ -282,12 +303,15 @@ def get_user_decks_api():
                 }
             )
 
-        default_time = datetime.min.replace(tzinfo=timezone.utc)
-        user_decks_details.sort(
-            key=lambda deck: deck.get("updated_at", default_time), reverse=True
-        )
-
-        return jsonify(decks=user_decks_details)
+        return jsonify({
+            "decks": user_decks_details,
+            "pagination": {
+                "current_page": page,
+                "total_count": total_count,
+                "has_more": has_more,
+                "page_size": limit
+            }
+        })
 
     except Exception as e:
         print(

@@ -156,6 +156,32 @@
         }
     }
 
+    /* Loading indicator styles */
+    .load-more-indicator {
+        padding: 1rem;
+        border-radius: 8px;
+        background-color: var(--card-bg, #ffffff);
+        border: 1px solid var(--border-color, #dee2e6);
+        margin: 1rem 0;
+        transition: all 0.2s ease;
+    }
+
+    .load-more-text {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--text-color, #6c757d);
+    }
+
+    /* Dark mode compatibility for loading indicators */
+    [data-theme="dark"] .load-more-indicator {
+        background-color: var(--card-bg, #2d3748);
+        border-color: var(--border-color, #4a5568);
+    }
+
+    [data-theme="dark"] .load-more-text {
+        color: var(--bs-gray-400, #adb5bd) !important;
+    }
+
 </style>
 {% endblock %}
 
@@ -273,6 +299,12 @@
         {% for user in received_requests %}
             receivedRequestIds.add('{{ user.id }}');
         {% endfor %}
+        
+        // Pagination variables for friends list
+        let currentFriendsPage = 1;
+        let isLoadingFriends = false;
+        let hasMoreFriends = true;
+        let totalFriendsCount = {{ friends|length }};
 
         const performSearch = async (query) => {
             if (query.length < 3) {
@@ -319,6 +351,130 @@
             }
             searchResultsContainers.forEach(c => c.innerHTML = finalHtml);
         };
+
+        async function loadFriendsPage(page = 1, append = false) {
+            if (isLoadingFriends) return;
+            
+            isLoadingFriends = true;
+            
+            if (!append) {
+                // Show loading state for initial load
+                friendsListContainer.innerHTML = '<div class="text-center p-3"><div class="spinner-border spinner-border-sm text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+            }
+
+            try {
+                const response = await fetch(`{{ url_for('friends.get_friends_api') }}?page=${page}&limit=20`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const data = await response.json();
+                
+                if (!append) {
+                    // Clear container for fresh load
+                    friendsListContainer.innerHTML = '';
+                    friendIds.clear();
+                }
+                
+                if (data.friends && data.friends.length > 0) {
+                    // Add friends to the container
+                    data.friends.forEach(user => {
+                        const friendHTML = createFriendEntryHTML(user);
+                        friendsListContainer.insertAdjacentHTML('beforeend', friendHTML);
+                        friendIds.add(user.id);
+                    });
+                    
+                    // Update pagination state
+                    hasMoreFriends = data.pagination.has_more;
+                    totalFriendsCount = data.pagination.total_count;
+                    currentFriendsPage = page;
+                    
+                    // Update friends count display
+                    friendsCountSpan.textContent = totalFriendsCount;
+                    
+                    // Set up infinite scroll if we have more friends
+                    if (hasMoreFriends) {
+                        setupFriendsInfiniteScroll();
+                    }
+                    
+                    // Store friend entries for search functionality
+                    storeFriendEntries();
+                    
+                } else if (!append) {
+                    // No friends at all
+                    friendsListContainer.innerHTML = '<p class="text-muted mb-0">You haven\'t added any friends yet. Use the search to find people!</p>';
+                    hasMoreFriends = false;
+                }
+                
+            } catch (error) {
+                console.error('Error loading friends:', error);
+                if (!append) {
+                    friendsListContainer.innerHTML = '<div class="alert alert-danger">Could not load friends. Please try again later.</div>';
+                }
+            } finally {
+                isLoadingFriends = false;
+            }
+        }
+
+        function setupFriendsInfiniteScroll() {
+            // Remove existing observer if any
+            if (window.friendsScrollObserver) {
+                window.friendsScrollObserver.disconnect();
+            }
+            
+            // Create or update the scroll sentinel with loading indicator
+            let scrollSentinel = document.getElementById('friends-scroll-sentinel');
+            if (!scrollSentinel) {
+                scrollSentinel = document.createElement('div');
+                scrollSentinel.id = 'friends-scroll-sentinel';
+                scrollSentinel.className = 'text-center py-3';
+                scrollSentinel.innerHTML = `
+                    <div class="load-more-indicator">
+                        <div class="d-flex align-items-center justify-content-center">
+                            <div class="spinner-border spinner-border-sm text-primary me-2" role="status" style="display: none;">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <span class="load-more-text text-muted">Scroll for more friends</span>
+                        </div>
+                    </div>
+                `;
+                friendsListContainer.appendChild(scrollSentinel);
+            }
+            
+            // Set up intersection observer for infinite scroll
+            window.friendsScrollObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting && hasMoreFriends && !isLoadingFriends) {
+                        console.log('Loading next page of friends...');
+                        
+                        // Show loading spinner
+                        const spinner = scrollSentinel.querySelector('.spinner-border');
+                        const text = scrollSentinel.querySelector('.load-more-text');
+                        spinner.style.display = 'inline-block';
+                        text.textContent = 'Loading more friends...';
+                        
+                        loadFriendsPage(currentFriendsPage + 1, true).then(() => {
+                            // Hide loading spinner after load
+                            spinner.style.display = 'none';
+                            text.textContent = hasMoreFriends ? 'Scroll for more friends' : 'All friends loaded';
+                            
+                            // Hide the entire indicator if no more friends
+                            if (!hasMoreFriends) {
+                                setTimeout(() => {
+                                    scrollSentinel.style.display = 'none';
+                                }, 2000);
+                            }
+                        }).catch(() => {
+                            // Hide spinner on error
+                            spinner.style.display = 'none';
+                            text.textContent = 'Error loading more friends';
+                        });
+                    }
+                });
+            }, {
+                rootMargin: '50px' // Load more when sentinel is 50px from viewport
+            });
+            
+            window.friendsScrollObserver.observe(scrollSentinel);
+        }
 
         // --- UPDATED: Attach listeners to both mobile and desktop elements ---
         searchBtns.forEach((btn, index) => {
@@ -524,7 +680,7 @@
 
         // Store all friend entries for filtering
         function storeFriendEntries() {
-            allFriendEntries = Array.from(friendsListContainer.querySelectorAll('.user-entry'));
+            allFriendEntries = Array.from(friendsListContainer.querySelectorAll('.user-entry:not(#friends-scroll-sentinel)'));
         }
 
         // Filter friends based on search query
@@ -561,9 +717,17 @@
             }
         }
 
-        // Initialize friend entries storage
-        if (allFriendEntries.length === 0) {
-            storeFriendEntries();
+        // Determine if we should use pagination or static loading
+        const shouldUsePagination = {{ friends|length }} > 20;
+        
+        if (shouldUsePagination) {
+            // Load friends via API with pagination
+            loadFriendsPage(1, false);
+        } else {
+            // Initialize friend entries storage for static list
+            if (allFriendEntries.length === 0) {
+                storeFriendEntries();
+            }
         }
 
         // Add search input event listener
@@ -573,15 +737,24 @@
                 
                 if (searchQuery.trim() === '') {
                     // Show all friends when search is empty
-                    allFriendEntries.forEach(entry => entry.style.display = '');
-                    friendsCountSpan.textContent = originalFriendsCount;
-                    
-                    // Remove no results message
-                    const existingNoResults = friendsListContainer.querySelector('.friends-no-results');
-                    if (existingNoResults) {
-                        existingNoResults.remove();
+                    if (shouldUsePagination) {
+                        // Reload first page to reset
+                        loadFriendsPage(1, false);
+                    } else {
+                        allFriendEntries.forEach(entry => entry.style.display = '');
+                        friendsCountSpan.textContent = originalFriendsCount;
+                        
+                        // Remove no results message
+                        const existingNoResults = friendsListContainer.querySelector('.friends-no-results');
+                        if (existingNoResults) {
+                            existingNoResults.remove();
+                        }
                     }
                 } else {
+                    if (shouldUsePagination) {
+                        // For paginated lists, we need to store all entries after they're loaded
+                        storeFriendEntries();
+                    }
                     filterFriends(searchQuery);
                 }
             });

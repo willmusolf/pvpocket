@@ -478,6 +478,32 @@
         color: #adb5bd !important;
     }
 
+    /* Loading indicator styles */
+    .load-more-indicator {
+        padding: 1rem;
+        border-radius: 8px;
+        background-color: var(--settings-bg, #f8f9fa);
+        border: 1px solid var(--border-color, #dee2e6);
+        margin: 1rem 0;
+        transition: all 0.2s ease;
+    }
+
+    .load-more-text {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--text-color, #6c757d);
+    }
+
+    /* Dark mode compatibility for loading indicators */
+    [data-theme="dark"] .load-more-indicator {
+        background-color: var(--settings-bg, #343a40);
+        border-color: var(--border-color, #495057);
+    }
+
+    [data-theme="dark"] .load-more-text {
+        color: var(--bs-gray-400, #adb5bd) !important;
+    }
+
 </style>
 
 <div class="collection-main-content">
@@ -572,9 +598,6 @@
                                            data-bs-placement="bottom"></i>
                                         {% endif %}
                                     </h5>
-                                    {% if deck.shared_at %}
-                                    <p class="text-muted small mb-0">Shared {{ deck.shared_at.strftime('%m/%d/%Y') }}</p>
-                                    {% endif %}
                                 </div>
                             </div>
                         </div>
@@ -606,12 +629,197 @@
         searchText: '',
         energyTypes: []
     };
+    
+    // Pagination variables
+    let currentPage = 1;
+    let isLoading = false;
+    let hasMoreDecks = {{ total_decks }} > 12;
+    let totalDecks = {{ total_decks }};
 
     function escapeHTML(str) {
         if (str === null || str === undefined) return '';
         return str.toString().replace(/[&<>"']/g, match => ({
             '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
         }[match]));
+    }
+
+    function createDeckHTML(deck, pageData) {
+        const energyIconsHTML = (deck.deck_types || []).map(type => {
+            const iconUrl = pageData.energy_icon_urls[type] || '';
+            return `<div class="energy-icon-wrapper"><img src="${escapeHTML(iconUrl)}" alt="${escapeHTML(type)}" class="energy-icon"></div>`;
+        }).join('');
+
+        const coverCardsHTML = (deck.resolved_cover_cards || []).map(cover => {
+            const imgPath = cover.firebase_image_url || '';
+            return `<div class="cover-card-image-wrapper"><img src="${escapeHTML(imgPath)}" alt="${escapeHTML(cover.name)}" title="${escapeHTML(cover.name)}"></div>`;
+        }).join('');
+
+        const notUsableHTML = deck.card_count < 20 ? '<div class="deck-not-full-overlay">DECK NOT USABLE</div>' : '';
+        const deckColumnId = `deck-col-${deck.id}`;
+        
+        return `
+            <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4" id="${deckColumnId}">
+                <div class="card h-100">
+                    <div class="card-body" style="padding: 1rem;">
+                        <div class="deck-header-right-actions">
+                            <div class="d-flex gap-2">
+                                <span class="badge bg-primary">${escapeHTML(deck.card_count)}/20 cards</span>
+                            </div>
+                            <div class="dropdown deck-actions-dropdown">
+                                <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Deck Actions"><i class="bi bi-three-dots-vertical"></i></button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="{{ url_for('collection_bp.view_collection') }}?copy_from_friend_deck=${escapeHTML(deck.id)}"><i class="bi bi-files me-2"></i>Make a copy</a></li>
+                                    <li><a class="dropdown-item" href="/deck/${escapeHTML(deck.id)}/export/image" target="_blank"><i class="bi bi-image me-2"></i>Export as Image</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="d-flex mb-2">${energyIconsHTML}</div>
+                        <div class="deck-cover-cards-area">${coverCardsHTML}${notUsableHTML}</div>
+                        <h5 class="card-title">
+                            ${escapeHTML(deck.name)}
+                            ${deck.description && deck.description.trim() ? `<i class="bi bi-info-circle ms-1 text-muted" 
+                               style="font-size: 0.8em; cursor: help;" 
+                               title="${escapeHTML(deck.description)}"
+                               data-bs-toggle="tooltip" 
+                               data-bs-placement="bottom"></i>` : ''}
+                        </h5>
+                    </div>
+                </div>
+            </div>`;
+    }
+
+    async function loadDecksPage(page = 1, append = false) {
+        if (isLoading) return;
+        
+        isLoading = true;
+        const decksContainer = document.getElementById('decks-container');
+        const pageData = JSON.parse(document.getElementById('page-data').textContent);
+        
+        if (!append) {
+            // Show loading spinner for initial load
+            decksContainer.innerHTML = `<div class="col-12 text-center p-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>`;
+        }
+
+        try {
+            const response = await fetch(`{{ url_for('friends.get_friend_decks_api', user_id=friend.id) }}?page=${page}&limit=12`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            
+            const data = await response.json();
+            
+            if (!append) {
+                // Clear container for fresh load
+                decksContainer.innerHTML = '';
+                allDecks = [];
+            }
+            
+            if (data.decks && data.decks.length > 0) {
+                // Add new decks to the array
+                allDecks = append ? [...allDecks, ...data.decks] : data.decks;
+                
+                // Add deck HTML to container
+                data.decks.forEach(deck => {
+                    const deckHTML = createDeckHTML(deck, pageData);
+                    decksContainer.insertAdjacentHTML('beforeend', deckHTML);
+                });
+                
+                // Update pagination state
+                hasMoreDecks = data.pagination.has_more;
+                totalDecks = data.pagination.total_count;
+                currentPage = page;
+                
+                // Set up infinite scroll for more decks
+                if (hasMoreDecks) {
+                    setupInfiniteScroll();
+                }
+                
+                // Initialize tooltips for new elements
+                const tooltipTriggerList = [].slice.call(decksContainer.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                tooltipTriggerList.forEach(tooltipTriggerEl => {
+                    new bootstrap.Tooltip(tooltipTriggerEl);
+                });
+                
+            } else if (!append) {
+                // No decks at all
+                decksContainer.innerHTML = `
+                    <div class="col-12">
+                        <div class="text-center py-5">
+                            <h4 class="text-muted">No Public Decks</h4>
+                            <p class="text-muted">${pageData.friend_username} hasn't shared any public decks yet.</p>
+                        </div>
+                    </div>`;
+                hasMoreDecks = false;
+            }
+            
+        } catch (error) {
+            console.error('Error loading decks:', error);
+            if (!append) {
+                decksContainer.innerHTML = `<div class="col-12"><div class="alert alert-danger">Could not load decks. Please try again later.</div></div>`;
+            }
+        } finally {
+            isLoading = false;
+        }
+    }
+
+    function setupInfiniteScroll() {
+        // Remove existing observer if any
+        if (window.friendDeckScrollObserver) {
+            window.friendDeckScrollObserver.disconnect();
+        }
+        
+        // Create or update the scroll sentinel with loading indicator
+        let scrollSentinel = document.getElementById('friend-deck-scroll-sentinel');
+        if (!scrollSentinel) {
+            scrollSentinel = document.createElement('div');
+            scrollSentinel.id = 'friend-deck-scroll-sentinel';
+            scrollSentinel.className = 'col-12 text-center py-3';
+            scrollSentinel.innerHTML = `
+                <div class="load-more-indicator">
+                    <div class="d-flex align-items-center justify-content-center">
+                        <div class="spinner-border spinner-border-sm text-primary me-2" role="status" style="display: none;">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <span class="load-more-text text-muted">Scroll for more decks</span>
+                    </div>
+                </div>
+            `;
+            document.getElementById('decks-container').appendChild(scrollSentinel);
+        }
+        
+        // Set up intersection observer for infinite scroll
+        window.friendDeckScrollObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting && hasMoreDecks && !isLoading) {
+                    console.log('Loading next page of friend decks...');
+                    
+                    // Show loading spinner
+                    const spinner = scrollSentinel.querySelector('.spinner-border');
+                    const text = scrollSentinel.querySelector('.load-more-text');
+                    spinner.style.display = 'inline-block';
+                    text.textContent = 'Loading more decks...';
+                    
+                    loadDecksPage(currentPage + 1, true).then(() => {
+                        // Hide loading spinner after load
+                        spinner.style.display = 'none';
+                        text.textContent = hasMoreDecks ? 'Scroll for more decks' : 'All decks loaded';
+                        
+                        // Hide the entire indicator if no more decks
+                        if (!hasMoreDecks) {
+                            setTimeout(() => {
+                                scrollSentinel.style.display = 'none';
+                            }, 2000);
+                        }
+                    }).catch(() => {
+                        // Hide spinner on error
+                        spinner.style.display = 'none';
+                        text.textContent = 'Error loading more decks';
+                    });
+                }
+            });
+        }, {
+            rootMargin: '100px' // Load more when sentinel is 100px from viewport
+        });
+        
+        window.friendDeckScrollObserver.observe(scrollSentinel);
     }
 
     function applyFilters() {
@@ -687,29 +895,37 @@
             return new bootstrap.Tooltip(tooltipTriggerEl);
         });
 
-        // Initialize deck data from template
-        {% if decks %}
-        allDecks = [
-            {% for deck in decks %}
-            {
-                id: "{{ deck.id }}",
-                name: "{{ deck.name|e }}",
-                deck_types: {{ deck.deck_types | tojson | safe }},
-                resolved_cover_cards: [
-                    {% for cover in deck.resolved_cover_cards %}
-                    {
-                        name: "{{ cover.name|e }}"
-                    }{% if not loop.last %},{% endif %}
-                    {% endfor %}
-                ],
-                card_count: {{ deck.cards|length }},
-                description: "{{ deck.description|e if deck.description else '' }}"
-            }{% if not loop.last %},{% endif %}
-            {% endfor %}
-        ];
-        {% else %}
-        allDecks = [];
-        {% endif %}
+        // Determine if we should use pagination or static loading
+        const shouldUsePagination = totalDecks > 12;
+        
+        if (shouldUsePagination) {
+            // Load decks via API with pagination
+            loadDecksPage(1, false);
+        } else {
+            // Initialize deck data from template for small lists
+            {% if decks %}
+            allDecks = [
+                {% for deck in decks %}
+                {
+                    id: "{{ deck.id }}",
+                    name: "{{ deck.name|e }}",
+                    deck_types: {{ deck.deck_types | tojson | safe }},
+                    resolved_cover_cards: [
+                        {% for cover in deck.resolved_cover_cards %}
+                        {
+                            name: "{{ cover.name|e }}"
+                        }{% if not loop.last %},{% endif %}
+                        {% endfor %}
+                    ],
+                    card_count: {{ deck.cards|length }},
+                    description: "{{ deck.description|e if deck.description else '' }}"
+                }{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ];
+            {% else %}
+            allDecks = [];
+            {% endif %}
+        }
 
         setupFilterListeners();
     });

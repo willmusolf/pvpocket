@@ -1352,7 +1352,7 @@
                             {% for type_name in energy_types_for_filter %}
                             <div class="energy-icon-wrapper" data-type="{{ type_name }}">
                                 {% if config.ENERGY_ICON_URLS and config.ENERGY_ICON_URLS.get(type_name) %}
-                                    <img src="{{ config.ENERGY_ICON_URLS.get(type_name) }}" alt="{{ type_name }}" class="energy-icon" data-energy-type="{{ type_name }}" onerror="this.style.display='none'; this.parentElement.innerHTML += '{{ type_name[0] if type_name else '' }}';">
+                                    <img src="{{ config.ENERGY_ICON_URLS.get(type_name) }}" alt="{{ type_name }}" class="energy-icon" data-energy-type="{{ type_name }}" onerror="this.style.display='none'">
                                 {% else %}
                                     <span class="energy-fallback-text-small" title="{{ type_name }}">{{ type_name[0] if type_name else '?' }}</span>
                                 {% endif %}
@@ -3447,7 +3447,7 @@
         };
         
         const multiWordStageKeywords = {
-            'stage 1': 'Stage 1', 'stage 2': 'Stage 2'
+            'stage 1': 'Stage 1', 'stage 2': 'Stage 2', 'ultra beast': 'Ultra Beast'
         };
         
         const rarityKeywords = {
@@ -3469,11 +3469,13 @@
             set: null
         };
         
+        // Collect all potential stage types found in the search
+        let foundStageTypes = [];
+        
         // Check multi-word stage keywords
         for (const [keyword, value] of Object.entries(multiWordStageKeywords)) {
             if (currentSearch.includes(keyword)) {
-                foundKeywords.stageType = value;
-                break;
+                foundStageTypes.push(value);
             }
         }
         
@@ -3487,8 +3489,8 @@
             if (cardTypeKeywords[term]) {
                 foundKeywords.cardType = cardTypeKeywords[term];
             }
-            if (!foundKeywords.stageType && singleWordStageKeywords[term]) {
-                foundKeywords.stageType = singleWordStageKeywords[term];
+            if (singleWordStageKeywords[term]) {
+                foundStageTypes.push(singleWordStageKeywords[term]);
             }
             if (rarityKeywords[term]) {
                 foundKeywords.rarity = rarityKeywords[term];
@@ -3498,22 +3500,49 @@
             }
         }
         
+        // Only set stage type filter if exactly one stage type was found
+        // If multiple stage types are found, let the server handle it as text search
+        if (foundStageTypes.length === 1) {
+            foundKeywords.stageType = foundStageTypes[0];
+        }
+        
         return foundKeywords;
     }
     
     function updateUIFromKeywords(keywords) {
-        // Update energy type icons
-        if (keywords.energyTypes.length > 0) {
-            // Clear existing energy selections
-            document.querySelectorAll('.filter-bar .energy-icons .energy-icon-wrapper.active').forEach(icon => {
-                icon.classList.remove('active');
-            });
-            selectedFilters.energyTypes = [];
+        // If search is completely empty, reset all search-related filters
+        if (rawSearchText === '') {
+            selectedFilters.cardType = 'All';
+            selectedFilters.stageType = 'All';
+            selectedFilters.rarity = 'All';
+            selectedFilters.set = 'All';
+            // Don't clear energy types as they might be manually selected
             
-            // Activate icons for found energy types
+            // Reset all UI dropdowns to 'All'
+            const button1 = document.getElementById('cardTypeDropdown');
+            if (button1) button1.textContent = 'All';
+            const button2 = document.getElementById('stageTypeDropdown');
+            if (button2) button2.textContent = 'All';
+            const button3 = document.getElementById('rarityDropdown');
+            if (button3) button3.textContent = 'All';
+            const button4 = document.getElementById('setDropdown');
+            if (button4) button4.textContent = 'All';
+            
+            // Reset dropdown active states
+            document.querySelectorAll('#card-type-dropdown a, #stage-type-dropdown a, #rarity-dropdown a, #set-dropdown a').forEach(item => {
+                item.classList.remove('active');
+                if (item.dataset.value === 'All') {
+                    item.classList.add('active');
+                }
+            });
+            return;
+        }
+        
+        // Update energy type icons - preserve existing selections and add new ones
+        if (keywords.energyTypes.length > 0) {
             keywords.energyTypes.forEach(energyType => {
                 const icon = document.querySelector(`.filter-bar .energy-icon-wrapper[data-type="${energyType}"]`);
-                if (icon) {
+                if (icon && !icon.classList.contains('active')) {
                     icon.classList.add('active');
                     if (!selectedFilters.energyTypes.includes(energyType)) {
                         selectedFilters.energyTypes.push(energyType);
@@ -4178,9 +4207,10 @@
 
         // --- NEW: Process multi-word keywords first ---
         // This ensures phrases like "ultra beast" are caught before the string is split.
+        let foundStageTypesEphemeral = [];
         for (const phrase in multiWordStageTypeKeywords) {
             if (currentRawSearch.includes(phrase)) {
-                ephemeralStageType = multiWordStageTypeKeywords[phrase];
+                foundStageTypesEphemeral.push(multiWordStageTypeKeywords[phrase]);
                 currentRawSearch = currentRawSearch.replace(phrase, ''); // Remove the phrase
             }
         }
@@ -4207,8 +4237,8 @@
             }
             // MODIFIED: Check against the new single-word stage keywords object
             if (singleWordStageTypeKeywords[term]) {
-                ephemeralStageType = singleWordStageTypeKeywords[term];
-                isKeyword = true;
+                foundStageTypesEphemeral.push(singleWordStageTypeKeywords[term]);
+                // Don't mark as keyword yet - we'll decide after collecting all stage types
             }
             if (rarityKeywords[term]) {
                 ephemeralRarities.push(...rarityKeywords[term]);
@@ -4224,14 +4254,43 @@
             }
         }
 
+        // Only set stage type filter if exactly one stage type was found
+        // If multiple stage types are found, let the server handle it as text search
+        if (foundStageTypesEphemeral.length === 1) {
+            ephemeralStageType = foundStageTypesEphemeral[0];
+            // Remove stage type terms from nonKeywordTerms if we're using them as filters
+            nonKeywordTerms = nonKeywordTerms.filter(term => !singleWordStageTypeKeywords[term]);
+        }
+        // If multiple stage types found, leave them in nonKeywordTerms for text search
+
         // Rebuild nameSearchTerm from the terms that were NOT keywords
         let nameSearchTerm = nonKeywordTerms.join(' ');
+        
+        // If multiple stage types found, add them back to the search text
+        if (foundStageTypesEphemeral.length > 1) {
+            const stageTerms = [];
+            // Add back multi-word phrases that were found
+            for (const phrase in multiWordStageTypeKeywords) {
+                if (rawSearchText.toLowerCase().includes(phrase)) {
+                    stageTerms.push(phrase);
+                }
+            }
+            // Add back single-word stage terms
+            const terms = rawSearchText.toLowerCase().split(/\s+/);
+            for (const term of terms) {
+                if (singleWordStageTypeKeywords[term]) {
+                    stageTerms.push(term);
+                }
+            }
+            nameSearchTerm = (nameSearchTerm + ' ' + stageTerms.join(' ')).trim();
+        }
+        
         nameSearchTerm = nameSearchTerm.replace(/\s\s+/g, ' ').trim();
         
         const originalTermsWereAllKeywords = nonKeywordTerms.length === 0 && terms.length > 0;
         const originalSearchWasJustNoex = nonKeywordTerms.length === 0 && terms.length === 1 && terms[0] === 'noex';
         // This check needs to account for the new multi-word pre-check
-        const searchHadKeywords = ephemeralCardType !== 'All' || ephemeralEnergyTypes.length > 0 || ephemeralRarities.length > 0 || ephemeralSet !== 'All' || ephemeralStageType !== 'All' || excludeEx;
+        const searchHadKeywords = ephemeralCardType !== 'All' || ephemeralEnergyTypes.length > 0 || ephemeralRarities.length > 0 || ephemeralSet !== 'All' || ephemeralStageType !== 'All' || foundStageTypesEphemeral.length > 0 || excludeEx;
 
         if (nonKeywordTerms.length === 0 && searchHadKeywords) {
             nameSearchTerm = '';
