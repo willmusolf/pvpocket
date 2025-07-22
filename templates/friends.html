@@ -285,6 +285,15 @@
         const iconUrls = {{ config.PROFILE_ICON_URLS | tojson }};
         const defaultIconUrl = '{{ config.DEFAULT_PROFILE_ICON_URL }}';
 
+        // Debounce utility function
+        function debounce(func, delay) {
+            let timeoutId;
+            return function(...args) {
+                clearTimeout(timeoutId);
+                timeoutId = setTimeout(() => func.apply(this, args), delay);
+            };
+        }
+
         const friendIds = new Set();
         {% for user in friends %}
             friendIds.add('{{ user.id }}');
@@ -306,7 +315,12 @@
         let hasMoreFriends = true;
         let totalFriendsCount = {{ friends|length }};
 
-        const performSearch = async (query) => {
+        // Create debounced version of search function
+        const debouncedPerformSearch = debounce(async (query) => {
+            await performSearchInternal(query);
+        }, 300);
+
+        const performSearchInternal = async (query) => {
             if (query.length < 3) {
                 const message = '<p class="text-muted mb-0">Enter at least 3 characters to search.</p>';
                 searchResultsContainers.forEach(c => c.innerHTML = message);
@@ -351,6 +365,9 @@
             }
             searchResultsContainers.forEach(c => c.innerHTML = finalHtml);
         };
+
+        // Wrapper function to maintain original function name for compatibility
+        const performSearch = debouncedPerformSearch;
 
         async function loadFriendsPage(page = 1, append = false) {
             if (isLoadingFriends) return;
@@ -478,12 +495,15 @@
 
         // --- UPDATED: Attach listeners to both mobile and desktop elements ---
         searchBtns.forEach((btn, index) => {
-            btn.addEventListener('click', () => performSearch(searchInputs[index].value));
+            btn.addEventListener('click', () => debouncedPerformSearch(searchInputs[index].value));
         });
         searchInputs.forEach(input => {
             input.addEventListener('keyup', (event) => {
                 if (event.key === 'Enter') {
-                    performSearch(input.value);
+                    debouncedPerformSearch(input.value);
+                } else {
+                    // Also debounce regular typing
+                    debouncedPerformSearch(input.value);
                 }
             });
         });

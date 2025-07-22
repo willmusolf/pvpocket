@@ -504,6 +504,18 @@
         color: var(--bs-gray-400, #adb5bd) !important;
     }
 
+    /* No results message styles */
+    .decks-no-results {
+        text-align: center;
+        padding: 2rem 1rem;
+        color: var(--bs-secondary);
+        font-style: italic;
+    }
+
+    [data-theme="dark"] .decks-no-results {
+        color: var(--bs-gray-400, #adb5bd) !important;
+    }
+
 </style>
 
 <div class="collection-main-content">
@@ -629,6 +641,15 @@
         searchText: '',
         energyTypes: []
     };
+    
+    // Debounce utility function
+    function debounce(func, delay) {
+        let timeoutId;
+        return function(...args) {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => func.apply(this, args), delay);
+        };
+    }
     
     // Pagination variables
     let currentPage = 1;
@@ -856,14 +877,36 @@
             }
         });
 
-        // Update deck count (deck count element has been removed, so this section is no longer needed)
-        // Previously updated deck count display here
+        // Show/hide "no results" message
+        const decksContainer = document.getElementById('decks-container');
+        const existingNoResults = decksContainer.querySelector('.decks-no-results');
+        
+        // Remove existing no results message
+        if (existingNoResults) {
+            existingNoResults.remove();
+        }
+
+        // Check if filters are active (search text or energy filters)
+        const hasActiveFilters = searchText.length > 0 || selectedEnergies.length > 0;
+        
+        // Show "no results" message if no visible decks and filters are active
+        if (visibleCount === 0 && hasActiveFilters && allDecks.length > 0) {
+            const noResultsElement = document.createElement('div');
+            noResultsElement.className = 'col-12';
+            noResultsElement.innerHTML = '<div class="decks-no-results">No decks match your current filters.</div>';
+            decksContainer.appendChild(noResultsElement);
+        }
     }
+
+    // Create debounced version of applyFilters
+    const debouncedApplyFilters = debounce(() => {
+        applyFilters();
+    }, 300);
 
     function setupFilterListeners() {
         document.getElementById('deck-search-input').addEventListener('input', (e) => {
             activeFilters.searchText = e.target.value;
-            applyFilters();
+            debouncedApplyFilters();
         });
 
         document.querySelectorAll('.filter-bar .energy-icon-wrapper').forEach(icon => {
@@ -875,13 +918,13 @@
                 if (isCurrentlyActive) {
                     icon.classList.remove('active');
                     activeFilters.energyTypes = activeFilters.energyTypes.filter(e => e !== energyType);
-                    applyFilters();
+                    debouncedApplyFilters();
                 } 
                 // If it's not active, only allow selecting it if fewer than 3 are already selected.
                 else if (activeFilters.energyTypes.length < 3) {
                     icon.classList.add('active');
                     activeFilters.energyTypes.push(energyType);
-                    applyFilters();
+                    debouncedApplyFilters();
                 }
                 // If 3 are already active and you click an inactive one, do nothing.
             });
