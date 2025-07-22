@@ -1466,6 +1466,7 @@
 <script>
     
     let allCards = [];
+    let filteredCards = []; // For backward compatibility with existing code
     let currentDeck = [];
     let selectedCoverCardIds = [];
     let loadedDeckId = null;
@@ -1480,6 +1481,12 @@
     let deckSaved = false;
     let cardObserver = null; // Manages loading for visible images
     let progressiveLoadTimeout = null; // Manages the background loading of off-screen images
+    
+    // New pagination variables
+    let currentPage = 1;
+    let isLoading = false;
+    let hasMoreCards = true;
+    let loadedCardIds = new Set(); // Track already loaded cards to prevent duplicates
     
     // Debounce utility function
     function debounce(func, delay) {
@@ -1993,7 +2000,25 @@
 
     let currentSortType = 'set'; 
     let currentSortDirection = 'asc'; 
-    let orderedSetNamesForSort = []; 
+    let orderedSetNamesForSort = [];
+
+    // Function to set sort type from URL parameters
+    function setSortTypeFromURL() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const sortParam = urlParams.get('sort');
+        const directionParam = urlParams.get('direction');
+        
+        if (sortParam && ['set', 'rarity', 'type', 'name'].includes(sortParam)) {
+            currentSortType = sortParam;
+        }
+        
+        if (directionParam && ['asc', 'desc'].includes(directionParam)) {
+            currentSortDirection = directionParam;
+            sortTypeDirections[currentSortType] = directionParam;
+        }
+        
+        console.log('setSortTypeFromURL: Set sort to', currentSortType, currentSortDirection);
+    } 
     let sortTypeDirections = {
         'set': 'asc',  
         'rarity': 'asc',  
@@ -2542,7 +2567,375 @@
         });
     }
 
-    function loadCards() {
+    // Initialize filters data on first load
+    async function initializeFiltersData() {
+        try {
+            // Fetch first page just to get set data for dropdowns
+            const response = await fetch('/api/cards/paginated?page=1&limit=100');
+            const data = await response.json();
+            
+            if (data && data.cards && data.cards.length > 0) {
+                const uniqueSetsData = [];
+                const encounteredSetCodes = new Set();
+
+                data.cards.forEach(card => {
+                    if (card.set_name && card.set_name.trim() !== "" && card.set_code && card.set_code.trim() !== "") {
+                        const setName = card.set_name.trim();
+                        const setCode = card.set_code.trim();
+                        if (!encounteredSetCodes.has(setCode)) {
+                            encounteredSetCodes.add(setCode);
+                            uniqueSetsData.push({ name: setName, code: setCode });
+                        }
+                    }
+                });
+
+                function parseSetCode(code) {
+                    const promoMatch = code.match(/^P[A-Z]*-([A-Z0-9]+(?:[a-z]?))$/i) || code.match(/^P-([A-Z0-9]+(?:[a-z]?))$/i) || code.match(/^P([A-Z0-9]+(?:[a-z]?))$/i);
+                    if (promoMatch) {
+                        return { isPromo: true, prefix: "P", suffix: promoMatch[1] || code, original: code };
+                    }
+                    const match = code.match(/^([A-Z]+)([0-9A-Za-z].*)$/);
+                    if (match) {
+                        return { isPromo: false, prefix: match[1], suffix: match[2], original: code };
+                    }
+                    return { isPromo: false, prefix: "", suffix: code, original: code };
+                }
+
+                uniqueSetsData.sort((a, b) => {
+                    const parsedA = parseSetCode(a.code);
+                    const parsedB = parseSetCode(b.code);
+                    if (parsedA.isPromo && !parsedB.isPromo) return 1;
+                    if (!parsedA.isPromo && parsedB.isPromo) return -1;
+                    if (parsedA.isPromo && parsedB.isPromo) {
+                        return parsedA.original.localeCompare(parsedB.original);
+                    }
+                    if (parsedA.prefix > parsedB.prefix) return -1;
+                    if (parsedA.prefix < parsedB.prefix) return 1;
+                    if (parsedA.suffix > parsedB.suffix) return -1;
+                    if (parsedA.suffix < parsedB.suffix) return 1;
+                    return 0;
+                });
+                
+                orderedSetNamesForSort = uniqueSetsData.map(setObj => setObj.name);
+                populateDropdown('set-dropdown', ['All', ...orderedSetNamesForSort]);
+                if (document.getElementById('setDropdown')) document.getElementById('setDropdown').textContent = 'All';
+            }
+        } catch (error) {
+            console.error('Error initializing filters data:', error);
+        }
+    }
+
+    // New paginated card loading function
+    async function loadCardsPage(page = 1, append = false) {
+        if (isLoading) return;
+        
+        isLoading = true;
+        const cardCollectionDiv = document.getElementById('card-collection');
+        
+        try {
+            if (!append) {
+                if (cardCollectionDiv) {
+                    cardCollectionDiv.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-primary"></div><p>Loading cards...</p></div>';
+                }
+                loadedCardIds.clear();
+                filteredCards = [];
+            }
+
+            // Build query parameters
+            const params = new URLSearchParams({
+                page: page.toString(),
+                limit: '24' // Load 24 cards per page for good performance
+            });
+
+            // Add filters to query
+            if (selectedFilters.cardType !== 'All') {
+                params.append('card_type', selectedFilters.cardType);
+            }
+            if (selectedFilters.stageType !== 'All') {
+                params.append('stage_type', selectedFilters.stageType);
+            }
+            if (selectedFilters.rarity !== 'All') {
+                params.append('rarity', selectedFilters.rarity);
+            }
+            if (selectedFilters.set !== 'All') {
+                // Convert set name to set code for the API
+                const setData = orderedSetNamesForSort?.find(name => name === selectedFilters.set);
+                if (setData) {
+                    params.append('set_code', setData);
+                }
+            }
+            if (selectedFilters.energyTypes.length > 0) {
+                params.append('energy_type', selectedFilters.energyTypes[0]); // API supports one energy type
+            }
+            if (rawSearchText.trim()) {
+                params.append('name', rawSearchText.trim());
+            }
+            
+            // Add sorting parameters
+            if (currentSortType) {
+                params.append('sort', currentSortType);
+            }
+            if (currentSortDirection) {
+                params.append('direction', currentSortDirection);
+            }
+
+            console.log(`Loading cards page ${page} with filters:`, Object.fromEntries(params));
+
+            const response = await fetch(`/api/cards/paginated?${params}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            
+            if (data.success && data.cards) {
+                console.log('✅ API Response Success:', data.cards.length, 'cards received');
+                console.log('📊 Pagination Info:', data.pagination);
+                
+                // Filter out duplicates
+                const newCards = data.cards.filter(card => !loadedCardIds.has(card.id));
+                newCards.forEach(card => loadedCardIds.add(card.id));
+                
+                if (append) {
+                    filteredCards.push(...newCards);
+                } else {
+                    filteredCards = newCards;
+                }
+                // Note: allCards is loaded separately with ALL cards for deck building
+
+                hasMoreCards = data.pagination.has_more;
+                currentPage = page;
+
+                console.log(`✅ Loaded ${newCards.length} new cards, total: ${filteredCards.length}, hasMore: ${hasMoreCards}`);
+                console.log('🔍 DEBUG: Reached after cards loaded');
+                console.log('🔄 About to call updateCardDisplay()...');
+                console.log('🔍 updateCardDisplay function exists?', typeof updateCardDisplay);
+                
+                if (typeof updateCardDisplay === 'function') {
+                    updateCardDisplay();
+                    console.log('✅ updateCardDisplay() completed');
+                } else {
+                    console.error('❌ updateCardDisplay is not a function!');
+                }
+                
+                console.log('🔄 After updateCardDisplay call');
+                
+                const count = data.pagination.total_count || filteredCards.length;
+                const cardText = (count === 1) ? 'card' : 'cards';
+                document.getElementById('card-count-search').textContent = `${count} ${cardText}`;
+
+                // Set up infinite scroll if we have more cards
+                if (hasMoreCards && !append) {
+                    setupInfiniteScroll();
+                }
+
+                // IMPORTANT: Force load images for newly added cards
+                setTimeout(() => {
+                    console.log('Triggering image loading for new cards...');
+                    const cardCollection = document.getElementById('card-collection');
+                    if (!cardCollection) return;
+                    
+                    const newCardItems = cardCollection.querySelectorAll('.card-item');
+                    newCardItems.forEach(cardItem => {
+                        const img = cardItem.querySelector('img[data-src]');
+                        if (img && img.dataset.src && !img.src) {
+                            console.log('Loading image:', img.dataset.src);
+                            // Force load the image immediately for now
+                            img.src = img.dataset.src;
+                            img.removeAttribute('data-src');
+                            
+                            // Also observe with intersection observer if available
+                            if (cardObserver) {
+                                cardObserver.observe(cardItem);
+                            }
+                        }
+                    });
+                }, 100);
+            } else {
+                if (!append) {
+                    filteredCards = [];
+                    if (cardCollectionDiv) {
+                        cardCollectionDiv.innerHTML = '<div class="text-center p-3"><p>No cards found.</p></div>';
+                    }
+                }
+                hasMoreCards = false;
+            }
+
+        } catch (error) {
+            console.error('❌ Error loading cards page:', error);
+            console.error('❌ Error stack:', error.stack);
+            if (!append && cardCollectionDiv) {
+                cardCollectionDiv.innerHTML = `<div class="text-center p-3"><p>Error loading cards: ${error.message}. Please refresh.</p></div>`;
+            }
+            hasMoreCards = false;
+        } finally {
+            isLoading = false;
+        }
+    }
+
+    // Set up infinite scroll
+    function setupInfiniteScroll() {
+        const cardCollectionDiv = document.getElementById('card-collection');
+        if (!cardCollectionDiv) return;
+
+        // Create or get the scroll sentinel
+        let sentinel = cardCollectionDiv.querySelector('.scroll-sentinel');
+        if (!sentinel) {
+            sentinel = document.createElement('div');
+            sentinel.className = 'scroll-sentinel';
+            sentinel.style.height = '20px';
+            sentinel.style.margin = '20px 0';
+            cardCollectionDiv.appendChild(sentinel);
+        }
+
+        // Set up intersection observer for infinite scroll
+        if (window.infiniteScrollObserver) {
+            window.infiniteScrollObserver.disconnect();
+        }
+
+        window.infiniteScrollObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting && hasMoreCards && !isLoading) {
+                    console.log('Loading next page due to infinite scroll...');
+                    loadCardsPage(currentPage + 1, true);
+                }
+            });
+        }, {
+            rootMargin: '100px'
+        });
+
+        window.infiniteScrollObserver.observe(sentinel);
+    }
+
+    // Load ALL cards for deck building, then load first page for display
+    async function loadCards() {
+        console.log('loadCards: Starting full card loading for deck building...');
+        
+        // First load ALL cards for deck building
+        try {
+            console.log('🔄 Loading all cards for deck building...');
+            const response = await fetch('/api/cards');
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            const data = await response.json();
+            if (data && data.cards && data.cards.length > 0) {
+                allCards = data.cards;
+                console.log(`🎯 LOADED ALL CARDS for deck building: ${allCards.length} cards`);
+            } else {
+                console.warn('❌ No cards received from /api/cards');
+                allCards = [];
+            }
+        } catch (error) {
+            console.error('❌ Error loading all cards:', error);
+            allCards = [];
+        }
+        
+        // Then initialize filters and load first page for display
+        console.log('🔄 Starting pagination initialization...');
+        
+        try {
+            await initializeFiltersData();
+            console.log('✅ Filters initialized');
+            
+            await loadCardsPage(1, false);
+            console.log('✅ First page loaded');
+            
+            // Code after loading
+            console.log('🔄 Processing post-load tasks...');
+            // Handle deck restoration after cards are loaded
+            let restoredPendingDeck = false;
+            let userIsAuthenticated = window.IS_USER_AUTHENTICATED || false;
+
+            if (userIsAuthenticated) {
+                const actionAfterAuth = sessionStorage.getItem('ACTION_AFTER_AUTH_KEY');
+                if (actionAfterAuth === 'savePendingDeck') {
+                    const pendingDeckJSON = sessionStorage.getItem(PENDING_DECK_KEY);
+                    if (pendingDeckJSON) {
+                        sessionStorage.removeItem(PENDING_DECK_KEY);
+                        sessionStorage.removeItem(ACTION_AFTER_AUTH_KEY);
+                        try {
+                            const pendingDeck = JSON.parse(pendingDeckJSON);
+                            console.log("Restoring pending deck after login:", pendingDeck);
+                            document.getElementById('deck-name').value = pendingDeck.name || '';
+                            // Note: For pending deck restoration, we might need to fetch specific cards
+                            // This is a limitation of the new paginated approach
+                            selectedDeckEnergies = pendingDeck.deck_types || [];
+                            selectedCoverCardIds = (pendingDeck.cover_card_ids || []).map(id => String(id));
+                            loadedDeckId = null; 
+                            deckSaved = false;
+                            updateAllDeckUI();
+                            restoredPendingDeck = true;
+                        } catch (error) {
+                            console.error("Error parsing/restoring pending deck:", error);
+                        }
+                    } else {
+                        sessionStorage.removeItem(ACTION_AFTER_AUTH_KEY); 
+                    }
+                }
+            }
+
+            if (window.matchMedia("(hover: none)").matches) {
+                const autoSavedDeckJSON = sessionStorage.getItem('autoSavedDeck');
+                if (autoSavedDeckJSON && !restoredPendingDeck) {
+                    try {
+                        const autoSavedDeck = JSON.parse(autoSavedDeckJSON);
+                        console.log("Found auto-saved deck data:", autoSavedDeck);
+                        if (autoSavedDeck.cards && autoSavedDeck.cards.length > 0) {
+                            document.getElementById('deck-name').value = autoSavedDeck.name || '';
+                            // Note: For auto-saved deck restoration, we might need to fetch specific cards
+                            selectedDeckEnergies = autoSavedDeck.deck_types || [];
+                            selectedCoverCardIds = (autoSavedDeck.cover_card_ids || []).map(id => String(id));
+                            loadedDeckId = null;
+                            deckSaved = false;
+                            console.log("Auto-saved deck restored on mobile.");
+                        }
+                    } catch (error) {
+                        console.error("Error restoring auto-saved deck:", error);
+                    }
+                }
+            }
+
+            if (!restoredPendingDeck) { 
+                if (!userIsAuthenticated) {
+                    clearDeck(false);
+                }
+            }
+
+            const currentEditDeckId = new URLSearchParams(window.location.search).get('edit');
+            if (currentEditDeckId) {
+                console.log(`loadCards: URL param 'edit' found: '${currentEditDeckId}'. Loading deck for editing.`);
+                loadDeckData(currentEditDeckId, false);
+            }
+
+            setSortTypeFromURL();
+            updateSortDropdownUI();
+            
+            // Initialize deck display if no deck was loaded
+            if (!currentEditDeckId && !restoredPendingDeck) {
+                console.log('🔄 Initializing deck display (no edit/restore)');
+                updateDeckDisplay();
+            } else {
+                console.log('🔄 Skipping deck display init: editDeckId=', currentEditDeckId, 'restoredPending=', restoredPendingDeck);
+            }
+            
+            // Always ensure deck display is initialized for empty decks
+            if (currentDeck.length === 0) {
+                console.log('🔄 Ensuring empty deck display is properly initialized');
+                updateDeckDisplay();
+            }
+            
+        } catch (error) {
+            console.error('❌ loadCards: Error in paginated loading:', error);
+            const cardCollectionDiv = document.getElementById('card-collection');
+            if (cardCollectionDiv) {
+                cardCollectionDiv.innerHTML = `<div class="text-center p-3"><p>Error loading card data: ${error.message}. Please refresh.</p></div>`;
+            }
+            clearDeck(false);
+        }
+    }
+
+    function loadCardsOLD() {
         console.log('loadCards: Fetching all card data...');
         const cardCollectionDiv = document.getElementById('card-collection');
         if (cardCollectionDiv) {
@@ -2560,7 +2953,8 @@
                 if (data && data.cards && data.cards.length > 0) {
                     allCards = data.cards;
                     filteredCards = [...allCards];
-                    console.log(`loadCards: ${allCards.length} cards loaded.`);
+                    console.log(`🎯 SETTING allCards: ${allCards.length} cards loaded.`);
+                    console.log('📊 Sample card from allCards:', allCards[0]?.name, 'ID:', allCards[0]?.id);
                     
                     // Debug: Check if high_res_image_path is present in API response
                     const sampleCard = allCards[0];
@@ -2571,6 +2965,7 @@
                         hasHighRes: !!sampleCard.high_res_image_path
                     });
                 } else {
+                    console.log('❌ CLEARING allCards - No cards data received.');
                     allCards = [];
                     filteredCards = [];
                     console.warn('loadCards: No cards data received.');
@@ -3032,10 +3427,180 @@
         });
     }
 
+    function parseSearchKeywords(searchText) {
+        // Define keyword mappings (matching backend logic)
+        const energyTypeKeywords = {
+            'grass': 'Grass', 'fire': 'Fire', 'water': 'Water',
+            'lightning': 'Lightning', 'electric': 'Lightning', 'psychic': 'Psychic',
+            'fighting': 'Fighting', 'darkness': 'Darkness', 'dark': 'Darkness',
+            'metal': 'Metal', 'steel': 'Metal', 'dragon': 'Dragon',
+            'colorless': 'Colorless', 'normal': 'Colorless'
+        };
+        
+        const cardTypeKeywords = {
+            'trainer': 'Trainer', 'pokémon': 'Pokémon', 'pokemon': 'Pokémon'
+        };
+        
+        const singleWordStageKeywords = {
+            'item': 'Item', 'tool': 'Tool', 'supporter': 'Supporter',
+            'basic': 'Basic', 'ex': 'EX', 'stage1': 'Stage 1', 'stage2': 'Stage 2'
+        };
+        
+        const multiWordStageKeywords = {
+            'stage 1': 'Stage 1', 'stage 2': 'Stage 2'
+        };
+        
+        const rarityKeywords = {
+            'shiny': '✵✵',  // Map to the UI display value
+            'crown': 'Crown Rare'
+        };
+        
+        const setKeywords = {
+            'promo': 'Promo-A'
+        };
+        
+        // Check multi-word keywords first
+        let currentSearch = searchText.toLowerCase().trim();
+        let foundKeywords = {
+            energyTypes: [],
+            cardType: null,
+            stageType: null,
+            rarity: null,
+            set: null
+        };
+        
+        // Check multi-word stage keywords
+        for (const [keyword, value] of Object.entries(multiWordStageKeywords)) {
+            if (currentSearch.includes(keyword)) {
+                foundKeywords.stageType = value;
+                break;
+            }
+        }
+        
+        // Split into terms for single-word matching
+        const terms = currentSearch.split(/\s+/);
+        
+        for (const term of terms) {
+            if (energyTypeKeywords[term]) {
+                foundKeywords.energyTypes.push(energyTypeKeywords[term]);
+            }
+            if (cardTypeKeywords[term]) {
+                foundKeywords.cardType = cardTypeKeywords[term];
+            }
+            if (!foundKeywords.stageType && singleWordStageKeywords[term]) {
+                foundKeywords.stageType = singleWordStageKeywords[term];
+            }
+            if (rarityKeywords[term]) {
+                foundKeywords.rarity = rarityKeywords[term];
+            }
+            if (setKeywords[term]) {
+                foundKeywords.set = setKeywords[term];
+            }
+        }
+        
+        return foundKeywords;
+    }
+    
+    function updateUIFromKeywords(keywords) {
+        // Update energy type icons
+        if (keywords.energyTypes.length > 0) {
+            // Clear existing energy selections
+            document.querySelectorAll('.filter-bar .energy-icons .energy-icon-wrapper.active').forEach(icon => {
+                icon.classList.remove('active');
+            });
+            selectedFilters.energyTypes = [];
+            
+            // Activate icons for found energy types
+            keywords.energyTypes.forEach(energyType => {
+                const icon = document.querySelector(`.filter-bar .energy-icon-wrapper[data-type="${energyType}"]`);
+                if (icon) {
+                    icon.classList.add('active');
+                    if (!selectedFilters.energyTypes.includes(energyType)) {
+                        selectedFilters.energyTypes.push(energyType);
+                    }
+                }
+            });
+        }
+        
+        // Update card type dropdown
+        if (keywords.cardType) {
+            selectedFilters.cardType = keywords.cardType;
+            const button = document.getElementById('cardTypeDropdown');
+            if (button) {
+                button.textContent = keywords.cardType;
+            }
+            // Update dropdown active state
+            document.querySelectorAll('#card-type-dropdown a').forEach(item => {
+                item.classList.remove('active');
+                if (item.textContent.trim() === keywords.cardType) {
+                    item.classList.add('active');
+                }
+            });
+        }
+        
+        // Update stage type dropdown
+        if (keywords.stageType) {
+            selectedFilters.stageType = keywords.stageType;
+            const button = document.getElementById('stageTypeDropdown');
+            if (button) {
+                button.textContent = keywords.stageType;
+            }
+            // Update dropdown active state
+            document.querySelectorAll('#stage-type-dropdown a').forEach(item => {
+                item.classList.remove('active');
+                if (item.textContent.trim() === keywords.stageType) {
+                    item.classList.add('active');
+                }
+            });
+        }
+        
+        // Update rarity dropdown
+        if (keywords.rarity) {
+            selectedFilters.rarity = keywords.rarity;
+            const button = document.getElementById('rarityDropdown');
+            if (button) {
+                // Special handling for Crown Rare emoji
+                if (keywords.rarity === 'Crown Rare') {
+                    button.textContent = '👑';
+                } else {
+                    button.textContent = keywords.rarity;
+                }
+            }
+            // Update dropdown active state
+            document.querySelectorAll('#rarity-dropdown a').forEach(item => {
+                item.classList.remove('active');
+                if (item.dataset.value === keywords.rarity) {
+                    item.classList.add('active');
+                }
+            });
+        }
+        
+        // Update set dropdown
+        if (keywords.set) {
+            selectedFilters.set = keywords.set;
+            const button = document.getElementById('setDropdown');
+            if (button) {
+                button.textContent = keywords.set;
+            }
+            // Update dropdown active state
+            document.querySelectorAll('#set-dropdown a').forEach(item => {
+                item.classList.remove('active');
+                if (item.textContent.trim() === keywords.set) {
+                    item.classList.add('active');
+                }
+            });
+        }
+    }
+
     function setupEventListeners() {
         // Search input
         const debouncedFilter = debounce(() => {
             rawSearchText = document.getElementById('search-input').value.toLowerCase();
+            
+            // Parse keywords and update UI
+            const keywords = parseSearchKeywords(rawSearchText);
+            updateUIFromKeywords(keywords);
+            
             resetAddCardsScroll();
             applyFilters();
         }, 300);
@@ -3127,8 +3692,19 @@
         }
         // --- End of Sort Dropdown Click Handler ---
 
+        // Global click debugging to see ALL clicks
+        document.addEventListener('click', function(e) {
+            console.log('🌐 GLOBAL CLICK:', {
+                tag: e.target.tagName,
+                class: e.target.className,
+                id: e.target.id,
+                closest_card: e.target.closest('.card-item') ? 'HAS CARD-ITEM' : 'NO CARD-ITEM'
+            });
+        }, true); // Use capture phase
+        
         // Consolidated Click Listener using Event Delegation
         document.addEventListener('click', function(e) {
+            console.log('👂 Main click handler triggered by:', e.target.tagName, e.target.className);
 
             // --- Handle Deck Card Remove Button (-) ---
             const removeBtn = e.target.closest('.btn-remove');
@@ -3214,11 +3790,17 @@
 
             // --- Handle Collection Card Add Click ---
             const cardImage = e.target.closest('.card-item img');
+            console.log('🖱️ Click detected, cardImage:', cardImage);
+            
             if (cardImage && !e.target.closest('.btn-remove-small')) {
+                console.log('✅ Card image clicked (not a remove button)');
                 const cardItem = cardImage.closest('.card-item');
                 const cardContainer = cardItem ? cardItem.querySelector('.position-relative') : null;
+                console.log('📦 cardItem:', cardItem?.dataset?.cardId, 'cardContainer:', cardContainer);
 
                 if (cardItem && cardItem.dataset.cardId && cardContainer) {
+                    console.log('✅ Card data validated, cardId:', cardItem.dataset.cardId);
+                    
                     // Always try to load high-res image when card is tapped (on mobile)
                     const isMobile = window.matchMedia("(hover: none)").matches;
                     if (isMobile) {
@@ -3230,12 +3812,20 @@
                     
                     if (cardContainer.classList.contains('max-copies')) {
                         const cardName = cardItem.dataset.cardName;
+                        console.log('⚠️ Max copies reached for:', cardName);
                         if (window.showGlobalToast) {
                             window.showGlobalToast(`Max 2 copies of '${cardName}' allowed.`, "default");
                         }
                     } else {
+                        console.log('🎯 Calling addCardToDeck with cardId:', cardItem.dataset.cardId);
                         addCardToDeck(cardItem.dataset.cardId, cardItem);
                     }
+                } else {
+                    console.log('❌ Card validation failed:', {
+                        hasCardItem: !!cardItem,
+                        hasCardId: !!cardItem?.dataset?.cardId,
+                        hasContainer: !!cardContainer
+                    });
                 }
                 return;
             }
@@ -3532,7 +4122,31 @@
         }
     }
 
+    // Debounced apply filters function for server-side filtering
+    const debouncedApplyFilters = debounce(() => {
+        resetPaginationAndLoadCards();
+    }, 300);
+
     function applyFilters() {
+        console.log('applyFilters: Triggering paginated server-side filtering...');
+        debouncedApplyFilters();
+    }
+
+    // Reset pagination and load first page with current filters
+    function resetPaginationAndLoadCards() {
+        currentPage = 1;
+        hasMoreCards = true;
+        loadedCardIds.clear();
+        
+        // Disconnect infinite scroll observer
+        if (window.infiniteScrollObserver) {
+            window.infiniteScrollObserver.disconnect();
+        }
+        
+        loadCardsPage(1, false);
+    }
+
+    function applyFiltersOLD() {
         // Define keyword mappings
         const energyTypeKeywords = {
             'grass': 'Grass', 'fire': 'Fire', 'water': 'Water',
@@ -3768,10 +4382,18 @@
     }
 
     function updateCardDisplay() {
+        console.log('🎨 updateCardDisplay() called with', filteredCards.length, 'cards');
+        
         const cardCollection = document.getElementById('card-collection');
-        if (!cardCollection) return;
+        if (!cardCollection) {
+            console.error('❌ cardCollection element not found!');
+            return;
+        }
 
-        if (!cardCollection.dataset.isBuilt) {
+        console.log('🔄 Building card display...');
+        
+        // Always rebuild for paginated system - remove the isBuilt check
+        // if (!cardCollection.dataset.isBuilt) {
             const rowDiv = document.createElement('div');
             rowDiv.className = 'row g-2';
 
@@ -3788,7 +4410,11 @@
             noResultsDiv.appendChild(message);
             noResultsDiv.appendChild(resetButton);
 
-            allCards.forEach(card => {
+            console.log('🃏 Creating', filteredCards.length, 'card elements...');
+            
+            filteredCards.forEach((card, index) => {
+                console.log(`🃏 Creating card ${index + 1}:`, card.name);
+                
                 const colDiv = document.createElement('div');
                 colDiv.className = 'col-4 col-sm-4 col-md-4 col-lg-3 col-xl-2 mb-3 card-item';
                 colDiv.dataset.cardId = card.id;
@@ -3804,14 +4430,48 @@
                 
                 // Debug logging removed for production
                 const cardContainer = document.createElement('div');
-                cardContainer.className = 'position-relative clickable-card is-loading';
+                cardContainer.className = 'position-relative clickable-card is-loading'; // Will be removed later if cached
 
                 const img = document.createElement('img');
                 img.alt = card.name;
                 img.className = 'img-fluid rounded';
                 img.setAttribute('data-card-name', card.name);
-                img.setAttribute('data-src', card.display_image_path);
+                
+                // For debugging: force load images immediately in paginated system
+                console.log('Creating card image for:', card.name, 'URL:', card.display_image_path);
+                
+                // Check if high-res version is cached and use it if available
+                const highResSrc = getHighResUrl(card.display_image_path);
+                let imageToLoad = card.display_image_path;
+                let isHighRes = false;
+                
+                if (highResSrc && highResImageCache.has(highResSrc)) {
+                    imageToLoad = highResSrc;
+                    isHighRes = true;
+                    console.log('Using cached high-res for card:', card.name);
+                    // Remove loading state since we have cached high-res
+                    cardContainer.classList.remove('is-loading');
+                }
+                
+                img.src = imageToLoad; // Load immediately instead of lazy loading
+                // img.setAttribute('data-src', card.display_image_path); // Commented out lazy loading for now
                 img.setAttribute('data-original-src', card.display_image_path); // Store for mobile loading
+                
+                // Mark as high-res if we loaded the cached version
+                if (isHighRes) {
+                    img.dataset.loadedResolution = 'high';
+                }
+                
+                // Add loading handlers to remove loading state
+                img.onload = () => {
+                    console.log('✅ Image loaded:', card.name);
+                    cardContainer.classList.remove('is-loading');
+                };
+                img.onerror = () => {
+                    console.error('❌ Image failed:', card.name, card.display_image_path);
+                    cardContainer.classList.remove('is-loading');
+                    cardContainer.classList.add('error-loading');
+                };
 
                 cardContainer.appendChild(img);
                 colDiv.appendChild(cardContainer);
@@ -3822,12 +4482,36 @@
                 }
             });
             
+            console.log('🔄 Adding elements to DOM...');
             cardCollection.innerHTML = '';
             cardCollection.appendChild(rowDiv);
             cardCollection.appendChild(noResultsDiv);
-            cardCollection.dataset.isBuilt = 'true';
-        }
+            
+            // Debug: Check if elements are actually in DOM
+            setTimeout(() => {
+                const createdCards = cardCollection.querySelectorAll('.card-item');
+                const createdImages = cardCollection.querySelectorAll('.card-item img');
+                console.log('🔍 DOM Check:', createdCards.length, 'cards,', createdImages.length, 'images in DOM');
+                
+                // Check first image specifically
+                if (createdImages.length > 0) {
+                    const firstImg = createdImages[0];
+                    console.log('🖼️ First image details:', {
+                        src: firstImg.src,
+                        alt: firstImg.alt,
+                        style: firstImg.style.cssText,
+                        display: getComputedStyle(firstImg).display,
+                        visibility: getComputedStyle(firstImg).visibility,
+                        parentVisible: getComputedStyle(firstImg.parentElement).display
+                    });
+                }
+            }, 50);
+            
+            console.log('✅ Card display built successfully!');
+            // cardCollection.dataset.isBuilt = 'true'; // Removed for paginated system
+        // }
 
+        // Handle deck restoration highlighting
         if (deckWasRestored) {
             console.log("Updating collection visuals after deck restore...");
             const uniqueCardIdsInDeck = [...new Set(currentDeck.map(card => card.id))];
@@ -3837,30 +4521,21 @@
             deckWasRestored = false;
         }
 
-        const allCardElements = cardCollection.querySelectorAll('.card-item');
+        // Show/hide no results message
         const noResultsMessage = cardCollection.querySelector('.no-results-message');
-        if (!noResultsMessage) return;
+        if (noResultsMessage) {
+            const visibleCount = filteredCards.length;
+            noResultsMessage.style.display = visibleCount === 0 ? 'block' : 'none';
+        }
 
-        const visibleCardIds = new Set(filteredCards.map(c => c.id.toString()));
-
-        allCardElements.forEach(element => {
-            if (visibleCardIds.has(element.dataset.cardId)) {
-                element.style.display = '';
-            } else {
-                element.style.display = 'none';
-            }
-        });
-
-        filteredCards.forEach((sortedCard, index) => {
-            const element = cardCollection.querySelector(`.card-item[data-card-id="${sortedCard.id}"]`);
-            if (element) {
-                element.style.order = index;
-            }
-        });
-
+        // Update card count display
         const visibleCount = filteredCards.length;
-        noResultsMessage.style.display = visibleCount === 0 ? 'block' : 'none';
         document.getElementById('card-count-search').textContent = `${visibleCount} ${visibleCount === 1 ? 'card' : 'cards'}`;
+        
+        // Add infinite scroll sentinel if it doesn't exist
+        if (hasMoreCards && !cardCollection.querySelector('.scroll-sentinel')) {
+            setupInfiniteScroll();
+        }
     }
     
     function updateCardStateInCollection(cardId) {
@@ -3988,25 +4663,40 @@
     }
     
     function addCardToDeck(cardId, clickedElement = null) {
+        console.log('🎯 addCardToDeck called with cardId:', cardId, 'allCards.length:', allCards.length);
+        
         const cardItem = clickedElement;
         // --- NEW: Cooldown Check ---
         if (!cardItem || cardItem.dataset.isAnimating === 'true') {
+            console.log('⚠️ Skipping: cooldown active or no cardItem');
             return;
         }
 
+        console.log('🔍 Looking for card with ID:', cardId, 'in allCards');
         const cardToAdd = allCards.find(c => c.id.toString() === cardId);
-        if (!cardToAdd) { return; }
+        console.log('📋 Found card:', cardToAdd?.name || 'NOT FOUND');
+        
+        if (!cardToAdd) { 
+            console.log('❌ Card not found in allCards!');
+            return; 
+        }
 
         const copiesInDeck = currentDeck.filter(c => c.name === cardToAdd.name).length;
+        console.log('📊 Deck state check - copies:', copiesInDeck, 'deck size:', currentDeck.length);
+        
         if (copiesInDeck >= 2) {
+            console.log('⚠️ Max copies (2) already in deck');
             return;
         }
         if (currentDeck.length >= 20) {
+            console.log('⚠️ Deck is full (20 cards)');
             if (window.showGlobalToast) {
                 window.showGlobalToast("Your deck is full (20 cards max).", "default");
             }
             return;
         }
+        
+        console.log('✅ Adding card to deck!', cardToAdd.name);
 
         // --- NEW: Set Cooldown Flag ---
         cardItem.dataset.isAnimating = 'true';

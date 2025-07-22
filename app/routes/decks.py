@@ -14,9 +14,10 @@ from flask_login import (
     )
 
 from firebase_admin import firestore  # For ArrayUnion and SERVER_TIMESTAMP
-from typing import Optional  # For type hinting in helper function
+from typing import Optional, Dict, List, Set  # For type hinting in helper function
 import json
 import datetime
+import re
 
 decks_bp = Blueprint('decks', __name__)
 
@@ -32,6 +33,130 @@ def get_db() -> firestore.client:
         )
         raise Exception("Firestore client not available. Check app initialization.")
     return db
+
+
+def parse_search_keywords(search_text: str) -> Dict[str, any]:
+    """Parse search text for keywords and return filter parameters.
+    
+    Args:
+        search_text: The raw search text from user input
+        
+    Returns:
+        Dict containing parsed filters and remaining search text
+    """
+    # Define keyword mappings (from frontend's applyFiltersOLD)
+    energy_type_keywords = {
+        'grass': 'Grass', 'fire': 'Fire', 'water': 'Water',
+        'lightning': 'Lightning', 'electric': 'Lightning', 'psychic': 'Psychic',
+        'fighting': 'Fighting', 'darkness': 'Darkness', 'dark': 'Darkness',
+        'metal': 'Metal', 'steel': 'Metal', 'dragon': 'Dragon',
+        'colorless': 'Colorless', 'normal': 'Colorless'
+    }
+    
+    card_type_keywords = {
+        'trainer': 'Trainer', 'pokémon': 'Pokémon', 'pokemon': 'Pokémon'
+    }
+    
+    single_word_stage_keywords = {
+        'item': 'Item', 'tool': 'Tool', 'supporter': 'Supporter', 
+        'basic': 'Basic', 'ex': 'EX', 'stage1': 'Stage 1', 'stage2': 'Stage 2'
+    }
+    
+    multi_word_stage_keywords = {
+        'stage 1': 'Stage 1', 'stage 2': 'Stage 2', 'ultra beast': 'Ultra Beast'
+    }
+    
+    rarity_keywords = {
+        'shiny': ['✵', '✵✵'],
+        'crown': ['Crown Rare']
+    }
+    
+    set_keywords = {
+        'promo': 'Promo-A'
+    }
+    
+    # Special filter keywords
+    special_keywords = {
+        'noex': 'exclude_ex'
+    }
+    
+    # Initialize result
+    result = {
+        'energy_types': [],
+        'card_type': None,
+        'stage_type': None,
+        'rarities': [],
+        'set_code': None,
+        'exclude_ex': False,
+        'remaining_text': ''
+    }
+    
+    if not search_text or not search_text.strip():
+        return result
+        
+    current_search = search_text.lower().strip()
+    
+    # Check multi-word keywords first (longer matches take precedence)
+    for keyword, filter_value in multi_word_stage_keywords.items():
+        if keyword in current_search:
+            result['stage_type'] = filter_value
+            current_search = current_search.replace(keyword, '').strip()
+            break
+    
+    # Split remaining text into terms for single-word keyword matching
+    terms = current_search.split()
+    remaining_terms = []
+    
+    for term in terms:
+        term = term.strip()
+        if not term:
+            continue
+            
+        keyword_matched = False
+        
+        # Check energy type keywords
+        if term in energy_type_keywords:
+            result['energy_types'].append(energy_type_keywords[term])
+            keyword_matched = True
+        
+        # Check card type keywords
+        elif term in card_type_keywords:
+            result['card_type'] = card_type_keywords[term]
+            keyword_matched = True
+            
+        # Check stage type keywords (if not already set by multi-word)
+        elif not result['stage_type'] and term in single_word_stage_keywords:
+            result['stage_type'] = single_word_stage_keywords[term]
+            keyword_matched = True
+            
+        # Check rarity keywords
+        elif term in rarity_keywords:
+            result['rarities'].extend(rarity_keywords[term])
+            keyword_matched = True
+            
+        # Check set keywords
+        elif term in set_keywords:
+            result['set_code'] = set_keywords[term]
+            keyword_matched = True
+            
+        # Check special keywords
+        elif term in special_keywords:
+            if special_keywords[term] == 'exclude_ex':
+                result['exclude_ex'] = True
+            keyword_matched = True
+        
+        # If no keyword matched, keep as search text
+        if not keyword_matched:
+            remaining_terms.append(term)
+    
+    # Join remaining terms back into search text
+    result['remaining_text'] = ' '.join(remaining_terms).strip()
+    
+    # Remove duplicates from energy_types and rarities
+    result['energy_types'] = list(set(result['energy_types']))
+    result['rarities'] = list(set(result['rarities']))
+    
+    return result
 
 
 def _does_deck_name_exist_for_user_firestore(
@@ -169,7 +294,13 @@ def get_all_cards():
         set_code_filter = request.args.get("set_code")
         energy_type_filter = request.args.get("energy_type")
         card_type_filter = request.args.get("card_type")
-        name_filter = request.args.get("name")
+        name_filter = request.args.get("name", "").strip()
+
+        # Parse name_filter for keywords
+        parsed_keywords = parse_search_keywords(name_filter) if name_filter else {
+            'energy_types': [], 'card_type': None, 'stage_type': None, 
+            'rarities': [], 'set_code': None, 'exclude_ex': False, 'remaining_text': ''
+        }
 
         # Apply filters to the in-memory list of Card objects
         filtered_card_objects = all_cards_from_collection
@@ -181,14 +312,36 @@ def get_all_cards():
                 if card.set_code == set_code_filter
             ]
 
-        if energy_type_filter:
+        # Apply keyword-based energy type filter (takes precedence over URL parameter)
+        if parsed_keywords['energy_types']:
+            # Use the first parsed energy type (multiple energy types not supported in this API)
+            filtered_card_objects = [
+                card
+                for card in filtered_card_objects
+                if card.energy_type in parsed_keywords['energy_types']
+            ]
+        elif energy_type_filter:
             filtered_card_objects = [
                 card
                 for card in filtered_card_objects
                 if card.energy_type == energy_type_filter
             ]
 
-        if card_type_filter:
+        # Apply keyword-based card type filter (takes precedence over URL parameter)
+        if parsed_keywords['card_type']:
+            if parsed_keywords['card_type'] == "Pokémon":
+                filtered_card_objects = [
+                    card
+                    for card in filtered_card_objects
+                    if card.card_type and "Pokémon" in card.card_type
+                ]
+            elif parsed_keywords['card_type'] == "Trainer":
+                filtered_card_objects = [
+                    card
+                    for card in filtered_card_objects
+                    if card.card_type and "Trainer" in card.card_type
+                ]
+        elif card_type_filter:
             # Assuming card.card_type is a string like "Pokémon - Basic"
             filtered_card_objects = [
                 card
@@ -196,11 +349,53 @@ def get_all_cards():
                 if card.card_type and card_type_filter in card.card_type
             ]
 
-        if name_filter:
+        # Apply keyword-based stage type filter
+        if parsed_keywords['stage_type']:
+            stage_type = parsed_keywords['stage_type']
+            if stage_type == "EX":
+                # Filter for EX cards (cards ending with " ex" in name or having "pokemon - ex" in card_type)
+                filtered_card_objects = [
+                    card for card in filtered_card_objects
+                    if (card.name and card.name.lower().endswith(' ex') and not card.name.lower().endswith(' - ex (ultra beast)')) or
+                       (card.card_type and 'pokemon - ex' in card.card_type.lower())
+                ]
+            else:
+                # For other stage types (Basic, Stage 1, Stage 2, etc.) or trainer types (Item, Supporter, etc.)
+                filtered_card_objects = [
+                    card for card in filtered_card_objects
+                    if card.card_type and stage_type in card.card_type
+                ]
+
+        # Apply keyword-based rarity filter
+        if parsed_keywords['rarities']:
+            filtered_card_objects = [
+                card for card in filtered_card_objects
+                if card.rarity in parsed_keywords['rarities']
+            ]
+
+        # Apply keyword-based set filter
+        if parsed_keywords['set_code']:
+            filtered_card_objects = [
+                card for card in filtered_card_objects
+                if (hasattr(card, 'set_code') and card.set_code == parsed_keywords['set_code']) or
+                   (hasattr(card, 'set_name') and card.set_name == parsed_keywords['set_code'])
+            ]
+
+        # Apply remaining text as name filter (after keyword extraction)
+        if parsed_keywords['remaining_text']:
+            remaining_text = parsed_keywords['remaining_text'].lower()
             filtered_card_objects = [
                 card
                 for card in filtered_card_objects
-                if card.name and name_filter.lower() in card.name.lower()
+                if card.name and remaining_text in card.name.lower()
+            ]
+        
+        # Apply exclude_ex filter if requested
+        if parsed_keywords['exclude_ex']:
+            filtered_card_objects = [
+                card for card in filtered_card_objects
+                if not ((card.name and card.name.lower().endswith(' ex')) or
+                        (card.card_type and 'pokemon - ex' in card.card_type.lower()))
             ]
 
         # Convert Card objects to dictionaries for JSON response
@@ -246,6 +441,280 @@ def get_all_cards():
             exc_info=True,
         )
         return jsonify({"error": "Failed to process card data.", "success": False}), 500
+
+
+@decks_bp.route("/api/cards/paginated", methods=["GET"])
+def get_cards_paginated():
+    """API endpoint to get cards with pagination and server-side filtering."""
+    card_collection = card_service.get_card_collection()
+
+    if not card_collection or not hasattr(card_collection, "cards"):
+        current_app.logger.error(
+            "CardCollection not found or not initialized in app.config for /api/cards/paginated."
+        )
+        return (
+            jsonify(
+                {
+                    "error": "Card data is currently unavailable. Please try again later.",
+                    "success": False,
+                }
+            ),
+            503,
+        )
+
+    try:
+        # Get pagination parameters
+        page = int(request.args.get("page", 1))
+        limit = min(int(request.args.get("limit", 20)), 100)  # Max 100 cards per page
+        offset = (page - 1) * limit
+
+        # Get filter parameters
+        set_code_filter = request.args.get("set_code")
+        energy_type_filter = request.args.get("energy_type")
+        card_type_filter = request.args.get("card_type")
+        stage_type_filter = request.args.get("stage_type")
+        rarity_filter = request.args.get("rarity")
+        name_filter = request.args.get("name", "").strip()
+
+        # Parse name_filter for keywords
+        parsed_keywords = parse_search_keywords(name_filter) if name_filter else {
+            'energy_types': [], 'card_type': None, 'stage_type': None, 
+            'rarities': [], 'set_code': None, 'exclude_ex': False, 'remaining_text': ''
+        }
+
+        # Start with all cards from the collection
+        all_cards_from_collection = card_collection.cards
+        filtered_card_objects = all_cards_from_collection
+
+        # Apply server-side filters
+        # Apply keyword-based set filter first (takes precedence over URL parameter)
+        if parsed_keywords['set_code']:
+            filtered_card_objects = [
+                card for card in filtered_card_objects
+                if (hasattr(card, 'set_code') and card.set_code == parsed_keywords['set_code']) or
+                   (hasattr(card, 'set_name') and card.set_name == parsed_keywords['set_code'])
+            ]
+        elif set_code_filter and set_code_filter != "All":
+            filtered_card_objects = [
+                card for card in filtered_card_objects
+                if (hasattr(card, 'set_code') and card.set_code == set_code_filter) or
+                   (hasattr(card, 'set_name') and card.set_name == set_code_filter)
+            ]
+
+        # Apply keyword-based energy type filter (takes precedence over URL parameter)
+        if parsed_keywords['energy_types']:
+            filtered_card_objects = [
+                card for card in filtered_card_objects
+                if hasattr(card, 'energy_type') and card.energy_type in parsed_keywords['energy_types']
+            ]
+        elif energy_type_filter and energy_type_filter != "All":
+            filtered_card_objects = [
+                card for card in filtered_card_objects
+                if hasattr(card, 'energy_type') and card.energy_type == energy_type_filter
+            ]
+
+        # Apply keyword-based card type filter (takes precedence over URL parameter)
+        if parsed_keywords['card_type']:
+            if parsed_keywords['card_type'] == "Pokémon":
+                filtered_card_objects = [
+                    card for card in filtered_card_objects
+                    if hasattr(card, 'card_type') and card.card_type and "Pokémon" in card.card_type
+                ]
+            elif parsed_keywords['card_type'] == "Trainer":
+                filtered_card_objects = [
+                    card for card in filtered_card_objects
+                    if hasattr(card, 'card_type') and card.card_type and "Trainer" in card.card_type
+                ]
+        elif card_type_filter and card_type_filter != "All":
+            if card_type_filter == "Pokémon":
+                filtered_card_objects = [
+                    card for card in filtered_card_objects
+                    if hasattr(card, 'card_type') and card.card_type and "Pokémon" in card.card_type
+                ]
+            elif card_type_filter == "Trainer":
+                filtered_card_objects = [
+                    card for card in filtered_card_objects
+                    if hasattr(card, 'card_type') and card.card_type and "Trainer" in card.card_type
+                ]
+
+        # Apply keyword-based stage type filter (takes precedence over URL parameter)
+        if parsed_keywords['stage_type']:
+            stage_type = parsed_keywords['stage_type']
+            if stage_type == "EX":
+                # Filter for EX cards (cards ending with " ex" in name or having "pokemon - ex" in card_type)
+                filtered_card_objects = [
+                    card for card in filtered_card_objects
+                    if (card.name and card.name.lower().endswith(' ex') and not card.name.lower().endswith(' - ex (ultra beast)')) or
+                       (card.card_type and 'pokemon - ex' in card.card_type.lower())
+                ]
+            else:
+                # For other stage types (Basic, Stage 1, Stage 2, etc.) or trainer types (Item, Supporter, etc.)
+                filtered_card_objects = [
+                    card for card in filtered_card_objects
+                    if card.card_type and stage_type in card.card_type
+                ]
+        elif stage_type_filter and stage_type_filter != "All":
+            if stage_type_filter == "EX":
+                # Filter for EX cards (cards ending with " ex" in name or having "pokemon - ex" in card_type)
+                filtered_card_objects = [
+                    card for card in filtered_card_objects
+                    if (card.name and card.name.lower().endswith(' ex') and not card.name.lower().endswith(' - ex (ultra beast)')) or
+                       (card.card_type and 'pokemon - ex' in card.card_type.lower())
+                ]
+            else:
+                # For other stage types (Basic, Stage 1, Stage 2, etc.) or trainer types (Item, Supporter, etc.)
+                filtered_card_objects = [
+                    card for card in filtered_card_objects
+                    if card.card_type and stage_type_filter in card.card_type
+                ]
+
+        # Apply keyword-based rarity filter (takes precedence over URL parameter)
+        if parsed_keywords['rarities']:
+            filtered_card_objects = [
+                card for card in filtered_card_objects
+                if card.rarity in parsed_keywords['rarities']
+            ]
+        elif rarity_filter and rarity_filter != "All":
+            filtered_card_objects = [
+                card for card in filtered_card_objects
+                if card.rarity == rarity_filter
+            ]
+
+        # Apply remaining text as name filter (after keyword extraction)
+        if parsed_keywords['remaining_text']:
+            remaining_text = parsed_keywords['remaining_text'].lower()
+            filtered_card_objects = [
+                card for card in filtered_card_objects
+                if card.name and remaining_text in card.name.lower()
+            ]
+        
+        # Apply exclude_ex filter if requested
+        if parsed_keywords['exclude_ex']:
+            filtered_card_objects = [
+                card for card in filtered_card_objects
+                if not ((card.name and card.name.lower().endswith(' ex')) or
+                        (card.card_type and 'pokemon - ex' in card.card_type.lower()))
+            ]
+
+        # Get sorting parameters
+        sort_type = request.args.get("sort", "name")
+        direction = request.args.get("direction", "asc")
+        
+        # Apply sorting
+        if sort_type == "name":
+            filtered_card_objects.sort(key=lambda card: card.name.lower() if card.name else "", reverse=(direction == "desc"))
+        elif sort_type == "rarity":
+            # Define rarity order (common=1, uncommon=2, rare=3, ultra rare=4)
+            rarity_order = {
+                "Common": 1, "♦": 1,
+                "Uncommon": 2, "♦♦": 2, 
+                "Rare": 3, "♦♦♦": 3,
+                "Ultra Rare": 4, "♦♦♦♦": 4,
+                "Crown Rare": 5
+            }
+            filtered_card_objects.sort(
+                key=lambda card: rarity_order.get(card.rarity, 99) if card.rarity else 99, 
+                reverse=(direction == "desc")
+            )
+        elif sort_type == "type":
+            # Sort by card type (Pokemon, Trainer, etc.)
+            filtered_card_objects.sort(
+                key=lambda card: card.card_type.lower() if card.card_type else "", 
+                reverse=(direction == "desc")
+            )
+        elif sort_type == "set":
+            # Sort by set release order (most recent first), then by card number within each set
+            def set_sort_key(card):
+                set_name = card.set_name if card.set_name else ""
+                
+                # Define set release order (most recent first)
+                set_release_order = {
+                    "Eevee Grove": 1,
+                    "Extradimensional Crisis": 2, 
+                    "Celestial Guardians": 3,
+                    "Mythical Island": 4,
+                    "Genetic Apex": 5,
+                    "Promo-A": 6,  # Promos typically last
+                }
+                
+                # Get set priority (lower number = more recent)
+                set_priority = set_release_order.get(set_name, 999)  # Unknown sets go to the end
+                
+                # Use card_number (integer) if available, otherwise try to extract from card_number_str
+                card_num = card.card_number if card.card_number is not None else 0
+                if card_num == 0 and hasattr(card, 'card_number_str') and card.card_number_str:
+                    try:
+                        # Try to extract numeric part from card_number_str (e.g. "123a" -> 123)
+                        import re
+                        match = re.search(r'(\d+)', str(card.card_number_str))
+                        card_num = int(match.group(1)) if match else 0
+                    except:
+                        card_num = 0
+                        
+                return (set_priority, card_num)
+            
+            filtered_card_objects.sort(key=set_sort_key, reverse=(direction == "desc"))
+
+        # Calculate pagination metadata
+        total_count = len(filtered_card_objects)
+        has_more = (offset + limit) < total_count
+        
+        # Apply pagination
+        paginated_cards = filtered_card_objects[offset:offset + limit]
+
+        # Convert Card objects to dictionaries for JSON response
+        OLD_STORAGE_BASE_URL = 'https://storage.googleapis.com/pvpocket-dd286.firebasestorage.app'
+        CDN_BASE_URL = 'https://cdn.pvpocket.xyz'
+
+        card_dicts = []
+        for card_obj in paginated_cards:
+            card_dict = card_obj.to_dict()
+            
+            # Transform image URLs to use CDN
+            original_url = card_obj.display_image_path
+            if original_url and original_url.startswith(OLD_STORAGE_BASE_URL):
+                card_dict['display_image_path'] = original_url.replace(OLD_STORAGE_BASE_URL, CDN_BASE_URL)
+            else:
+                card_dict['display_image_path'] = original_url
+                
+            if card_dict['display_image_path']:
+                card_dict['high_res_image_path'] = card_dict['display_image_path'].replace('/cards/', '/high_res_cards/')
+                
+            card_dicts.append(card_dict)
+
+        current_app.logger.info(
+            f"Returning page {page} with {len(card_dicts)} cards (total: {total_count}) from CardCollection."
+        )
+
+        response = jsonify({
+            "cards": card_dicts,
+            "success": True,
+            "pagination": {
+                "current_page": page,
+                "total_count": total_count,
+                "has_more": has_more,
+                "page_size": limit,
+                "total_pages": (total_count + limit - 1) // limit
+            }
+        })
+        
+        # Add cache headers for better performance
+        response.headers['Cache-Control'] = 'public, max-age=300'  # 5 minutes
+        cache_key = f"{page}-{limit}-{set_code_filter}-{energy_type_filter}-{card_type_filter}-{stage_type_filter}-{rarity_filter}-{name_filter}-{total_count}"
+        response.headers['ETag'] = f'"{hash(cache_key)}"'
+        
+        return response
+
+    except ValueError as e:
+        current_app.logger.warning(f"Invalid pagination parameters in /api/cards/paginated: {e}")
+        return jsonify({"error": "Invalid pagination parameters.", "success": False}), 400
+
+    except Exception as e:
+        current_app.logger.error(
+            f"Error processing paginated cards from CardCollection: {e}",
+            exc_info=True,
+        )
+        return jsonify({"error": "Failed to process paginated card data.", "success": False}), 500
 
 
 @decks_bp.route("/api/decks/<string:deck_id>", methods=["GET"])
