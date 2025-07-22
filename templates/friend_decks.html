@@ -898,7 +898,8 @@
         }
     }
 
-    // Create debounced version of applyFilters
+
+    // Create debounced version of applyFilters - instant client-side filtering
     const debouncedApplyFilters = debounce(() => {
         applyFilters();
     }, 300);

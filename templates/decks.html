@@ -2536,7 +2536,7 @@
         try {
             if (!append) {
                 if (cardCollectionDiv) {
-                    cardCollectionDiv.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-primary"></div><p>Loading cards...</p></div>';
+                    cardCollectionDiv.innerHTML = '';
                 }
                 loadedIds.clear();
                 filteredCards = [];
@@ -2671,11 +2671,12 @@
 
         } catch (error) {
             if (!append && cardCollectionDiv) {
-                cardCollectionDiv.innerHTML = `<div class="text-center p-3"><p>Error loading cards: ${error.message}. Please refresh.</p></div>`;
+                cardCollectionDiv.innerHTML = '';
             }
             hasMoreCards = false;
         } finally {
             isLoading = false;
+            hideSearchInputSpinner();
         }
     }
 
@@ -2815,7 +2816,7 @@
         } catch (error) {
             const cardCollectionDiv = document.getElementById('card-collection');
             if (cardCollectionDiv) {
-                cardCollectionDiv.innerHTML = `<div class="text-center p-3"><p>Error loading card data: ${error.message}. Please refresh.</p></div>`;
+                cardCollectionDiv.innerHTML = '';
             }
             clearDeck(false);
         }
@@ -3356,9 +3357,27 @@
         }
     }
 
+
+    // Search spinner functions for server requests
+    function showSearchInputSpinner() {
+        const searchIcon = document.querySelector('.input-group-text i.bi-search');
+        if (searchIcon && !searchIcon.classList.contains('spinner-border')) {
+            searchIcon.className = 'spinner-border spinner-border-sm';
+        }
+    }
+
+    function hideSearchInputSpinner() {
+        const searchSpinner = document.querySelector('.input-group-text .spinner-border');
+        if (searchSpinner) {
+            searchSpinner.className = 'bi bi-search';
+        }
+    }
+
     function setupEventListeners() {
-        // Search input
+        // Search input - shows spinner during server requests (like collection.html)
         const debouncedFilter = debounce(() => {
+            showSearchInputSpinner();
+            
             rawSearchText = document.getElementById('search-input').value.toLowerCase();
             
             // Parse keywords and update UI

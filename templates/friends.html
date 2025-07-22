@@ -315,6 +315,7 @@
         let hasMoreFriends = true;
         let totalFriendsCount = {{ friends|length }};
 
+
         // Create debounced version of search function
         const debouncedPerformSearch = debounce(async (query) => {
             await performSearchInternal(query);
@@ -752,8 +753,9 @@
 
         // Add search input event listener
         if (friendsSearchInput) {
-            friendsSearchInput.addEventListener('input', function() {
-                const searchQuery = this.value;
+            // Debounced friends list search - instant client-side filtering
+            const debouncedFriendsSearch = debounce(function() {
+                const searchQuery = friendsSearchInput.value;
                 
                 if (searchQuery.trim() === '') {
                     // Show all friends when search is empty
@@ -777,7 +779,9 @@
                     }
                     filterFriends(searchQuery);
                 }
-            });
+            }, 300);
+
+            friendsSearchInput.addEventListener('input', debouncedFriendsSearch);
         }
 
         // Update stored entries when friends list changes (for accept/remove actions)

@@ -52,7 +52,7 @@ def _does_deck_name_exist_for_user_firestore(
         return True
     return False
 
-def passes_filters(deck_data: dict, search_text: str, energy_types: list, privacy_filter: str) -> bool:
+def passes_filters(deck_data: dict, search_text: str, energy_types: list, privacy_filter: str, card_collection_obj=None) -> bool:
     """Check if a deck passes the given filters."""
     # Privacy filter
     if privacy_filter == "public" and not deck_data.get("is_public", False):
@@ -67,11 +67,30 @@ def passes_filters(deck_data: dict, search_text: str, energy_types: list, privac
         if len(deck_types) != len(energy_types) or not all(energy_type in deck_types for energy_type in energy_types):
             return False
     
-    # Search text filter (applied to deck name)
+    # Search text filter (applied to deck name and Pokemon names in deck)
     if search_text:
+        search_text_lower = search_text.lower()
+        
+        # First check deck name
         deck_name = deck_data.get("name", "").lower()
-        if search_text not in deck_name:
-            return False
+        if search_text_lower in deck_name:
+            return True
+        
+        # If not found in deck name, search through Pokemon names in the deck
+        if card_collection_obj:
+            card_ids = deck_data.get("card_ids", [])
+            for card_id_str in card_ids:
+                try:
+                    card_obj = card_collection_obj.get_card_by_id(int(card_id_str))
+                    if card_obj:
+                        card_name = getattr(card_obj, "name", "").lower()
+                        if search_text_lower in card_name:
+                            return True
+                except (ValueError, TypeError):
+                    continue
+        
+        # If search text wasn't found in deck name or Pokemon names, filter out this deck
+        return False
     
     return True
 # --- END HELPERS ---
@@ -215,14 +234,17 @@ def get_user_decks_api():
         ]
         all_deck_docs = db.get_all(deck_refs)
 
+        # Get card collection for Pokemon name searching
+        card_collection_obj = card_service.get_card_collection()
+        
         # Sort all decks by updated_at (most recent first) and apply filters
         valid_decks = []
         for deck_doc in all_deck_docs:
             if deck_doc.exists:
                 deck_data = deck_doc.to_dict()
                 
-                # Apply server-side filtering
-                if not passes_filters(deck_data, search_text, energy_types, privacy_filter):
+                # Apply server-side filtering (now includes Pokemon name search)
+                if not passes_filters(deck_data, search_text, energy_types, privacy_filter, card_collection_obj):
                     continue
                     
                 valid_decks.append((deck_doc, deck_data))
@@ -238,7 +260,6 @@ def get_user_decks_api():
         has_more = offset + limit < total_count
 
         user_decks_details = []
-        card_collection_obj = card_service.get_card_collection()
         meta_stats = current_app.config.get("meta_stats", {})
 
         for deck_doc, deck_data in paginated_decks:

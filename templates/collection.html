@@ -68,6 +68,11 @@
         overflow: visible;
         transition: all 0.2s ease;
         flex-shrink: 0;
+        /* Touch optimizations */
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+        user-select: none;
+        -webkit-user-select: none;
     }
 
     .filter-bar .energy-icon-wrapper:not(.active) {
@@ -84,6 +89,13 @@
         transform: scale(1.15);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
         z-index: 10;
+    }
+
+    .filter-bar .energy-icon-wrapper.processing {
+        opacity: 0.8;
+        transform: scale(1.05);
+        pointer-events: none;
+        transition: all 0.1s ease;
     }
     /* End of Filter Bar Styles */
 
@@ -465,6 +477,24 @@
     }
     
     @media (hover: none) and (pointer: coarse) {
+        /* Fix energy icon hover states on touch devices */
+        .filter-bar .energy-icon-wrapper:hover:not(.active) {
+            opacity: 0.4 !important; /* Reset to default inactive state */
+            filter: saturate(0.5) !important;
+        }
+
+        .filter-bar .energy-icon-wrapper:active:not(.processing) {
+            opacity: 0.6 !important;
+            transform: scale(0.95) !important;
+        }
+
+        /* Increase touch target size on mobile */
+        .filter-bar .energy-icon-wrapper {
+            width: 36px;
+            height: 36px;
+            padding: 2px; /* Add padding for easier touching */
+        }
+
         .deck-actions-dropdown .dropdown-toggle:hover,
         .deck-actions-dropdown .dropdown-toggle:active {
             background-color: transparent !important;
@@ -504,6 +534,7 @@
         color: var(--bs-gray-400, #adb5bd) !important;
     }
 
+
 </style>
 
 <div class="collection-main-content">
@@ -523,7 +554,7 @@
                             <div class="search-section">
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="bi bi-search"></i></span>
-                                    <input type="text" id="deck-search-input" class="form-control" placeholder="Search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                                    <input type="text" id="deck-search-input" class="form-control" placeholder="Search decks or Pokémon names" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
                                 </div>
                             </div>
                             <div class="dropdown-section">
@@ -736,21 +767,26 @@
     }
 
     async function loadDecksPage(page = 1, append = false) {
-        if (isLoading) return;
+        if (isLoading) return Promise.resolve();
         
         isLoading = true;
         const decksContainer = document.getElementById('decks-container');
         
         if (!append) {
-            // Show loading spinner for initial load
-            decksContainer.innerHTML = `<div class="col-12 text-center p-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>`;
+            // Clear container for fresh load - no loading spinner needed since it's fast
+            decksContainer.innerHTML = '';
+            // Reset the scroll sentinel since we're doing a fresh load
+            const existingSentinel = document.getElementById('deck-scroll-sentinel');
+            if (existingSentinel) {
+                existingSentinel.remove();
+            }
         }
 
         try {
             // Build query parameters with filters
             const params = new URLSearchParams({
                 page: page.toString(),
-                limit: '12'
+                limit: '20'
             });
             
             // Add filter parameters
@@ -781,21 +817,54 @@
                 // Add new decks to the array
                 allDecks = append ? [...allDecks, ...data.decks] : data.decks;
                 
+                // Hide loading indicator BEFORE adding new cards to DOM
+                if (append) {
+                    const scrollSentinel = document.getElementById('deck-scroll-sentinel');
+                    if (scrollSentinel) {
+                        const spinner = scrollSentinel.querySelector('.spinner-border');
+                        if (spinner) spinner.style.display = 'none';
+                    }
+                }
+                
                 // Add deck HTML to container
                 data.decks.forEach(deck => {
                     const deckCardHTML = createDeckCardHTML(deck, window.pageData);
                     decksContainer.insertAdjacentHTML('beforeend', deckCardHTML);
                 });
                 
+                // Move the loading sentinel to the bottom after adding new cards
+                if (append) {
+                    const scrollSentinel = document.getElementById('deck-scroll-sentinel');
+                    if (scrollSentinel) {
+                        // Remove from current position and append to end
+                        scrollSentinel.remove();
+                        decksContainer.appendChild(scrollSentinel);
+                    }
+                }
+                
                 // Update pagination state
                 hasMoreDecks = data.pagination.has_more;
+                window.hasMoreDecks = hasMoreDecks; // Make it globally accessible
                 totalDecks = data.pagination.total_count;
                 currentPage = page;
+                window.currentPage = currentPage; // Make it globally accessible
                 
                 // Set up infinite scroll for more decks
                 if (hasMoreDecks) {
                     setupInfiniteScroll();
+                } else {
+                    // No more decks - clean up any existing sentinel
+                    const existingSentinel = document.getElementById('deck-scroll-sentinel');
+                    if (existingSentinel) {
+                        existingSentinel.remove();
+                    }
+                    if (window.deckScrollObserver) {
+                        window.deckScrollObserver.disconnect();
+                        window.deckScrollObserver = null;
+                    }
                 }
+                
+                // Loading spinner will be managed by the IntersectionObserver - no need for early cleanup
                 
                 // Initialize image lazy loading and filters
                 initializeImageLazyLoader();
@@ -819,6 +888,15 @@
                     decksContainer.innerHTML = `<div class="col-12"><div class="alert alert-info"><p>You don't have any decks yet. <a href="${window.pageData.deck_builder_url}">Create your first deck!</a></p></div></div>`;
                 }
                 hasMoreDecks = false;
+                // Clean up any existing scroll sentinel and observer
+                const existingSentinel = document.getElementById('deck-scroll-sentinel');
+                if (existingSentinel) {
+                    existingSentinel.remove();
+                }
+                if (window.deckScrollObserver) {
+                    window.deckScrollObserver.disconnect();
+                    window.deckScrollObserver = null;
+                }
             }
             
         } catch (error) {
@@ -828,6 +906,7 @@
             }
         } finally {
             isLoading = false;
+            hideSearchInputSpinner();
         }
     }
 
@@ -856,40 +935,73 @@
             document.getElementById('decks-container').appendChild(scrollSentinel);
         }
         
+        // Ensure the sentinel is visible and reset its state since we only call this when hasMoreDecks is true
+        scrollSentinel.style.display = 'block';
+        const spinner = scrollSentinel.querySelector('.spinner-border');
+        const text = scrollSentinel.querySelector('.load-more-text');
+        if (spinner) spinner.style.display = 'none';
+        if (text) text.textContent = 'Scroll for more decks';
+        
         // Set up intersection observer for infinite scroll
         window.deckScrollObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
-                if (entry.isIntersecting && hasMoreDecks && !isLoading) {
-                    console.log('Loading next page of decks...');
+                // Check hasMoreDecks dynamically instead of relying on closure
+                const currentlyHasMore = window.hasMoreDecks !== undefined ? window.hasMoreDecks : hasMoreDecks;
+                
+                if (entry.isIntersecting && currentlyHasMore && !isLoading) {
+                    // Temporarily stop observing to prevent multiple triggers
+                    window.deckScrollObserver.unobserve(entry.target);
                     
                     // Show loading spinner
                     const spinner = scrollSentinel.querySelector('.spinner-border');
                     const text = scrollSentinel.querySelector('.load-more-text');
-                    spinner.style.display = 'inline-block';
-                    text.textContent = 'Loading more decks...';
+                    if (spinner) spinner.style.display = 'inline-block';
+                    if (text) text.textContent = 'Loading more decks...';
                     
                     loadDecksPage(currentPage + 1, true).then(() => {
+                        // Loading indicator already hidden before cards were added
+                        const currentScrollSentinel = document.getElementById('deck-scroll-sentinel');
+                        if (currentScrollSentinel) {
+                            const currentText = currentScrollSentinel.querySelector('.load-more-text');
+                            
+                            if (!window.hasMoreDecks) {
+                                // No more decks - remove the entire sentinel and clean up observer
+                                currentScrollSentinel.remove();
+                                if (window.deckScrollObserver) {
+                                    window.deckScrollObserver.disconnect();
+                                    window.deckScrollObserver = null;
+                                }
+                            } else {
+                                // Re-observe the sentinel for future loading and reset text
+                                if (currentText) currentText.textContent = 'Scroll for more decks';
+                                if (window.deckScrollObserver) {
+                                    window.deckScrollObserver.observe(currentScrollSentinel);
+                                }
+                            }
+                        }
+                        
                         // Reinitialize image lazy loading for newly loaded decks
                         initializeImageLazyLoader();
-                        
-                        // Hide loading spinner after load
-                        spinner.style.display = 'none';
-                        text.textContent = hasMoreDecks ? 'Scroll for more decks' : '';
-                        
-                        // Hide the entire indicator if no more decks
-                        if (!hasMoreDecks) {
-                            scrollSentinel.style.display = 'none';
-                        }
                     }).catch(() => {
-                        // Hide spinner on error
-                        spinner.style.display = 'none';
-                        text.textContent = 'Error loading more decks';
+                        // Handle error and re-observe (spinner already hidden)
+                        const errorScrollSentinel = document.getElementById('deck-scroll-sentinel');
+                        if (errorScrollSentinel) {
+                            const errorText = errorScrollSentinel.querySelector('.load-more-text');
+                            if (errorText) errorText.textContent = 'Error loading more decks';
+                            
+                            // Re-observe for retry attempts
+                            if (window.deckScrollObserver) {
+                                window.deckScrollObserver.observe(errorScrollSentinel);
+                            }
+                        }
                     });
                 }
             });
         }, {
-            rootMargin: '100px' // Load more when sentinel is 100px from viewport
+            rootMargin: '50px' // Load more when sentinel is 50px from viewport (requires more scrolling)
         });
+        
+        // IntersectionObserver is sufficient for infinite scroll - no need for scroll listener fallback
         
         window.deckScrollObserver.observe(scrollSentinel);
     }
@@ -903,9 +1015,26 @@
         loadDecksPage(1, false);
     }
 
+
+
+    function showSearchInputSpinner() {
+        const searchIcon = document.querySelector('.filter-bar .input-group-text i');
+        if (searchIcon && !searchIcon.classList.contains('spinner-border')) {
+            searchIcon.className = 'spinner-border spinner-border-sm';
+        }
+    }
+
+    function hideSearchInputSpinner() {
+        const searchSpinner = document.querySelector('.filter-bar .input-group-text .spinner-border');
+        if (searchSpinner) {
+            searchSpinner.className = 'bi bi-search';
+        }
+    }
+
     function setupFilterListeners() {
-        // Debounced search input
+        // Debounced search input - shows spinner only during actual server request
         const debouncedSearch = debounce(() => {
+            showSearchInputSpinner();
             triggerSearch();
         }, 300);
         
@@ -930,10 +1059,23 @@
         });
 
         document.querySelectorAll('.filter-bar .energy-icon-wrapper').forEach(icon => {
-            icon.addEventListener('click', () => {
+            let isProcessing = false;
+            
+            // Handle both click and touchend events for better mobile support
+            const handleEnergyToggle = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Prevent rapid successive clicks/taps
+                if (isProcessing) return;
+                isProcessing = true;
+                
                 const energyType = icon.dataset.type;
                 const isCurrentlyActive = icon.classList.contains('active');
-
+                
+                // Add immediate visual feedback
+                icon.classList.add('processing');
+                
                 // If the icon is already active, always allow de-selecting it.
                 if (isCurrentlyActive) {
                     icon.classList.remove('active');
@@ -946,7 +1088,24 @@
                     activeFilters.energyTypes.push(energyType);
                     triggerSearch();
                 }
-                // If 3 are already active and you click an inactive one, do nothing.
+                
+                // Clean up processing state
+                icon.classList.remove('processing');
+                
+                // Brief delay to prevent rapid clicks
+                setTimeout(() => {
+                    isProcessing = false;
+                }, 100);
+            };
+            
+            icon.addEventListener('click', handleEnergyToggle);
+            
+            // Add touch support for mobile devices
+            icon.addEventListener('touchend', (e) => {
+                // Only handle touchend if it wasn't already handled by click
+                if (!e.defaultPrevented) {
+                    handleEnergyToggle(e);
+                }
             });
         });
     }
