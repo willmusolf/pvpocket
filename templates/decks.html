@@ -189,6 +189,9 @@
         box-shadow: 0 2px 6px rgba(0,0,0,0.3);
         z-index: 2;
     }
+    .energy-icon-wrapper.active.typed {
+        cursor: not-allowed;
+    }
     .energy-icon {
         width: 100%;
         height: 100%;
@@ -511,10 +514,6 @@
         justify-content: center;
         align-items: center;
         background-color: var(--hover-shadow);
-    }
-    .card-slot-container.filled:hover {
-        transform: scale(1.05);
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
     }
     .max-copies img {
         filter: grayscale(85%);
@@ -926,7 +925,6 @@
     @media (hover: none) {
         /* --- General Mobile Hover Resets --- */
         .card-item:hover,
-        .card-slot-container.filled:hover,
         .btn-favorite:hover,
         .btn-remove-small:hover,
         .btn-remove:hover,
@@ -1469,6 +1467,8 @@
         energyTypes: [] 
     };
     let rawSearchText = ''; 
+    let typedEnergyTypes = new Set(); // Track energy types selected via typing
+    let typedFilters = new Set(); // Track which filters were set via typing
     let deckSaved = false;
     let cardObserver = null;
     let loadTimeout = null;
@@ -2565,11 +2565,30 @@
                     params.append('set_code', setData);
                 }
             }
-            if (selectedFilters.energyTypes.length > 0) {
-                params.append('energy_type', selectedFilters.energyTypes[0]); // API supports one energy type
-            }
+            // Combine search text with energy type keywords
+            const searchComponents = [];
             if (rawSearchText.trim()) {
-                params.append('name', rawSearchText.trim());
+                searchComponents.push(rawSearchText.trim());
+            }
+            if (selectedFilters.energyTypes.length > 0) {
+                // Convert energy types to keywords for multi-type filtering
+                const energyTypeMapping = {
+                    'Grass': 'grass',
+                    'Fire': 'fire', 
+                    'Water': 'water',
+                    'Lightning': 'lightning',
+                    'Psychic': 'psychic',
+                    'Fighting': 'fighting',
+                    'Darkness': 'darkness',
+                    'Metal': 'metal',
+                    'Dragon': 'dragon',
+                    'Colorless': 'colorless'
+                };
+                const energyKeywords = selectedFilters.energyTypes.map(type => energyTypeMapping[type] || type.toLowerCase());
+                searchComponents.push(...energyKeywords);
+            }
+            if (searchComponents.length > 0) {
+                params.append('name', searchComponents.join(' '));
             }
             
             // Add sorting parameters
@@ -3140,33 +3159,110 @@
     }
     
     function updateUIFromKeywords(keywords) {
-        // If search is completely empty, reset all search-related filters
+        // If search is completely empty, reset only typed filters
         if (rawSearchText === '') {
-            selectedFilters.cardType = 'All';
-            selectedFilters.stageType = 'All';
-            selectedFilters.rarity = 'All';
-            selectedFilters.set = 'All';
-            // Don't clear energy types as they might be manually selected
+            // Reset only filters that were set via typing
+            if (typedFilters.has('cardType')) {
+                selectedFilters.cardType = 'All';
+                typedFilters.delete('cardType');
+            }
+            if (typedFilters.has('stageType')) {
+                selectedFilters.stageType = 'All';
+                typedFilters.delete('stageType');
+            }
+            if (typedFilters.has('rarity')) {
+                selectedFilters.rarity = 'All';
+                typedFilters.delete('rarity');
+            }
+            if (typedFilters.has('set')) {
+                selectedFilters.set = 'All';
+                typedFilters.delete('set');
+            }
             
-            // Reset all UI dropdowns to 'All'
-            const button1 = document.getElementById('cardTypeDropdown');
-            if (button1) button1.textContent = 'All';
-            const button2 = document.getElementById('stageTypeDropdown');
-            if (button2) button2.textContent = 'All';
-            const button3 = document.getElementById('rarityDropdown');
-            if (button3) button3.textContent = 'All';
-            const button4 = document.getElementById('setDropdown');
-            if (button4) button4.textContent = 'All';
-            
-            // Reset dropdown active states
-            document.querySelectorAll('#card-type-dropdown a, #stage-type-dropdown a, #rarity-dropdown a, #set-dropdown a').forEach(item => {
-                item.classList.remove('active');
-                if (item.dataset.value === 'All') {
-                    item.classList.add('active');
+            // Clear typed energy types and remove them from selection
+            typedEnergyTypes.forEach(energyType => {
+                selectedFilters.energyTypes = selectedFilters.energyTypes.filter(type => type !== energyType);
+                const icon = document.querySelector(`.filter-bar .energy-icon-wrapper[data-type="${energyType}"]`);
+                if (icon) {
+                    icon.classList.remove('active', 'typed');
                 }
             });
+            typedEnergyTypes.clear();
+            
+            // Reset UI dropdowns only for filters that were typed
+            if (selectedFilters.cardType === 'All') {
+                const button1 = document.getElementById('cardTypeDropdown');
+                if (button1) button1.textContent = 'All';
+                document.querySelectorAll('#card-type-dropdown a').forEach(item => {
+                    item.classList.remove('active');
+                    if (item.dataset.value === 'All') {
+                        item.classList.add('active');
+                    }
+                });
+            }
+            if (selectedFilters.stageType === 'All') {
+                const button2 = document.getElementById('stageTypeDropdown');
+                if (button2) button2.textContent = 'All';
+                document.querySelectorAll('#stage-type-dropdown a').forEach(item => {
+                    item.classList.remove('active');
+                    if (item.dataset.value === 'All') {
+                        item.classList.add('active');
+                    }
+                });
+            }
+            if (selectedFilters.rarity === 'All') {
+                const button3 = document.getElementById('rarityDropdown');
+                if (button3) button3.textContent = 'All';
+                document.querySelectorAll('#rarity-dropdown a').forEach(item => {
+                    item.classList.remove('active');
+                    if (item.dataset.value === 'All') {
+                        item.classList.add('active');
+                    }
+                });
+            }
+            if (selectedFilters.set === 'All') {
+                const button4 = document.getElementById('setDropdown');
+                if (button4) button4.textContent = 'All';
+                document.querySelectorAll('#set-dropdown a').forEach(item => {
+                    item.classList.remove('active');
+                    if (item.dataset.value === 'All') {
+                        item.classList.add('active');
+                    }
+                });
+            }
             return;
         }
+        
+        // Remove typed filters that are no longer in search keywords
+        if (typedFilters.has('cardType') && !keywords.cardType) {
+            selectedFilters.cardType = 'All';
+            typedFilters.delete('cardType');
+        }
+        if (typedFilters.has('stageType') && !keywords.stageType) {
+            selectedFilters.stageType = 'All';
+            typedFilters.delete('stageType');
+        }
+        if (typedFilters.has('rarity') && !keywords.rarity) {
+            selectedFilters.rarity = 'All';
+            typedFilters.delete('rarity');
+        }
+        if (typedFilters.has('set') && !keywords.set) {
+            selectedFilters.set = 'All';
+            typedFilters.delete('set');
+        }
+        
+        // Remove typed energy types that are no longer in search keywords
+        const currentTypedEnergyTypes = new Set(typedEnergyTypes);
+        currentTypedEnergyTypes.forEach(energyType => {
+            if (!keywords.energyTypes.includes(energyType)) {
+                typedEnergyTypes.delete(energyType);
+                selectedFilters.energyTypes = selectedFilters.energyTypes.filter(type => type !== energyType);
+                const icon = document.querySelector(`.filter-bar .energy-icon-wrapper[data-type="${energyType}"]`);
+                if (icon) {
+                    icon.classList.remove('active', 'typed');
+                }
+            }
+        });
         
         // Update energy type icons - preserve existing selections and add new ones
         if (keywords.energyTypes.length > 0) {
@@ -3178,12 +3274,18 @@
                         selectedFilters.energyTypes.push(energyType);
                     }
                 }
+                // Mark this energy type as typed and add visual indicator
+                if (icon) {
+                    icon.classList.add('typed');
+                }
+                typedEnergyTypes.add(energyType);
             });
         }
         
         // Update card type dropdown
         if (keywords.cardType) {
             selectedFilters.cardType = keywords.cardType;
+            typedFilters.add('cardType'); // Mark as typed
             const button = document.getElementById('cardTypeDropdown');
             if (button) {
                 button.textContent = keywords.cardType;
@@ -3200,6 +3302,7 @@
         // Update stage type dropdown
         if (keywords.stageType) {
             selectedFilters.stageType = keywords.stageType;
+            typedFilters.add('stageType'); // Mark as typed
             const button = document.getElementById('stageTypeDropdown');
             if (button) {
                 button.textContent = keywords.stageType;
@@ -3216,6 +3319,7 @@
         // Update rarity dropdown
         if (keywords.rarity) {
             selectedFilters.rarity = keywords.rarity;
+            typedFilters.add('rarity'); // Mark as typed
             const button = document.getElementById('rarityDropdown');
             if (button) {
                 // Special handling for Crown Rare emoji
@@ -3237,6 +3341,7 @@
         // Update set dropdown
         if (keywords.set) {
             selectedFilters.set = keywords.set;
+            typedFilters.add('set'); // Mark as typed
             const button = document.getElementById('setDropdown');
             if (button) {
                 button.textContent = keywords.set;
@@ -3276,6 +3381,11 @@
             const icon = event.currentTarget;
             const energyType = icon.getAttribute('data-type');
             resetAddCardsScroll();
+
+            // Prevent unselecting typed energy types
+            if (icon.classList.contains('active') && typedEnergyTypes.has(energyType)) {
+                return; // Don't allow unselecting typed energy types
+            }
 
             icon.classList.toggle('active');
 

@@ -614,22 +614,12 @@ def get_cards_paginated():
             search_terms = remaining_text.split()
             
             def card_matches_search_terms(card):
-                # Create a searchable text from card fields, excluding "evolves from" information
-                card_type_text = ""
-                if card.card_type:
-                    card_type_text = card.card_type.lower()
-                    # Remove "Evolves from X" part from card_type to avoid unwanted matches
-                    if "evolves from" in card_type_text:
-                        card_type_text = card_type_text.split("evolves from")[0].strip()
+                # Only search in card names for partial matches
+                # Card types and energy types are only matched via complete keywords
+                card_name = card.name.lower() if card.name else ""
                 
-                searchable_text = " ".join(filter(None, [
-                    card.name.lower() if card.name else "",
-                    card_type_text,
-                    card.energy_type.lower() if card.energy_type else ""
-                ]))
-                
-                # Check if all search terms are found in the searchable text
-                return all(term in searchable_text for term in search_terms)
+                # Check if all search terms are found in the card name
+                return all(term in card_name for term in search_terms)
             
             filtered_card_objects = [
                 card for card in filtered_card_objects
