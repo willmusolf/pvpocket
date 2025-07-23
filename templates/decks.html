@@ -2640,10 +2640,8 @@
         try {
             if (!append) {
                 if (cardCollectionDiv) {
-                    // Only show skeleton cards for initial load, not for search/filter operations
-                    if (isInitialLoad) {
-                        showCardSkeletons(12);
-                    }
+                    // Always show skeleton cards immediately to prevent gray screen flash
+                    showCardSkeletons(12);
                 }
                 loadedIds.clear();
                 filteredCards = [];
@@ -2732,7 +2730,7 @@
 
                 
                 if (typeof updateCardDisplay === 'function') {
-                    updateCardDisplay();
+                    updateCardDisplay(append);
                 } else {
                 }
                 
@@ -4048,20 +4046,31 @@
         }
     }
 
-    function updateCardDisplay() {
+    function updateCardDisplay(isAppend = false) {
         
         const cardCollection = document.getElementById('card-collection');
         if (!cardCollection) {
             return;
         }
 
+        let rowDiv;
+        let noResultsDiv;
         
-        // Always rebuild for paginated system - remove the isBuilt check
-        // if (!cardCollection.dataset.isBuilt) {
-            const rowDiv = document.createElement('div');
+        if (isAppend) {
+            // For append mode, find existing row
+            rowDiv = cardCollection.querySelector('.row');
+            noResultsDiv = cardCollection.querySelector('.no-results-message');
+            if (!rowDiv) {
+                rowDiv = document.createElement('div');
+                rowDiv.className = 'row g-2';
+                cardCollection.appendChild(rowDiv);
+            }
+        } else {
+            // For non-append mode, create new elements
+            rowDiv = document.createElement('div');
             rowDiv.className = 'row g-2';
-
-            const noResultsDiv = document.createElement('div');
+            
+            noResultsDiv = document.createElement('div');
             noResultsDiv.className = 'col-12 text-center p-5 no-results-message';
 
             const message = document.createElement('p');
@@ -4074,8 +4083,16 @@
             noResultsDiv.appendChild(message);
             noResultsDiv.appendChild(resetButton);
 
+            // When appending, only process new cards that aren't already displayed
+            const displayedCardIds = isAppend ? new Set(
+                Array.from(cardCollection.querySelectorAll('.card-item')).map(el => el.dataset.cardId)
+            ) : new Set();
             
-            filteredCards.forEach((card, index) => {
+            const cardsToDisplay = isAppend ? 
+                filteredCards.filter(card => !displayedCardIds.has(card.id.toString())) : 
+                filteredCards;
+            
+            cardsToDisplay.forEach((card, index) => {
                 
                 const colDiv = document.createElement('div');
                 colDiv.className = 'col-4 col-sm-4 col-md-4 col-lg-3 col-xl-2 mb-3 card-item';
@@ -4144,9 +4161,13 @@
                 }
             });
             
-            cardCollection.innerHTML = '';
-            cardCollection.appendChild(rowDiv);
-            cardCollection.appendChild(noResultsDiv);
+            if (!isAppend) {
+                cardCollection.innerHTML = '';
+                cardCollection.appendChild(rowDiv);
+                if (noResultsDiv) {
+                    cardCollection.appendChild(noResultsDiv);
+                }
+            }
             
             // Debug: Check if elements are actually in DOM
             setTimeout(() => {
