@@ -757,7 +757,7 @@
         transition: opacity 0.2s ease-in-out;
     }
 
-    /* Card collection skeleton loading effects */
+    /* Card collection skeleton loading effects - matches collection.html style */
     .card-skeleton-container {
         position: relative;
         margin-bottom: 7px;
@@ -768,7 +768,7 @@
         position: relative;
         width: 100%;
         aspect-ratio: 63 / 88;
-        background-color: #e0e0e0;
+        background-color: #f0f0f0;
         border-radius: 3.5%;
         overflow: hidden;
         box-shadow: 0 2px 5px rgba(0,0,0,0.1);
@@ -791,7 +791,7 @@
     }
     
     [data-theme="dark"] .card-skeleton::after {
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
     }
     :root:not([data-theme="dark"]) {
         .current-deck-container .input-group #deck-name {
@@ -1470,6 +1470,15 @@
                         </div>
                         <div class="card-body">
                             <div id="card-collection">
+                                <!-- Initial shimmer cards to prevent gray screen -->
+                                <div class="row g-2">
+                                    {% for i in range(12) %}
+                                    <div class="col-4 col-sm-4 col-md-4 col-lg-3 col-xl-2 mb-3 card-item">
+                                        <div class="position-relative clickable-card is-loading">
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -2126,6 +2135,9 @@
         // Register Service Worker for persistent caching
         registerServiceWorker();
         
+        // Show shimmer cards immediately to prevent gray screen
+        showCardSkeletons(12);
+        
         loadCards();
         setupEventListeners();
         initializeCardObserver();
@@ -2615,12 +2627,11 @@
         const cardCollectionDiv = document.getElementById('card-collection');
         if (!cardCollectionDiv) return;
         
-        let skeletonsHTML = '<div class="row">';
+        let skeletonsHTML = '<div class="row g-2">';
         for (let i = 0; i < count; i++) {
             skeletonsHTML += `
-                <div class="col-4 col-sm-4 col-md-4 col-lg-3 col-xl-2 mb-3 card-skeleton-container">
-                    <div class="position-relative">
-                        <div class="card-skeleton"></div>
+                <div class="col-4 col-sm-4 col-md-4 col-lg-3 col-xl-2 mb-3 card-item">
+                    <div class="position-relative clickable-card is-loading">
                     </div>
                 </div>
             `;
@@ -2640,10 +2651,8 @@
         try {
             if (!append) {
                 if (cardCollectionDiv) {
-                    // Only show skeleton cards for initial load, not for search/filter operations
-                    if (isInitialLoad) {
-                        showCardSkeletons(12);
-                    }
+                    // Always show skeleton cards immediately to prevent gray screen flash
+                    showCardSkeletons(12);
                 }
                 loadedIds.clear();
                 filteredCards = [];
@@ -2732,7 +2741,7 @@
 
                 
                 if (typeof updateCardDisplay === 'function') {
-                    updateCardDisplay();
+                    updateCardDisplay(append);
                 } else {
                 }
                 
@@ -4048,20 +4057,31 @@
         }
     }
 
-    function updateCardDisplay() {
+    function updateCardDisplay(isAppend = false) {
         
         const cardCollection = document.getElementById('card-collection');
         if (!cardCollection) {
             return;
         }
 
+        let rowDiv;
+        let noResultsDiv;
         
-        // Always rebuild for paginated system - remove the isBuilt check
-        // if (!cardCollection.dataset.isBuilt) {
-            const rowDiv = document.createElement('div');
+        if (isAppend) {
+            // For append mode, find existing row
+            rowDiv = cardCollection.querySelector('.row');
+            noResultsDiv = cardCollection.querySelector('.no-results-message');
+            if (!rowDiv) {
+                rowDiv = document.createElement('div');
+                rowDiv.className = 'row g-2';
+                cardCollection.appendChild(rowDiv);
+            }
+        } else {
+            // For non-append mode, create new elements
+            rowDiv = document.createElement('div');
             rowDiv.className = 'row g-2';
-
-            const noResultsDiv = document.createElement('div');
+            
+            noResultsDiv = document.createElement('div');
             noResultsDiv.className = 'col-12 text-center p-5 no-results-message';
 
             const message = document.createElement('p');
@@ -4073,9 +4093,18 @@
             resetButton.addEventListener('click', resetAllFilters);
             noResultsDiv.appendChild(message);
             noResultsDiv.appendChild(resetButton);
-
+        }
+        
+        // When appending, only process new cards that aren't already displayed
+        const displayedCardIds = isAppend ? new Set(
+            Array.from(cardCollection.querySelectorAll('.card-item')).map(el => el.dataset.cardId)
+        ) : new Set();
+        
+        const cardsToDisplay = isAppend ? 
+            filteredCards.filter(card => !displayedCardIds.has(card.id.toString())) : 
+            filteredCards;
             
-            filteredCards.forEach((card, index) => {
+            cardsToDisplay.forEach((card, index) => {
                 
                 const colDiv = document.createElement('div');
                 colDiv.className = 'col-4 col-sm-4 col-md-4 col-lg-3 col-xl-2 mb-3 card-item';
@@ -4144,9 +4173,13 @@
                 }
             });
             
-            cardCollection.innerHTML = '';
-            cardCollection.appendChild(rowDiv);
-            cardCollection.appendChild(noResultsDiv);
+            if (!isAppend) {
+                cardCollection.innerHTML = '';
+                cardCollection.appendChild(rowDiv);
+                if (noResultsDiv) {
+                    cardCollection.appendChild(noResultsDiv);
+                }
+            }
             
             // Debug: Check if elements are actually in DOM
             setTimeout(() => {
