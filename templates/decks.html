@@ -2135,8 +2135,7 @@
         // Register Service Worker for persistent caching
         registerServiceWorker();
         
-        // Show shimmer cards immediately to prevent gray screen
-        showCardSkeletons(12);
+        // Shimmer cards are already in HTML - no need to show them again
         
         loadCards();
         setupEventListeners();
@@ -2651,8 +2650,10 @@
         try {
             if (!append) {
                 if (cardCollectionDiv) {
-                    // Always show skeleton cards immediately to prevent gray screen flash
-                    showCardSkeletons(12);
+                    // Only show skeleton cards if not initial load (HTML already has them)
+                    if (!isInitialLoad) {
+                        showCardSkeletons(12);
+                    }
                 }
                 loadedIds.clear();
                 filteredCards = [];
