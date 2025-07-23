@@ -2,7 +2,7 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, development ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:  # Allow manual triggers
@@ -111,7 +111,7 @@ jobs:
     name: Deploy to Test Environment
     runs-on: ubuntu-latest
     needs: test
-    if: github.ref == 'refs/heads/develop'
+    if: github.ref == 'refs/heads/development'
     
     steps:
     - name: Checkout code
@@ -135,7 +135,7 @@ jobs:
       run: |
         cat > app-test-deploy.yaml << EOF
         runtime: python311
-        service: test
+        service: test-env
         entrypoint: gunicorn -b :\$PORT run:app
         
         automatic_scaling:
@@ -171,12 +171,12 @@ jobs:
         
     - name: Deploy to Test Environment
       run: |
-        gcloud app deploy app-test-deploy.yaml --quiet --no-promote
+        gcloud app deploy app-test-deploy.yaml --quiet
         
     - name: Run post-deployment health check
       run: |
         sleep 30
-        TEST_URL="https://test-dot-${{ env.GCP_PROJECT_ID }}.uc.r.appspot.com/health"
+        TEST_URL="https://test-env-dot-${{ env.GCP_PROJECT_ID }}.uc.r.appspot.com/health"
         curl -f "$TEST_URL" || exit 1
 
   deploy-production:
