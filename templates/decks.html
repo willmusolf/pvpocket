@@ -2132,28 +2132,12 @@
     };
 
     document.addEventListener('DOMContentLoaded', function() {
-        console.log('🟢 DOMContentLoaded - page loaded');
-        
-        const cardCollection = document.getElementById('card-collection');
-        if (cardCollection) {
-            const initialCards = cardCollection.querySelectorAll('.card-item');
-            console.log(`📊 Initial shimmer cards found: ${initialCards.length}`);
-            initialCards.forEach((card, i) => {
-                const classes = card.className;
-                const container = card.querySelector('.clickable-card');
-                const containerClasses = container ? container.className : 'none';
-                console.log(`🔍 Card ${i}: col="${classes}", container="${containerClasses}"`);
-            });
-        }
         
         // Apply user preferences
         userPrefs.applyPreferences();
         
         // Register Service Worker for persistent caching
         registerServiceWorker();
-        
-        // Shimmer cards are already in HTML - no need to show them again
-        console.log('🚀 Starting loadCards()...');
         
         loadCards();
         setupEventListeners();
@@ -2660,8 +2644,6 @@
 
     // New paginated card loading function
     async function loadCardsPage(page = 1, append = false, isInitialLoad = false) {
-        console.log(`🔄 loadCardsPage called: page=${page}, append=${append}, isInitialLoad=${isInitialLoad}`);
-        
         if (isLoading) return;
         
         isLoading = true;
@@ -2670,19 +2652,10 @@
         try {
             if (!append) {
                 if (cardCollectionDiv) {
-                    const beforeCards = cardCollectionDiv.querySelectorAll('.card-item').length;
-                    console.log(`📦 Cards before processing: ${beforeCards}`);
-                    
                     // Only show skeleton cards if not initial load (HTML already has them)
                     if (!isInitialLoad) {
-                        console.log('🎭 Showing skeleton cards (not initial load)');
                         showCardSkeletons(12);
-                    } else {
-                        console.log('⚡ Keeping existing HTML shimmer cards (initial load)');
                     }
-                    
-                    const afterCards = cardCollectionDiv.querySelectorAll('.card-item').length;
-                    console.log(`📦 Cards after processing: ${afterCards}`);
                 }
                 loadedIds.clear();
                 filteredCards = [];
@@ -4088,16 +4061,10 @@
     }
 
     function updateCardDisplay(isAppend = false, isInitialLoad = false) {
-        console.log(`🎨 updateCardDisplay called: isAppend=${isAppend}, isInitialLoad=${isInitialLoad}`);
-        
         const cardCollection = document.getElementById('card-collection');
         if (!cardCollection) {
-            console.log('❌ No card-collection element found');
             return;
         }
-        
-        const existingCards = cardCollection.querySelectorAll('.card-item').length;
-        console.log(`📊 Existing cards before update: ${existingCards}`);
 
         let rowDiv;
         let noResultsDiv;
@@ -4210,14 +4177,11 @@
             
             if (!isAppend) {
                 if (isInitialLoad) {
-                    console.log('🎯 Initial load: Seamlessly replacing shimmer cards with real cards');
                     const existingRow = cardCollection.querySelector('.row');
                     if (existingRow) {
                         // Get both existing shimmer cards and new real cards
                         const existingCards = Array.from(existingRow.querySelectorAll('.card-item'));
                         const newCards = Array.from(rowDiv.querySelectorAll('.card-item'));
-                        
-                        console.log(`🔄 Replacing ${existingCards.length} shimmer cards with ${newCards.length} real cards`);
                         
                         // Replace shimmer cards with real cards one by one to avoid flicker
                         newCards.forEach((newCard, index) => {
@@ -4239,23 +4203,16 @@
                         });
                     } else {
                         // Fallback if no existing row found
-                        console.log('⚠️ No existing row found, replacing collection');
                         cardCollection.innerHTML = '';
                         cardCollection.appendChild(rowDiv);
                     }
                 } else {
-                    console.log('🔄 Replacing entire card collection (not initial load)');
                     cardCollection.innerHTML = '';
                     cardCollection.appendChild(rowDiv);
                     if (noResultsDiv) {
                         cardCollection.appendChild(noResultsDiv);
                     }
                 }
-                
-                const newCards = cardCollection.querySelectorAll('.card-item').length;
-                console.log(`📊 New cards after replacement: ${newCards}`);
-            } else {
-                console.log('➕ Appending cards to existing collection');
             }
             
             // Debug: Check if elements are actually in DOM
