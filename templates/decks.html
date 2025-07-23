@@ -454,7 +454,7 @@
         padding: 0 12px;
         flex-grow: 1;
     }
-    #save-deck-btn, #clear-deck-btn, #export-deck-btn {
+    #save-deck-btn, #clear-deck-btn {
         height: 45px;
         display: flex;
         align-items: center;
@@ -1151,7 +1151,7 @@
             border-radius: 2px;
         }
         
-        #save-deck-btn, #clear-deck-btn, #export-deck-btn {
+        #save-deck-btn, #clear-deck-btn {
             -webkit-tap-highlight-color: transparent;
         }
         #save-deck-btn:hover,
@@ -1169,17 +1169,8 @@
             background-color: transparent !important;
             color: #dc3545 !important;
         }
-        #export-deck-btn:hover,
-        #export-deck-btn:active {
-            transform: none !important;
-            box-shadow: none !important;
-            background-color: #0d6efd !important;
-            border-color: #0d6efd !important;
-            color: white !important;
-        }
         #save-deck-btn:focus,
-        #clear-deck-btn:focus,
-        #export-deck-btn:focus {
+        #clear-deck-btn:focus {
             box-shadow: none !important;
         }
         .btn-outline-secondary:hover,
@@ -1269,9 +1260,6 @@
         .current-deck-container .card-header .deck-counter {
             border-top-right-radius: 8px !important;
             border-bottom-right-radius: 8px !important;
-        }
-        .current-deck-container .card-header #export-deck-btn {
-            border-radius: 0 !important;
         }
         .col-md-8.mb-4 .card-header .dropdown {
             width: 75px;
@@ -1494,7 +1482,6 @@
                             <div class="input-group mb-2">
                                 <input type="text" id="deck-name" class="form-control" placeholder="Enter Deck Name" autocomplete="off">
                                 <button id="save-deck-btn" class="btn btn-success">Save</button>
-                                <button id="export-deck-btn" class="btn btn-outline-primary" style="display: none;">Export</button>
                                 <button id="clear-deck-btn" class="btn btn-outline-danger">Clear</button>
                                 <span class="deck-counter">0/20</span>
                             </div>
@@ -2920,6 +2907,16 @@
                             updateDeckDisplay();
                             updateEnergyCounter();
                             updateCoverCardDisplay();
+                            
+                            // Restore energy selection UI state
+                            document.querySelectorAll('.energy-selection-bar .energy-icon-wrapper').forEach(icon => {
+                                const energyType = icon.getAttribute('data-type');
+                                if (selectedDeckEnergies.includes(energyType)) {
+                                    icon.classList.add('active');
+                                } else {
+                                    icon.classList.remove('active');
+                                }
+                            });
                         }
                     } catch (error) {
                     }
@@ -3017,13 +3014,6 @@
         updateDeckEnergyIconsVisualState();
         updateEnergyCounter();
 
-        // 2. Update export button visibility
-        const exportButton = document.getElementById('export-deck-btn');
-        if (loadedDeckId && deckSaved) {
-            exportButton.style.display = 'inline-block';
-        } else {
-            exportButton.style.display = 'none';
-        }
 
         // 3. Update all card visuals in the main collection view
         // This loops through every card element and calls your existing update function,
@@ -3669,9 +3659,9 @@
                         currentDeck.splice(slotIndex, 1);
                         deckSaved = false;
 
-                        if (removedCardId === coverCardIds) {
-                            coverCardIds = null;
-                        }
+                        // Clean up cover cards if necessary
+                        cleanupCoverCardsAfterRemoval(removedCardId);
+                        
                         updateDeckDisplay();
                         updateCardStateInCollection(removedCardId);
                     }
@@ -3696,6 +3686,10 @@
                     if (indexToRemove !== -1) {
                         currentDeck.splice(indexToRemove, 1);
                         deckSaved = false;
+                        
+                        // Clean up cover cards if necessary
+                        cleanupCoverCardsAfterRemoval(cardIdToRemove);
+                        
                         updateDeckDisplay();
                         updateCardStateInCollection(cardIdToRemove);
                     }
@@ -3770,8 +3764,6 @@
         // Save deck button
         document.getElementById('save-deck-btn').addEventListener('click', saveDeck);
 
-        // Export deck button
-        document.getElementById('export-deck-btn').addEventListener('click', exportDeck);
 
         // Deck name input changes -> mark as unsaved
         document.getElementById('deck-name').addEventListener('input', () => { deckSaved = false; });
@@ -4434,6 +4426,24 @@
         // Then count all cards in the deck with that name
         return currentDeck.filter(card => card.name === cardName).length;
     }
+
+    function cleanupCoverCardsAfterRemoval(removedCardId) {
+        // Convert removedCardId to string for consistent comparison
+        const removedCardIdStr = removedCardId.toString();
+        
+        // Count how many copies of this specific card ID remain in the deck
+        const remainingCopies = currentDeck.filter(card => card.id.toString() === removedCardIdStr).length;
+        
+        // If no copies remain, remove this card from cover cards
+        if (remainingCopies === 0) {
+            const coverIndex = coverCardIds.indexOf(removedCardIdStr);
+            if (coverIndex > -1) {
+                coverCardIds.splice(coverIndex, 1);
+                // The updateCoverCardDisplay() function will handle reordering the remaining cover cards
+            }
+        }
+        // If copies remain, the cover card status is preserved (no action needed)
+    }
     
     function addCardToDeck(cardId, clickedElement = null) {
         
@@ -4831,21 +4841,6 @@
         });
     }
 
-    function exportDeck() {
-        if (!loadedDeckId) {
-            alert('Please save your deck first before exporting.');
-            return;
-        }
-        
-        if (currentDeck.length === 0) {
-            alert('Your deck is empty! Please add some cards before exporting.');
-            return;
-        }
-        
-        // Open the export page in a new window
-        const exportUrl = `/deck/${loadedDeckId}/export`;
-        window.open(exportUrl, '_blank');
-    }
 
     function getRank(value, orderMap) {
         return orderMap[value] ?? orderMap['default']; // Use default if value not in map
