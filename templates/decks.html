@@ -1303,6 +1303,24 @@
         #card-count-search {
             font-size: 0.8rem;
         }
+
+        /* Remove gray hover/active effects on filter dropdown buttons */
+        .btn-outline-secondary.dropdown-toggle:hover,
+        .btn-outline-secondary.dropdown-toggle:active,
+        .btn-outline-secondary.dropdown-toggle:focus {
+            background-color: transparent !important;
+            border-color: var(--bs-border-color) !important;
+            color: var(--bs-body-color) !important;
+        }
+
+        /* Dark mode compatibility for filter dropdowns */
+        [data-theme="dark"] .btn-outline-secondary.dropdown-toggle:hover,
+        [data-theme="dark"] .btn-outline-secondary.dropdown-toggle:active,
+        [data-theme="dark"] .btn-outline-secondary.dropdown-toggle:focus {
+            background-color: transparent !important;
+            border-color: var(--bs-border-color) !important;
+            color: var(--bs-body-color) !important;
+        }
     }
 </style>
 {% endblock %}

@@ -526,6 +526,24 @@
         [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle:active {
             color: var(--bs-gray-500) !important;
         }
+
+        /* Remove gray hover/active effects on filter dropdown buttons */
+        .btn-outline-secondary.dropdown-toggle:hover,
+        .btn-outline-secondary.dropdown-toggle:active,
+        .btn-outline-secondary.dropdown-toggle:focus {
+            background-color: transparent !important;
+            border-color: var(--bs-border-color) !important;
+            color: var(--bs-body-color) !important;
+        }
+
+        /* Dark mode compatibility for filter dropdowns */
+        [data-theme="dark"] .btn-outline-secondary.dropdown-toggle:hover,
+        [data-theme="dark"] .btn-outline-secondary.dropdown-toggle:active,
+        [data-theme="dark"] .btn-outline-secondary.dropdown-toggle:focus {
+            background-color: transparent !important;
+            border-color: var(--bs-border-color) !important;
+            color: var(--bs-body-color) !important;
+        }
         
         /* Better search input touch target */
         .filter-bar .form-control {
@@ -1275,26 +1293,18 @@
             });
         });
 
-        // Create a debounced version of triggerSearch for energy filters
-        let energyFilterTimeout = null;
-        const debouncedEnergySearch = () => {
-            clearTimeout(energyFilterTimeout);
-            energyFilterTimeout = setTimeout(() => {
-                triggerSearch();
-            }, 100); // Short delay to batch rapid clicks
-        };
+        // Create a debounced version of triggerSearch for energy filters (same as decks.html)
+        const debouncedEnergySearch = debounce(() => {
+            triggerSearch();
+        }, 300); // Match decks.html debounce timing
         
         document.querySelectorAll('.filter-bar .energy-icon-wrapper').forEach(icon => {
             const energyType = icon.dataset.type;
-            let isProcessing = false;
             
             // Use pointerdown for instant response like decks.html
             icon.addEventListener('pointerdown', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                
-                // Prevent processing overlapping clicks
-                if (isProcessing) return;
                 
                 const isCurrentlyActive = icon.classList.contains('active');
                 
@@ -1314,7 +1324,7 @@
                     return;
                 }
                 
-                // Use debounced search to batch rapid clicks
+                // Use debounced search to batch rapid clicks (matches decks.html pattern)
                 debouncedEnergySearch();
             });
         });
