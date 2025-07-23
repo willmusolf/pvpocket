@@ -739,6 +739,8 @@
         background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
         transform: translateX(-100%);
         animation: shimmer 1.5s infinite;
+        /* Prevent animation restart on DOM changes */
+        animation-fill-mode: both;
     }
     .clickable-card.is-loading::before {
         content: none !important;
@@ -748,6 +750,8 @@
     }
     [data-theme="dark"] .clickable-card.is-loading::after {
         background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+        /* Prevent animation restart on DOM changes */
+        animation-fill-mode: both;
     }
     .clickable-card.is-loading > img {
         opacity: 0;
@@ -4206,16 +4210,33 @@
             
             if (!isAppend) {
                 if (isInitialLoad) {
-                    console.log('🎯 Initial load: Adding cards to existing HTML shimmer cards');
-                    // On initial load, find existing row and add real cards to it
+                    console.log('🎯 Initial load: Seamlessly replacing shimmer cards with real cards');
                     const existingRow = cardCollection.querySelector('.row');
                     if (existingRow) {
-                        // Clear existing shimmer cards and add real cards
-                        existingRow.innerHTML = '';
-                        // Move the new real cards to the existing row
-                        while (rowDiv.firstChild) {
-                            existingRow.appendChild(rowDiv.firstChild);
-                        }
+                        // Get both existing shimmer cards and new real cards
+                        const existingCards = Array.from(existingRow.querySelectorAll('.card-item'));
+                        const newCards = Array.from(rowDiv.querySelectorAll('.card-item'));
+                        
+                        console.log(`🔄 Replacing ${existingCards.length} shimmer cards with ${newCards.length} real cards`);
+                        
+                        // Replace shimmer cards with real cards one by one to avoid flicker
+                        newCards.forEach((newCard, index) => {
+                            if (existingCards[index]) {
+                                // Replace the shimmer card with the real card
+                                existingRow.insertBefore(newCard, existingCards[index]);
+                                existingRow.removeChild(existingCards[index]);
+                            } else {
+                                // Add any extra cards to the end
+                                existingRow.appendChild(newCard);
+                            }
+                        });
+                        
+                        // Remove any leftover shimmer cards
+                        existingCards.slice(newCards.length).forEach(card => {
+                            if (card.parentNode) {
+                                existingRow.removeChild(card);
+                            }
+                        });
                     } else {
                         // Fallback if no existing row found
                         console.log('⚠️ No existing row found, replacing collection');
