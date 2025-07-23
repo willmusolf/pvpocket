@@ -1624,6 +1624,29 @@
             console.warn('Failed to cleanup expired auto-saves:', error);
         }
     }
+
+    function triggerMobileAutoSave() {
+        if (!deckSaved && loadedDeckId === null && currentDeck.length > 0) {
+            try {
+                const deckData = {
+                    name: document.getElementById('deck-name').value,
+                    cards: currentDeck.map(c => ({ id: c.id })),
+                    deck_types: selectedDeckEnergies,
+                    cover_card_ids: coverCardIds,
+                    timestamp: Date.now(),
+                    version: '2.0'
+                };
+                
+                // Save to both session and local storage
+                sessionStorage.setItem('autoSavedDeck', JSON.stringify(deckData));
+                localStorage.setItem('autoSavedDeck_persistent', JSON.stringify(deckData));
+                
+                console.log('Mobile auto-save triggered - energy types:', selectedDeckEnergies);
+            } catch (error) {
+                console.warn('Failed to trigger mobile auto-save:', error);
+            }
+        }
+    }
     
     class ImageCacheManager {
         constructor() {
@@ -3709,6 +3732,11 @@
                 }
             }
             updateEnergyCounter();
+            
+            // Trigger mobile auto-save when energy selection changes
+            if (window.matchMedia("(hover: none)").matches && currentDeck.length > 0) {
+                triggerMobileAutoSave();
+            }
         };
 
         document.querySelectorAll('.energy-selection-bar .deck-energy').forEach(icon => {
@@ -3889,26 +3917,10 @@
         if (window.matchMedia("(hover: none)").matches) {
             // Enhanced mobile auto-save with better persistence
             const autoSaveDeck = () => {
+                triggerMobileAutoSave();
                 if (!deckSaved && loadedDeckId === null && currentDeck.length > 0) {
-                    try {
-                        const deckData = {
-                            name: document.getElementById('deck-name').value,
-                            cards: currentDeck.map(c => ({ id: c.id })),
-                            deck_types: selectedDeckEnergies,
-                            cover_card_ids: coverCardIds,
-                            timestamp: Date.now(), // Add timestamp for expiration
-                            version: '2.0' // Version for migration compatibility
-                        };
-                        
-                        // Save to both session and local storage for better persistence
-                        sessionStorage.setItem('autoSavedDeck', JSON.stringify(deckData));
-                        localStorage.setItem('autoSavedDeck_persistent', JSON.stringify(deckData));
-                        
-                        if (window.showGlobalToast) {
-                            window.showGlobalToast("Draft saved automatically", "success", 2000);
-                        }
-                    } catch (error) {
-                        console.warn('Failed to auto-save deck:', error);
+                    if (window.showGlobalToast) {
+                        window.showGlobalToast("Draft saved automatically", "success", 2000);
                     }
                 }
             };
