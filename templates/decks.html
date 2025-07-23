@@ -1566,6 +1566,64 @@
             timeoutId = setTimeout(() => func.apply(this, args), delay);
         };
     }
+
+    // Mobile deck auto-save storage management
+    function clearAutoSavedData() {
+        try {
+            sessionStorage.removeItem('autoSavedDeck');
+            localStorage.removeItem('autoSavedDeck_persistent');
+            console.log('Cleared auto-saved deck data');
+        } catch (error) {
+            console.warn('Failed to clear auto-saved data:', error);
+        }
+    }
+
+    function getStorageUsage() {
+        try {
+            const usage = {
+                sessionStorage: 0,
+                localStorage: 0,
+                total: 0
+            };
+
+            // Calculate session storage usage
+            for (let key in sessionStorage) {
+                if (sessionStorage.hasOwnProperty(key)) {
+                    usage.sessionStorage += sessionStorage[key].length;
+                }
+            }
+
+            // Calculate local storage usage
+            for (let key in localStorage) {
+                if (localStorage.hasOwnProperty(key)) {
+                    usage.localStorage += localStorage[key].length;
+                }
+            }
+
+            usage.total = usage.sessionStorage + usage.localStorage;
+            return usage;
+        } catch (error) {
+            console.warn('Failed to calculate storage usage:', error);
+            return { sessionStorage: 0, localStorage: 0, total: 0 };
+        }
+    }
+
+    function cleanupExpiredAutoSaves() {
+        try {
+            const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
+            const persistentData = localStorage.getItem('autoSavedDeck_persistent');
+            
+            if (persistentData) {
+                const parsed = JSON.parse(persistentData);
+                if (parsed.timestamp && (Date.now() - parsed.timestamp) > maxAge) {
+                    localStorage.removeItem('autoSavedDeck_persistent');
+                    console.log('Cleaned up expired auto-save data');
+                }
+            }
+        } catch (error) {
+            console.warn('Failed to cleanup expired auto-saves:', error);
+        }
+    }
     
     class ImageCacheManager {
         constructor() {
@@ -2125,6 +2183,9 @@
         
         // Register Service Worker for persistent caching
         registerServiceWorker();
+        
+        // Clean up expired auto-save data on page load
+        cleanupExpiredAutoSaves();
         
         loadCards();
         setupEventListeners();
@@ -2877,14 +2938,43 @@
             }
 
             if (window.matchMedia("(hover: none)").matches) {
-                const autoSavedDeckJSON = sessionStorage.getItem('autoSavedDeck');
-                if (autoSavedDeckJSON && !restoredPendingDeck) {
+                // Enhanced mobile deck restoration with persistent storage
+                const restoreDeckFromStorage = () => {
                     try {
-                        const autoSavedDeck = JSON.parse(autoSavedDeckJSON);
-                        if (autoSavedDeck.cards && autoSavedDeck.cards.length > 0) {
-                            // Show restoration toast notification
+                        let autoSavedDeck = null;
+                        let storageSource = '';
+                        
+                        // Try session storage first (most recent)
+                        const sessionData = sessionStorage.getItem('autoSavedDeck');
+                        if (sessionData) {
+                            autoSavedDeck = JSON.parse(sessionData);
+                            storageSource = 'session';
+                        }
+                        
+                        // Fall back to persistent storage if session is empty
+                        if (!autoSavedDeck) {
+                            const persistentData = localStorage.getItem('autoSavedDeck_persistent');
+                            if (persistentData) {
+                                const parsedData = JSON.parse(persistentData);
+                                // Check if data is not too old (7 days max)
+                                const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
+                                if (!parsedData.timestamp || (Date.now() - parsedData.timestamp) < maxAge) {
+                                    autoSavedDeck = parsedData;
+                                    storageSource = 'persistent';
+                                } else {
+                                    // Remove expired data
+                                    localStorage.removeItem('autoSavedDeck_persistent');
+                                }
+                            }
+                        }
+                        
+                        if (autoSavedDeck && autoSavedDeck.cards && autoSavedDeck.cards.length > 0) {
+                            // Show restoration toast notification with source info
                             if (window.showGlobalToast) {
-                                window.showGlobalToast("Restoring unsaved changes...", "default", 3000);
+                                const message = storageSource === 'persistent' 
+                                    ? "Restoring previous draft..." 
+                                    : "Restoring unsaved changes...";
+                                window.showGlobalToast(message, "default", 3000);
                             }
                             
                             // Restore deck metadata
@@ -2896,10 +2986,12 @@
                             
                             // Restore actual cards to currentDeck array
                             currentDeck = [];
+                            let restoredCount = 0;
                             autoSavedDeck.cards.forEach(savedCard => {
                                 const fullCardData = allCards.find(c => c.id === savedCard.id);
                                 if (fullCardData) {
                                     currentDeck.push(fullCardData);
+                                    restoredCount++;
                                 }
                             });
                             
@@ -2917,9 +3009,24 @@
                                     icon.classList.remove('active');
                                 }
                             });
+                            
+                            // Log successful restoration for debugging
+                            console.log(`Restored ${restoredCount} cards from ${storageSource} storage`);
+                            
+                            return true; // Successfully restored
                         }
                     } catch (error) {
+                        console.warn('Failed to restore deck from storage:', error);
+                        // Clean up corrupted data
+                        sessionStorage.removeItem('autoSavedDeck');
+                        localStorage.removeItem('autoSavedDeck_persistent');
                     }
+                    return false;
+                };
+                
+                // Attempt restoration if no pending deck was restored
+                if (!restoredPendingDeck) {
+                    restoreDeckFromStorage();
                 }
             }
 
@@ -3773,17 +3880,51 @@
         setupCardZoom();
 
         if (window.matchMedia("(hover: none)").matches) {
+            // Enhanced mobile auto-save with better persistence
+            const autoSaveDeck = () => {
+                if (!deckSaved && loadedDeckId === null && currentDeck.length > 0) {
+                    try {
+                        const deckData = {
+                            name: document.getElementById('deck-name').value,
+                            cards: currentDeck.map(c => ({ id: c.id })),
+                            deck_types: selectedDeckEnergies,
+                            cover_card_ids: coverCardIds,
+                            timestamp: Date.now(), // Add timestamp for expiration
+                            version: '2.0' // Version for migration compatibility
+                        };
+                        
+                        // Save to both session and local storage for better persistence
+                        sessionStorage.setItem('autoSavedDeck', JSON.stringify(deckData));
+                        localStorage.setItem('autoSavedDeck_persistent', JSON.stringify(deckData));
+                        
+                        if (window.showGlobalToast) {
+                            window.showGlobalToast("Draft saved automatically", "success", 2000);
+                        }
+                    } catch (error) {
+                        console.warn('Failed to auto-save deck:', error);
+                    }
+                }
+            };
+
+            // Save on visibility change (app backgrounding)
             document.addEventListener('visibilitychange', () => {
-                if (document.visibilityState === 'hidden' && !deckSaved && loadedDeckId === null && currentDeck.length > 0) {
-                    const deckData = {
-                        name: document.getElementById('deck-name').value,
-                        cards: currentDeck.map(c => ({ id: c.id })),
-                        deck_types: selectedDeckEnergies,
-                        cover_card_ids: coverCardIds
-                    };
-                    sessionStorage.setItem('autoSavedDeck', JSON.stringify(deckData));
+                if (document.visibilityState === 'hidden') {
+                    autoSaveDeck();
                 }
             });
+
+            // Also save periodically while editing (every 30 seconds)
+            let autoSaveInterval = setInterval(autoSaveDeck, 30000);
+            
+            // Clean up interval when deck is saved or page unloads
+            const cleanupAutoSave = () => {
+                if (autoSaveInterval) {
+                    clearInterval(autoSaveInterval);
+                    autoSaveInterval = null;
+                }
+            };
+            
+            window.addEventListener('beforeunload', cleanupAutoSave);
         } else {
             window.addEventListener('beforeunload', function(e) {
                 if (!deckSaved && !isDeckPristineOrEmpty()) {
@@ -4829,6 +4970,10 @@
                 if (data.cover_card_ids) {
                     coverCardIds = data.cover_card_ids;
                 }
+                
+                // Clear auto-saved data on successful save
+                clearAutoSavedData();
+                
                 window.location.href = '/collection'; // Redirect after save
             } else {
                 // Use server's error message if available
