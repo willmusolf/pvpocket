@@ -92,10 +92,23 @@
     }
 
     .filter-bar .energy-icon-wrapper.processing {
-        opacity: 0.8;
-        transform: scale(1.05);
+        opacity: 1;
+        transform: scale(1.15);
         pointer-events: none;
-        transition: all 0.1s ease;
+        transition: all 0.2s ease;
+        filter: brightness(1.2) saturate(1.3);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        z-index: 10;
+        animation: energy-processing-pulse 1s ease-in-out infinite alternate;
+    }
+    
+    @keyframes energy-processing-pulse {
+        from {
+            filter: brightness(1.2) saturate(1.3);
+        }
+        to {
+            filter: brightness(1.4) saturate(1.5);
+        }
     }
     /* End of Filter Bar Styles */
 
@@ -477,24 +490,43 @@
     }
     
     @media (hover: none) and (pointer: coarse) {
-        /* Fix energy icon hover states on touch devices */
-        .filter-bar .energy-icon-wrapper:hover:not(.active) {
-            opacity: 0.4 !important; /* Reset to default inactive state */
-            filter: saturate(0.5) !important;
-        }
-
-        .filter-bar .energy-icon-wrapper:active:not(.processing) {
-            opacity: 0.6 !important;
-            transform: scale(0.95) !important;
-        }
-
-        /* Increase touch target size on mobile */
+        /* Enhanced mobile touch support for energy icons */
         .filter-bar .energy-icon-wrapper {
-            width: 36px;
-            height: 36px;
-            padding: 2px; /* Add padding for easier touching */
+            width: 40px !important;
+            height: 40px !important;
+            padding: 4px; /* Larger padding for easier touching */
+            /* Add subtle background for better touch feedback */
+            background-color: rgba(0, 0, 0, 0.05);
+            border-radius: 50%;
+        }
+        
+        [data-theme="dark"] .filter-bar .energy-icon-wrapper {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+        
+        /* Fix hover states on touch devices */
+        .filter-bar .energy-icon-wrapper:hover:not(.active) {
+            opacity: 0.4 !important;
+            filter: saturate(0.5) !important;
+            transform: none !important;
         }
 
+        /* Better active touch feedback */
+        .filter-bar .energy-icon-wrapper.active {
+            background-color: rgba(var(--bs-primary-rgb), 0.1) !important;
+        }
+
+        .filter-bar .energy-icon-wrapper.processing {
+            background-color: rgba(var(--bs-primary-rgb), 0.15) !important;
+        }
+
+        /* Improve dropdown button touch targets */
+        .dropdown-section .btn {
+            min-height: 44px; /* Better touch target size */
+            padding: 0.5rem 0.75rem;
+        }
+
+        /* Remove hover effects on dropdown buttons */
         .deck-actions-dropdown .dropdown-toggle:hover,
         .deck-actions-dropdown .dropdown-toggle:active {
             background-color: transparent !important;
@@ -505,6 +537,19 @@
         [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle:hover,
         [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle:active {
             color: var(--bs-gray-500) !important;
+        }
+        
+        /* Better search input touch target */
+        .filter-bar .form-control {
+            min-height: 44px;
+            font-size: 16px; /* Prevents iOS zoom */
+        }
+        
+        /* Improve touch feedback for all interactive elements */
+        .filter-bar .energy-icon-wrapper,
+        .dropdown-section .btn,
+        .filter-bar .form-control {
+            -webkit-tap-highlight-color: rgba(var(--bs-primary-rgb), 0.2);
         }
     }
 
@@ -534,6 +579,88 @@
         color: var(--bs-gray-400, #adb5bd) !important;
     }
 
+    /* Deck skeleton shimmer effects */
+    @keyframes deck-shimmer {
+        100% {
+            transform: translateX(100%);
+        }
+    }
+    
+    .deck-skeleton {
+        position: relative;
+        overflow: hidden;
+        background-color: transparent;
+    }
+    
+    .deck-skeleton::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+        transform: translateX(-100%);
+        animation: deck-shimmer 1.5s infinite;
+    }
+    
+    [data-theme="dark"] .deck-skeleton::after {
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+    }
+    
+    .deck-skeleton-badge,
+    .deck-skeleton-energy-icon,
+    .deck-skeleton-cover-area,
+    .deck-skeleton-title {
+        background-color: #f0f0f0;
+    }
+    
+    [data-theme="dark"] .deck-skeleton-badge,
+    [data-theme="dark"] .deck-skeleton-energy-icon,
+    [data-theme="dark"] .deck-skeleton-cover-area,
+    [data-theme="dark"] .deck-skeleton-title {
+        background-color: #3a3f44;
+    }
+    
+    .deck-skeleton-badges {
+        position: absolute;
+        top: 0.6rem;
+        right: 0.6rem;
+        display: flex;
+        gap: 4px;
+        z-index: 1;
+    }
+    
+    .deck-skeleton-badge {
+        height: 24px;
+        width: 80px;
+        border-radius: 12px;
+    }
+    
+    .deck-skeleton-energy-icons {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 8px;
+    }
+    
+    .deck-skeleton-energy-icon {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+    }
+    
+    .deck-skeleton-cover-area {
+        min-height: 110px;
+        border-radius: 5px;
+        margin-bottom: 0.25rem;
+    }
+    
+    .deck-skeleton-title {
+        height: 20px;
+        border-radius: 4px;
+        width: 80%;
+        margin-top: 0.5rem;
+    }
 
 </style>
 
@@ -766,15 +893,49 @@
         });
     }
 
-    async function loadDecksPage(page = 1, append = false) {
-        if (isLoading) return Promise.resolve();
+    function showDeckSkeletons(count = 8) {
+        const decksContainer = document.getElementById('decks-container');
+        if (!decksContainer) return;
+        
+        let skeletonsHTML = '';
+        for (let i = 0; i < count; i++) {
+            skeletonsHTML += `
+                <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4 deck-skeleton-wrapper">
+                    <div class="card h-100">
+                        <div class="card-body deck-skeleton" style="padding: 1rem;">
+                            <div class="deck-skeleton-badges">
+                                <div class="deck-skeleton-badge"></div>
+                            </div>
+                            <div class="deck-skeleton-energy-icons">
+                                <div class="deck-skeleton-energy-icon"></div>
+                            </div>
+                            <div class="deck-skeleton-cover-area"></div>
+                            <div class="deck-skeleton-title"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        decksContainer.innerHTML = skeletonsHTML;
+    }
+
+    async function loadDecksPage(page = 1, append = false, isInitialLoad = false) {
+        console.log(`📄 loadDecksPage called: page=${page}, append=${append}, isInitialLoad=${isInitialLoad}, isLoading=${isLoading}`);
+        
+        if (isLoading) {
+            console.log('⏸️ loadDecksPage: Already loading, returning');
+            return Promise.resolve();
+        }
         
         isLoading = true;
         const decksContainer = document.getElementById('decks-container');
+        console.log(`📦 decksContainer found: ${!!decksContainer}`);
         
         if (!append) {
-            // Clear container for fresh load - no loading spinner needed since it's fast
-            decksContainer.innerHTML = '';
+            // Only show skeleton cards for initial load, not for search/filter operations
+            if (isInitialLoad) {
+                showDeckSkeletons(8);
+            }
             // Reset the scroll sentinel since we're doing a fresh load
             const existingSentinel = document.getElementById('deck-scroll-sentinel');
             if (existingSentinel) {
@@ -869,7 +1030,10 @@
                 // Initialize image lazy loading and filters
                 initializeImageLazyLoader();
                 if (!append) {
+                    console.log('🔧 Setting up filter listeners (fresh load)...');
                     setupFilterListeners();
+                } else {
+                    console.log('🔄 Appended more decks, NOT setting up filter listeners again');
                 }
                 
                 // Initialize tooltips for new elements
@@ -1007,12 +1171,20 @@
     }
 
     function triggerSearch() {
+        console.log('🔍 triggerSearch() called');
+        console.log('📊 Current filters:', {
+            searchText: activeFilters.searchText,
+            energyTypes: activeFilters.energyTypes,
+            privacyFilter: activeFilters.privacyFilter
+        });
+        
         // Reset pagination for new search
         currentPage = 1;
         hasMoreDecks = true;
         
-        // Load first page with current filters
-        loadDecksPage(1, false);
+        // Load first page with current filters and return the promise
+        console.log('🔄 Calling loadDecksPage(1, false)...');
+        return loadDecksPage(1, false);
     }
 
 
@@ -1031,16 +1203,48 @@
         }
     }
 
+    function showInitialLoadingSpinner() {
+        const decksContainer = document.getElementById('decks-container');
+        if (decksContainer) {
+            decksContainer.innerHTML = `
+                <div class="col-12 text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
     function setupFilterListeners() {
+        console.log('🎛️ Setting up filter listeners');
+        
+        // Check if listeners are already set up
+        if (window.filterListenersSetup) {
+            console.log('⚠️ Filter listeners already setup, skipping...');
+            return;
+        }
+        
+        window.filterListenersSetup = true;
+        
         // Debounced search input - shows spinner only during actual server request
         const debouncedSearch = debounce(() => {
             showSearchInputSpinner();
             triggerSearch();
         }, 300);
         
-        document.getElementById('deck-search-input').addEventListener('input', (e) => {
+        const searchInput = document.getElementById('deck-search-input');
+        searchInput.addEventListener('input', (e) => {
             activeFilters.searchText = e.target.value;
             debouncedSearch();
+        });
+        
+        // Prevent zoom on focus for iOS devices
+        searchInput.addEventListener('focus', (e) => {
+            if (window.innerWidth < 768) {
+                // Temporarily increase font size to prevent zoom
+                e.target.style.fontSize = '16px';
+            }
         });
         
         // Privacy filter dropdown
@@ -1048,67 +1252,156 @@
             item.addEventListener('click', (e) => {
                 e.preventDefault();
                 const filter = e.target.getAttribute('data-filter');
-                activeFilters.privacyFilter = filter;
                 
-                // Update dropdown button text
-                const dropdownButton = document.getElementById('privacyFilterDropdown');
-                dropdownButton.textContent = e.target.textContent;
+                // Only update if the filter has actually changed
+                if (activeFilters.privacyFilter !== filter) {
+                    activeFilters.privacyFilter = filter;
+                    
+                    // Update dropdown button text
+                    const dropdownButton = document.getElementById('privacyFilterDropdown');
+                    dropdownButton.textContent = e.target.textContent;
+                    
+                    triggerSearch();
+                }
                 
-                triggerSearch();
+                // Close the dropdown manually to provide better user feedback
+                const dropdown = bootstrap.Dropdown.getInstance(document.getElementById('privacyFilterDropdown'));
+                if (dropdown) {
+                    dropdown.hide();
+                }
             });
         });
 
         document.querySelectorAll('.filter-bar .energy-icon-wrapper').forEach(icon => {
             let isProcessing = false;
+            let touchHandled = false;
+            const energyType = icon.dataset.type;
             
-            // Handle both click and touchend events for better mobile support
-            const handleEnergyToggle = (e) => {
+            // Handle energy filter toggle with proper debouncing
+            const handleEnergyToggle = (e, eventType = 'click') => {
+                console.log(`🎯 ${energyType}: ${eventType} event, processing: ${isProcessing}`);
+                
                 e.preventDefault();
                 e.stopPropagation();
                 
-                // Prevent rapid successive clicks/taps
-                if (isProcessing) return;
-                isProcessing = true;
+                // Prevent rapid successive interactions
+                if (isProcessing) {
+                    console.log(`⏸️ ${energyType}: Blocked - already processing`);
+                    return;
+                }
                 
-                const energyType = icon.dataset.type;
+                isProcessing = true;
                 const isCurrentlyActive = icon.classList.contains('active');
                 
-                // Add immediate visual feedback
+                // Determine the target state but don't apply visual changes yet
+                let willBeActive = false;
+                if (isCurrentlyActive) {
+                    // Will be deactivated
+                    activeFilters.energyTypes = activeFilters.energyTypes.filter(e => e !== energyType);
+                    willBeActive = false;
+                    console.log(`➖ ${energyType}: Will remove, filters: [${activeFilters.energyTypes.join(', ')}]`);
+                } else if (activeFilters.energyTypes.length < 3) {
+                    // Will be activated
+                    activeFilters.energyTypes.push(energyType);
+                    willBeActive = true;
+                    console.log(`➕ ${energyType}: Will add, filters: [${activeFilters.energyTypes.join(', ')}]`);
+                } else {
+                    console.log(`🚫 ${energyType}: Cannot add - already have 3 filters`);
+                    isProcessing = false;
+                    return;
+                }
+                
+                // Add processing class for immediate feedback
                 icon.classList.add('processing');
                 
-                // If the icon is already active, always allow de-selecting it.
-                if (isCurrentlyActive) {
-                    icon.classList.remove('active');
-                    activeFilters.energyTypes = activeFilters.energyTypes.filter(e => e !== energyType);
-                    triggerSearch();
-                } 
-                // If it's not active, only allow selecting it if fewer than 3 are already selected.
-                else if (activeFilters.energyTypes.length < 3) {
-                    icon.classList.add('active');
-                    activeFilters.energyTypes.push(energyType);
-                    triggerSearch();
-                }
-                
-                // Clean up processing state
-                icon.classList.remove('processing');
-                
-                // Brief delay to prevent rapid clicks
-                setTimeout(() => {
+                // Trigger search and apply final state when complete
+                triggerSearch().then(() => {
+                    console.log(`✅ ${energyType}: Search complete, applying final state`);
+                    
+                    // Apply final visual state
+                    if (willBeActive) {
+                        icon.classList.add('active');
+                    } else {
+                        icon.classList.remove('active');
+                    }
+                    
+                    // Clean up processing state
+                    icon.classList.remove('processing');
                     isProcessing = false;
-                }, 100);
+                }).catch(() => {
+                    // On error, revert filter state and clean up
+                    console.log(`❌ ${energyType}: Search failed, reverting`);
+                    
+                    if (willBeActive) {
+                        activeFilters.energyTypes = activeFilters.energyTypes.filter(e => e !== energyType);
+                    } else if (!isCurrentlyActive) {
+                        activeFilters.energyTypes.push(energyType);
+                    }
+                    
+                    icon.classList.remove('processing');
+                    isProcessing = false;
+                });
             };
             
-            icon.addEventListener('click', handleEnergyToggle);
+            // Click handler for desktop/mouse interactions
+            icon.addEventListener('click', (e) => {
+                // Prevent click if touch was recently handled
+                if (touchHandled) {
+                    touchHandled = false;
+                    return;
+                }
+                handleEnergyToggle(e, 'click');
+            });
             
-            // Add touch support for mobile devices
-            icon.addEventListener('touchend', (e) => {
-                // Only handle touchend if it wasn't already handled by click
-                if (!e.defaultPrevented) {
-                    handleEnergyToggle(e);
+            // Touch handlers for mobile devices
+            icon.addEventListener('touchstart', (e) => {
+                // Add touch feedback
+                if (!isProcessing) {
+                    icon.style.transform = 'scale(0.95)';
                 }
             });
+            
+            icon.addEventListener('touchend', (e) => {
+                // Reset touch feedback
+                icon.style.transform = '';
+                
+                // Handle the toggle and mark as touch-handled
+                if (!isProcessing) {
+                    touchHandled = true;
+                    handleEnergyToggle(e, 'touch');
+                    
+                    // Reset touch flag after a brief delay
+                    setTimeout(() => {
+                        touchHandled = false;
+                    }, 300);
+                }
+            });
+            
+            icon.addEventListener('touchcancel', (e) => {
+                // Reset touch feedback on cancel
+                icon.style.transform = '';
+            });
+            
         });
     }
+
+    // Global debugging function to check filter state
+    window.debugFilterState = function() {
+        console.log('=== FILTER DEBUG STATE ===');
+        console.log('filterListenersSetup:', window.filterListenersSetup);
+        console.log('activeFilters:', activeFilters);
+        
+        const energyIcons = document.querySelectorAll('.filter-bar .energy-icon-wrapper');
+        console.log(`Found ${energyIcons.length} energy icons in DOM`);
+        
+        energyIcons.forEach((icon, index) => {
+            const type = icon.dataset.type;
+            const isActive = icon.classList.contains('active');
+            const isProcessing = icon.classList.contains('processing');
+            console.log(`  ${index + 1}. ${type}: active=${isActive}, processing=${isProcessing}`);
+        });
+        console.log('=== END DEBUG ===');
+    };
 
     document.addEventListener('DOMContentLoaded', function() {
         // Initialize Bootstrap tooltips and dropdowns
@@ -1126,8 +1419,8 @@
         // Store pageData globally for other functions to use
         window.pageData = pageData;
         
-        // Load first page of decks
-        loadDecksPage(1, false);
+        // Load first page of decks (skeleton shown for initial load)
+        loadDecksPage(1, false, true);
 
         document.body.addEventListener('click', function(event) {
             const deleteLink = event.target.closest('.deck-action-delete');

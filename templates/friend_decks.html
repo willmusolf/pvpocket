@@ -85,6 +85,67 @@
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
         z-index: 10;
     }
+
+    .filter-bar .energy-icon-wrapper.processing {
+        opacity: 1;
+        transform: scale(1.15);
+        pointer-events: none;
+        transition: all 0.2s ease;
+        filter: brightness(1.2) saturate(1.3);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        z-index: 10;
+        animation: energy-processing-pulse 1s ease-in-out infinite alternate;
+    }
+    
+    @keyframes energy-processing-pulse {
+        from {
+            filter: brightness(1.2) saturate(1.3);
+        }
+        to {
+            filter: brightness(1.4) saturate(1.5);
+        }
+    }
+
+    /* Touch optimizations for mobile */
+    .filter-bar .energy-icon-wrapper {
+        /* Touch optimizations */
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+
+    @media (hover: none) and (pointer: coarse) {
+        /* Enhanced mobile touch support for energy icons */
+        .filter-bar .energy-icon-wrapper {
+            width: 40px !important;
+            height: 40px !important;
+            padding: 4px; /* Larger padding for easier touching */
+            /* Add subtle background for better touch feedback */
+            background-color: rgba(0, 0, 0, 0.05);
+            border-radius: 50%;
+        }
+        
+        [data-theme="dark"] .filter-bar .energy-icon-wrapper {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+        
+        /* Fix hover states on touch devices */
+        .filter-bar .energy-icon-wrapper:hover:not(.active) {
+            opacity: 0.4 !important;
+            filter: saturate(0.5) !important;
+            transform: none !important;
+        }
+
+        /* Better active touch feedback */
+        .filter-bar .energy-icon-wrapper.active {
+            background-color: rgba(var(--bs-primary-rgb), 0.1) !important;
+        }
+
+        .filter-bar .energy-icon-wrapper.processing {
+            background-color: rgba(var(--bs-primary-rgb), 0.15) !important;
+        }
+    }
     /* End of Filter Bar Styles */
 
     #decks-container {
@@ -269,6 +330,7 @@
         transition: all 0.15s ease-out;
     }
 
+
     .deck-not-full-overlay {
         position: absolute;
         top: 50%;
@@ -445,11 +507,6 @@
         }
     }
 
-    /* Friend-specific header styles */
-    .friend-header {
-        margin-bottom: 0.5rem;
-    }
-
     .friend-header .friend-info {
         display: flex;
         align-items: center;
@@ -514,6 +571,89 @@
 
     [data-theme="dark"] .decks-no-results {
         color: var(--bs-gray-400, #adb5bd) !important;
+    }
+
+    /* Deck skeleton shimmer effects */
+    @keyframes deck-shimmer {
+        100% {
+            transform: translateX(100%);
+        }
+    }
+    
+    .deck-skeleton {
+        position: relative;
+        overflow: hidden;
+        background-color: transparent;
+    }
+    
+    .deck-skeleton::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+        transform: translateX(-100%);
+        animation: deck-shimmer 1.5s infinite;
+    }
+    
+    [data-theme="dark"] .deck-skeleton::after {
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+    }
+    
+    .deck-skeleton-badge,
+    .deck-skeleton-energy-icon,
+    .deck-skeleton-cover-area,
+    .deck-skeleton-title {
+        background-color: #f0f0f0;
+    }
+    
+    [data-theme="dark"] .deck-skeleton-badge,
+    [data-theme="dark"] .deck-skeleton-energy-icon,
+    [data-theme="dark"] .deck-skeleton-cover-area,
+    [data-theme="dark"] .deck-skeleton-title {
+        background-color: #3a3f44;
+    }
+    
+    .deck-skeleton-badges {
+        position: absolute;
+        top: 0.6rem;
+        right: 0.6rem;
+        display: flex;
+        gap: 4px;
+        z-index: 1;
+    }
+    
+    .deck-skeleton-badge {
+        height: 24px;
+        width: 80px;
+        border-radius: 12px;
+    }
+    
+    .deck-skeleton-energy-icons {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 8px;
+    }
+    
+    .deck-skeleton-energy-icon {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+    }
+    
+    .deck-skeleton-cover-area {
+        min-height: 110px;
+        border-radius: 5px;
+        margin-bottom: 0.25rem;
+    }
+    
+    .deck-skeleton-title {
+        height: 20px;
+        border-radius: 4px;
+        width: 80%;
+        margin-top: 0.5rem;
     }
 
 </style>
@@ -664,6 +804,83 @@
         }[match]));
     }
 
+    function getImageUrl(originalUrl) {
+        if (!originalUrl) return '';
+        
+        // If the URL already includes the CDN domain, return as-is
+        if (originalUrl.startsWith('https://cdn.pvpocket.xyz')) {
+            return originalUrl;
+        }
+        
+        // Convert Firebase Storage URLs to CDN URLs
+        if (originalUrl.includes('firebasestorage.googleapis.com') || originalUrl.includes('storage.googleapis.com')) {
+            // Extract the path from Firebase Storage URLs
+            let path = '';
+            
+            if (originalUrl.includes('firebasestorage.googleapis.com')) {
+                // Handle Firebase Storage URLs with encoded paths
+                const pathMatch = originalUrl.match(/\/o\/([^?]+)/);
+                if (pathMatch) {
+                    path = '/' + decodeURIComponent(pathMatch[1]);
+                }
+            } else if (originalUrl.includes('storage.googleapis.com')) {
+                // Handle Google Cloud Storage URLs  
+                const pathMatch = originalUrl.match(/pvpocket-dd286\.firebasestorage\.app\/(.+)$/);
+                if (pathMatch) {
+                    path = '/' + pathMatch[1];
+                }
+            }
+            
+            if (path) {
+                return 'https://cdn.pvpocket.xyz' + path;
+            }
+        }
+        
+        // If it's a relative path, prepend the CDN base URL
+        if (originalUrl.startsWith('/') || !originalUrl.includes('://')) {
+            return 'https://cdn.pvpocket.xyz' + (originalUrl.startsWith('/') ? originalUrl : '/' + originalUrl);
+        }
+        
+        // For any other URLs, return as-is (fallback)
+        return originalUrl;
+    }
+
+    // Global image observer
+    let globalImageObserver = null;
+    
+    function initializeImageLazyLoader() {
+        if (!('IntersectionObserver' in window)) return;
+        
+        // Create observer only once
+        if (!globalImageObserver) {
+            globalImageObserver = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const img = entry.target;
+                        const wrapper = img.parentElement;
+                        img.onload = () => {
+                            wrapper.classList.remove('is-loading');
+                            wrapper.classList.add('is-loaded');
+                        };
+                        img.onerror = () => wrapper.classList.remove('is-loading');
+                        img.src = img.dataset.src;
+                        img.removeAttribute('data-src');
+                        observer.unobserve(img);
+                    }
+                });
+            }, { rootMargin: '250px' });
+        }
+        
+        // Only observe new images that haven't been observed yet
+        document.querySelectorAll('.cover-card-image-wrapper img[data-src]').forEach(img => {
+            // Check if this image is already being observed by checking if it has data-observed attribute
+            if (!img.dataset.observed) {
+                img.dataset.observed = 'true';
+                globalImageObserver.observe(img);
+            }
+        });
+    }
+
     function createDeckHTML(deck, pageData) {
         const energyIconsHTML = (deck.deck_types || []).map(type => {
             const iconUrl = pageData.energy_icon_urls[type] || '';
@@ -672,7 +889,7 @@
 
         const coverCardsHTML = (deck.resolved_cover_cards || []).map(cover => {
             const imgPath = cover.firebase_image_url || '';
-            return `<div class="cover-card-image-wrapper"><img src="${escapeHTML(imgPath)}" alt="${escapeHTML(cover.name)}" title="${escapeHTML(cover.name)}"></div>`;
+            return `<div class="cover-card-image-wrapper is-loading"><img data-src="${escapeHTML(imgPath)}" alt="${escapeHTML(cover.name)}" title="${escapeHTML(cover.name)}"></div>`;
         }).join('');
 
         const notUsableHTML = deck.card_count < 20 ? '<div class="deck-not-full-overlay">DECK NOT USABLE</div>' : '';
@@ -709,7 +926,33 @@
             </div>`;
     }
 
-    async function loadDecksPage(page = 1, append = false) {
+    function showDeckSkeletons(count = 8) {
+        const decksContainer = document.getElementById('decks-container');
+        if (!decksContainer) return;
+        
+        let skeletonsHTML = '';
+        for (let i = 0; i < count; i++) {
+            skeletonsHTML += `
+                <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4 deck-skeleton-wrapper">
+                    <div class="card h-100">
+                        <div class="card-body deck-skeleton" style="padding: 1rem;">
+                            <div class="deck-skeleton-badges">
+                                <div class="deck-skeleton-badge"></div>
+                            </div>
+                            <div class="deck-skeleton-energy-icons">
+                                <div class="deck-skeleton-energy-icon"></div>
+                            </div>
+                            <div class="deck-skeleton-cover-area"></div>
+                            <div class="deck-skeleton-title"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        decksContainer.innerHTML = skeletonsHTML;
+    }
+
+    async function loadDecksPage(page = 1, append = false, isInitialLoad = false) {
         if (isLoading) return;
         
         isLoading = true;
@@ -717,8 +960,10 @@
         const pageData = JSON.parse(document.getElementById('page-data').textContent);
         
         if (!append) {
-            // Show loading spinner for initial load
-            decksContainer.innerHTML = `<div class="col-12 text-center p-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>`;
+            // Only show skeleton cards for initial load, not for pagination
+            if (isInitialLoad) {
+                showDeckSkeletons(8);
+            }
         }
 
         try {
@@ -758,6 +1003,9 @@
                 tooltipTriggerList.forEach(tooltipTriggerEl => {
                     new bootstrap.Tooltip(tooltipTriggerEl);
                 });
+                
+                // Initialize image lazy loading
+                initializeImageLazyLoader();
                 
             } else if (!append) {
                 // No decks at all
@@ -899,9 +1147,28 @@
     }
 
 
+    function showSearchInputSpinner() {
+        const searchIcon = document.querySelector('.filter-bar .input-group-text i');
+        if (searchIcon && !searchIcon.classList.contains('spinner-border')) {
+            searchIcon.className = 'spinner-border spinner-border-sm';
+        }
+    }
+
+    function hideSearchInputSpinner() {
+        const searchSpinner = document.querySelector('.filter-bar .input-group-text .spinner-border');
+        if (searchSpinner) {
+            searchSpinner.className = 'bi bi-search';
+        }
+    }
+
     // Create debounced version of applyFilters - instant client-side filtering
     const debouncedApplyFilters = debounce(() => {
-        applyFilters();
+        showSearchInputSpinner();
+        // Add small delay to show spinner before hiding it
+        setTimeout(() => {
+            applyFilters();
+            hideSearchInputSpinner();
+        }, 400); // Increased delay to make spinner more visible
     }, 300);
 
     function setupFilterListeners() {
@@ -911,23 +1178,91 @@
         });
 
         document.querySelectorAll('.filter-bar .energy-icon-wrapper').forEach(icon => {
-            icon.addEventListener('click', () => {
-                const energyType = icon.dataset.type;
-                const isCurrentlyActive = icon.classList.contains('active');
-
-                // If the icon is already active, always allow de-selecting it.
-                if (isCurrentlyActive) {
-                    icon.classList.remove('active');
-                    activeFilters.energyTypes = activeFilters.energyTypes.filter(e => e !== energyType);
-                    debouncedApplyFilters();
-                } 
-                // If it's not active, only allow selecting it if fewer than 3 are already selected.
-                else if (activeFilters.energyTypes.length < 3) {
-                    icon.classList.add('active');
-                    activeFilters.energyTypes.push(energyType);
-                    debouncedApplyFilters();
+            let isProcessing = false;
+            let touchHandled = false;
+            const energyType = icon.dataset.type;
+            
+            // Handle energy filter toggle with proper debouncing
+            const handleEnergyToggle = (e, eventType = 'click') => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Prevent rapid successive interactions
+                if (isProcessing) {
+                    return;
                 }
-                // If 3 are already active and you click an inactive one, do nothing.
+                
+                isProcessing = true;
+                const isCurrentlyActive = icon.classList.contains('active');
+                
+                // Determine the target state
+                let willBeActive = false;
+                if (isCurrentlyActive) {
+                    // Will be deactivated
+                    activeFilters.energyTypes = activeFilters.energyTypes.filter(e => e !== energyType);
+                    willBeActive = false;
+                } else if (activeFilters.energyTypes.length < 3) {
+                    // Will be activated
+                    activeFilters.energyTypes.push(energyType);
+                    willBeActive = true;
+                } else {
+                    // Cannot add - already have 3 filters
+                    isProcessing = false;
+                    return;
+                }
+                
+                // Add processing class for immediate feedback
+                icon.classList.add('processing');
+                
+                // Apply filters and update final state
+                setTimeout(() => {
+                    applyFilters();
+                    
+                    // Apply final visual state
+                    if (willBeActive) {
+                        icon.classList.add('active');
+                    } else {
+                        icon.classList.remove('active');
+                    }
+                    
+                    // Clean up processing state
+                    icon.classList.remove('processing');
+                    isProcessing = false;
+                }, 100); // Small delay to show processing animation
+            };
+            
+            // Click handler for desktop/mouse interactions
+            icon.addEventListener('click', (e) => {
+                // Prevent click if touch was recently handled
+                if (touchHandled) {
+                    touchHandled = false;
+                    return;
+                }
+                handleEnergyToggle(e, 'click');
+            });
+            
+            // Touch handlers for mobile devices
+            icon.addEventListener('touchstart', (e) => {
+                if (!isProcessing) {
+                    icon.style.transform = 'scale(0.95)';
+                }
+            });
+            
+            icon.addEventListener('touchend', (e) => {
+                icon.style.transform = '';
+                
+                if (!isProcessing) {
+                    touchHandled = true;
+                    handleEnergyToggle(e, 'touch');
+                    
+                    setTimeout(() => {
+                        touchHandled = false;
+                    }, 300);
+                }
+            });
+            
+            icon.addEventListener('touchcancel', (e) => {
+                icon.style.transform = '';
             });
         });
     }
@@ -943,10 +1278,14 @@
         const shouldUsePagination = totalDecks > 12;
         
         if (shouldUsePagination) {
-            // Load decks via API with pagination
-            loadDecksPage(1, false);
+            // Load decks via API with pagination (skeleton shown in loadDecksPage for initial load)
+            loadDecksPage(1, false, true);
         } else {
-            // Initialize deck data from template for small lists
+            // Show skeleton for initial static load
+            showDeckSkeletons(8);
+            
+            // Initialize deck data from template for small lists after brief delay
+            setTimeout(() => {
             {% if decks %}
             allDecks = [
                 {% for deck in decks %}
@@ -957,7 +1296,8 @@
                     resolved_cover_cards: [
                         {% for cover in deck.resolved_cover_cards %}
                         {
-                            name: "{{ cover.name|e }}"
+                            name: "{{ cover.name|e }}",
+                            firebase_image_url: "{{ (cover.firebase_image_url or '/static/placeholder.png') | cdn_url }}"
                         }{% if not loop.last %},{% endif %}
                         {% endfor %}
                     ],
@@ -969,6 +1309,40 @@
             {% else %}
             allDecks = [];
             {% endif %}
+            
+            // Clear loading spinner and render static decks
+            const decksContainer = document.getElementById('decks-container');
+            if (decksContainer) {
+                decksContainer.innerHTML = '';
+                
+                // Render static decks if any exist
+                if (allDecks.length > 0) {
+                    const pageData = JSON.parse(document.getElementById('page-data').textContent);
+                    allDecks.forEach(deck => {
+                        const deckHTML = createDeckHTML(deck, pageData);
+                        decksContainer.insertAdjacentHTML('beforeend', deckHTML);
+                    });
+                    
+                    // Initialize tooltips for static decks
+                    const tooltipTriggerList = [].slice.call(decksContainer.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                    tooltipTriggerList.forEach(tooltipTriggerEl => {
+                        new bootstrap.Tooltip(tooltipTriggerEl);
+                    });
+                    
+                    // Initialize image lazy loading for static decks
+                    initializeImageLazyLoader();
+                } else {
+                    // No decks found
+                    decksContainer.innerHTML = `
+                        <div class="col-12">
+                            <div class="text-center py-5">
+                                <p class="text-muted">This user has no public decks.</p>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            }, 500); // Show spinner for 500ms
         }
 
         setupFilterListeners();

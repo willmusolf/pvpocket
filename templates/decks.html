@@ -756,6 +756,43 @@
         opacity: 1;
         transition: opacity 0.2s ease-in-out;
     }
+
+    /* Card collection skeleton loading effects */
+    .card-skeleton-container {
+        position: relative;
+        margin-bottom: 7px;
+    }
+    
+    .card-skeleton {
+        display: block;
+        position: relative;
+        width: 100%;
+        aspect-ratio: 63 / 88;
+        background-color: #e0e0e0;
+        border-radius: 3.5%;
+        overflow: hidden;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .card-skeleton::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+        transform: translateX(-100%);
+        animation: shimmer 1.5s infinite;
+    }
+    
+    [data-theme="dark"] .card-skeleton {
+        background-color: #3a3f44;
+    }
+    
+    [data-theme="dark"] .card-skeleton::after {
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+    }
     :root:not([data-theme="dark"]) {
         .current-deck-container .input-group #deck-name {
             background-color: var(--input-bg, #f1f1f1);
@@ -2560,8 +2597,27 @@
         }
     }
 
+    function showCardSkeletons(count = 12) {
+        const cardCollectionDiv = document.getElementById('card-collection');
+        if (!cardCollectionDiv) return;
+        
+        let skeletonsHTML = '<div class="row">';
+        for (let i = 0; i < count; i++) {
+            skeletonsHTML += `
+                <div class="col-4 col-sm-4 col-md-4 col-lg-3 col-xl-2 mb-3 card-skeleton-container">
+                    <div class="position-relative">
+                        <div class="card-skeleton"></div>
+                    </div>
+                </div>
+            `;
+        }
+        skeletonsHTML += '</div>';
+        
+        cardCollectionDiv.innerHTML = skeletonsHTML;
+    }
+
     // New paginated card loading function
-    async function loadCardsPage(page = 1, append = false) {
+    async function loadCardsPage(page = 1, append = false, isInitialLoad = false) {
         if (isLoading) return;
         
         isLoading = true;
@@ -2570,7 +2626,10 @@
         try {
             if (!append) {
                 if (cardCollectionDiv) {
-                    cardCollectionDiv.innerHTML = '';
+                    // Only show skeleton cards for initial load, not for search/filter operations
+                    if (isInitialLoad) {
+                        showCardSkeletons(12);
+                    }
                 }
                 loadedIds.clear();
                 filteredCards = [];
@@ -2771,7 +2830,7 @@
         try {
             await initializeFiltersData();
             
-            await loadCardsPage(1, false);
+            await loadCardsPage(1, false, true);
             
             // Code after loading
             // Handle deck restoration after cards are loaded
