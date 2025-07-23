@@ -9,11 +9,15 @@ paths = [
   '''.*_test.py'''
 ]
 
-# Allow fake/test keys
+# Allow fake/test keys and localhost URLs
 regexes = [
   '''-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC9W8bA\n-----END PRIVATE KEY-----''',
   '''test-key-id''',
-  '''test@test-project'''
+  '''test@test-project''',
+  '''localhost:[0-9]+''',
+  '''127\.0\.0\.1:[0-9]+''',
+  '''http://localhost:[0-9]+''',
+  '''http://127\.0\.0\.1:[0-9]+'''
 ]
 
 # Ignore specific test patterns
