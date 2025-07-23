@@ -1247,14 +1247,10 @@
             debouncedApplyFilters();
         });
 
-        // Create a debounced version of applyFilters for energy filters
-        let energyFilterTimeout = null;
-        const debouncedEnergyFilter = () => {
-            clearTimeout(energyFilterTimeout);
-            energyFilterTimeout = setTimeout(() => {
-                applyFilters();
-            }, 100); // Short delay to batch rapid clicks
-        };
+        // Create a debounced version of applyFilters for energy filters (same as decks.html)
+        const debouncedEnergyFilter = debounce(() => {
+            applyFilters();
+        }, 300); // Match decks.html debounce timing
         
         document.querySelectorAll('.filter-bar .energy-icon-wrapper').forEach(icon => {
             const energyType = icon.dataset.type;
