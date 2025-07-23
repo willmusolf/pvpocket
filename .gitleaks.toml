@@ -1,0 +1,28 @@
+# GitLeaks Configuration
+# This file tells GitLeaks what to ignore
+
+[allowlist]
+# Ignore test credentials in CI workflows
+paths = [
+  '''.github/workflows/ci-cd.yml''',
+  '''test_*.py''',
+  '''*_test.py'''
+]
+
+# Allow fake/test keys
+regexes = [
+  '''-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC9W8bA\n-----END PRIVATE KEY-----''',
+  '''test-key-id''',
+  '''test@test-project'''
+]
+
+# Ignore specific test patterns
+[[rules]]
+description = "Ignore test/dummy credentials"
+regex = '''test-(secret|key|token|password)'''
+tags = ["test", "dummy"]
+
+[[rules]]
+description = "Ignore localhost URLs"
+regex = '''(localhost|127\.0\.0\.1):[0-9]+'''
+tags = ["localhost"]

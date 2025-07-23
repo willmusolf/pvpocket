@@ -79,18 +79,18 @@ jobs:
         TEST_BASE_URL: http://localhost:5001
         GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/test-credentials.json
       run: |
-        # Create minimal test credentials for CI
+        # Create minimal test credentials for CI (NOT REAL - for testing only)
         echo '{
           "type": "service_account",
-          "project_id": "test-project",
-          "private_key_id": "test-key-id",
-          "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC9W8bA\n-----END PRIVATE KEY-----\n",
-          "client_email": "test@test-project.iam.gserviceaccount.com",
-          "client_id": "123456789",
+          "project_id": "fake-test-project",
+          "private_key_id": "fake-test-key-id",
+          "private_key": "-----BEGIN PRIVATE KEY-----\nFAKE-TEST-KEY-FOR-CI-ONLY-NOT-REAL\n-----END PRIVATE KEY-----\n",
+          "client_email": "fake-test@fake-test-project.iam.gserviceaccount.com",
+          "client_id": "000000000",
           "auth_uri": "https://accounts.google.com/o/oauth2/auth",
           "token_uri": "https://oauth2.googleapis.com/token",
           "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-          "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/test%40test-project.iam.gserviceaccount.com"
+          "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/fake-test%40fake-test-project.iam.gserviceaccount.com"
         }' > test-credentials.json
         
         # Skip performance tests in CI for now since they require real Firebase
