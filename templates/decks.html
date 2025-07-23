@@ -3000,15 +3000,22 @@
                             updateEnergyCounter();
                             updateCoverCardDisplay();
                             
-                            // Restore energy selection UI state
-                            document.querySelectorAll('.energy-selection-bar .energy-icon-wrapper').forEach(icon => {
-                                const energyType = icon.getAttribute('data-type');
-                                if (selectedDeckEnergies.includes(energyType)) {
-                                    icon.classList.add('active');
-                                } else {
-                                    icon.classList.remove('active');
-                                }
-                            });
+                            // Restore energy selection UI state with delay to ensure DOM is ready
+                            setTimeout(() => {
+                                document.querySelectorAll('.energy-selection-bar .energy-icon-wrapper').forEach(icon => {
+                                    const energyType = icon.getAttribute('data-type');
+                                    if (selectedDeckEnergies.includes(energyType)) {
+                                        icon.classList.add('active');
+                                    } else {
+                                        icon.classList.remove('active');
+                                    }
+                                });
+                                
+                                // Also update energy counter display
+                                updateEnergyCounter();
+                                
+                                console.log('Restored energy selection UI for types:', selectedDeckEnergies);
+                            }, 100);
                             
                             // Log successful restoration for debugging
                             console.log(`Restored ${restoredCount} cards from ${storageSource} storage`);
