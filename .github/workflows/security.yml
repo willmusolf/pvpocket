@@ -61,6 +61,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch all history for proper commit comparison
       
     - name: Run GitLeaks
       uses: gitleaks/gitleaks-action@v2
@@ -72,6 +74,7 @@ jobs:
     name: Dependency Review
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
+    continue-on-error: true  # Allow this job to fail without blocking the PR
     
     steps:
     - name: Checkout code
@@ -79,3 +82,4 @@ jobs:
       
     - name: Dependency Review
       uses: actions/dependency-review-action@v3
+      continue-on-error: true  # This requires GitHub Advanced Security for private repos

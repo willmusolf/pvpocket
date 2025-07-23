@@ -239,10 +239,11 @@
         height: 27px;
         margin: 0;
     }
-    .deck-energy.active {
-        opacity: 1;
-        transform: scale(1.15);
-        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    .deck-energy.active,
+    .energy-icon-wrapper.deck-energy.active {
+        opacity: 1 !important;
+        transform: scale(1.15) !important;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3) !important;
     }
     #card-collection {
         overflow-y: scroll;
@@ -454,7 +455,7 @@
         padding: 0 12px;
         flex-grow: 1;
     }
-    #save-deck-btn, #clear-deck-btn, #export-deck-btn {
+    #save-deck-btn, #clear-deck-btn {
         height: 45px;
         display: flex;
         align-items: center;
@@ -739,6 +740,8 @@
         background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
         transform: translateX(-100%);
         animation: shimmer 1.5s infinite;
+        /* Prevent animation restart on DOM changes */
+        animation-fill-mode: both;
     }
     .clickable-card.is-loading::before {
         content: none !important;
@@ -748,6 +751,8 @@
     }
     [data-theme="dark"] .clickable-card.is-loading::after {
         background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+        /* Prevent animation restart on DOM changes */
+        animation-fill-mode: both;
     }
     .clickable-card.is-loading > img {
         opacity: 0;
@@ -757,7 +762,7 @@
         transition: opacity 0.2s ease-in-out;
     }
 
-    /* Card collection skeleton loading effects */
+    /* Card collection skeleton loading effects - matches collection.html style */
     .card-skeleton-container {
         position: relative;
         margin-bottom: 7px;
@@ -768,7 +773,7 @@
         position: relative;
         width: 100%;
         aspect-ratio: 63 / 88;
-        background-color: #e0e0e0;
+        background-color: #f0f0f0;
         border-radius: 3.5%;
         overflow: hidden;
         box-shadow: 0 2px 5px rgba(0,0,0,0.1);
@@ -791,7 +796,7 @@
     }
     
     [data-theme="dark"] .card-skeleton::after {
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
     }
     :root:not([data-theme="dark"]) {
         .current-deck-container .input-group #deck-name {
@@ -1147,7 +1152,7 @@
             border-radius: 2px;
         }
         
-        #save-deck-btn, #clear-deck-btn, #export-deck-btn {
+        #save-deck-btn, #clear-deck-btn {
             -webkit-tap-highlight-color: transparent;
         }
         #save-deck-btn:hover,
@@ -1165,17 +1170,8 @@
             background-color: transparent !important;
             color: #dc3545 !important;
         }
-        #export-deck-btn:hover,
-        #export-deck-btn:active {
-            transform: none !important;
-            box-shadow: none !important;
-            background-color: #0d6efd !important;
-            border-color: #0d6efd !important;
-            color: white !important;
-        }
         #save-deck-btn:focus,
-        #clear-deck-btn:focus,
-        #export-deck-btn:focus {
+        #clear-deck-btn:focus {
             box-shadow: none !important;
         }
         .btn-outline-secondary:hover,
@@ -1265,9 +1261,6 @@
         .current-deck-container .card-header .deck-counter {
             border-top-right-radius: 8px !important;
             border-bottom-right-radius: 8px !important;
-        }
-        .current-deck-container .card-header #export-deck-btn {
-            border-radius: 0 !important;
         }
         .col-md-8.mb-4 .card-header .dropdown {
             width: 75px;
@@ -1470,6 +1463,15 @@
                         </div>
                         <div class="card-body">
                             <div id="card-collection">
+                                <!-- Initial shimmer cards to prevent gray screen -->
+                                <div class="row g-2">
+                                    {% for i in range(12) %}
+                                    <div class="col-4 col-sm-4 col-md-4 col-lg-3 col-xl-2 mb-3 card-item">
+                                        <div class="position-relative clickable-card is-loading">
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1481,7 +1483,6 @@
                             <div class="input-group mb-2">
                                 <input type="text" id="deck-name" class="form-control" placeholder="Enter Deck Name" autocomplete="off">
                                 <button id="save-deck-btn" class="btn btn-success">Save</button>
-                                <button id="export-deck-btn" class="btn btn-outline-primary" style="display: none;">Export</button>
                                 <button id="clear-deck-btn" class="btn btn-outline-danger">Clear</button>
                                 <span class="deck-counter">0/20</span>
                             </div>
@@ -1565,6 +1566,94 @@
             clearTimeout(timeoutId);
             timeoutId = setTimeout(() => func.apply(this, args), delay);
         };
+    }
+
+    // Mobile deck auto-save storage management
+    function clearAutoSavedData() {
+        try {
+            sessionStorage.removeItem('autoSavedDeck');
+            localStorage.removeItem('autoSavedDeck_persistent');
+            console.log('Cleared auto-saved deck data');
+        } catch (error) {
+            console.warn('Failed to clear auto-saved data:', error);
+        }
+    }
+
+    function getStorageUsage() {
+        try {
+            const usage = {
+                sessionStorage: 0,
+                localStorage: 0,
+                total: 0
+            };
+
+            // Calculate session storage usage
+            for (let key in sessionStorage) {
+                if (sessionStorage.hasOwnProperty(key)) {
+                    usage.sessionStorage += sessionStorage[key].length;
+                }
+            }
+
+            // Calculate local storage usage
+            for (let key in localStorage) {
+                if (localStorage.hasOwnProperty(key)) {
+                    usage.localStorage += localStorage[key].length;
+                }
+            }
+
+            usage.total = usage.sessionStorage + usage.localStorage;
+            return usage;
+        } catch (error) {
+            console.warn('Failed to calculate storage usage:', error);
+            return { sessionStorage: 0, localStorage: 0, total: 0 };
+        }
+    }
+
+    function cleanupExpiredAutoSaves() {
+        try {
+            const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
+            const persistentData = localStorage.getItem('autoSavedDeck_persistent');
+            
+            if (persistentData) {
+                const parsed = JSON.parse(persistentData);
+                if (parsed.timestamp && (Date.now() - parsed.timestamp) > maxAge) {
+                    localStorage.removeItem('autoSavedDeck_persistent');
+                    console.log('Cleaned up expired auto-save data');
+                }
+            }
+        } catch (error) {
+            console.warn('Failed to cleanup expired auto-saves:', error);
+        }
+    }
+
+    function triggerMobileAutoSave() {
+        // Save if deck has cards OR energy types selected (to preserve energy selection even without cards)
+        if (!deckSaved && loadedDeckId === null && (currentDeck.length > 0 || selectedDeckEnergies.length > 0)) {
+            try {
+                const deckData = {
+                    name: document.getElementById('deck-name').value,
+                    cards: currentDeck.map(c => ({ id: c.id })),
+                    deck_types: selectedDeckEnergies,
+                    cover_card_ids: coverCardIds,
+                    timestamp: Date.now(),
+                    version: '2.0'
+                };
+                
+                // Save to both session and local storage
+                sessionStorage.setItem('autoSavedDeck', JSON.stringify(deckData));
+                localStorage.setItem('autoSavedDeck_persistent', JSON.stringify(deckData));
+                
+                console.log('Mobile auto-save triggered:', {
+                    deckName: deckData.name,
+                    cardCount: deckData.cards.length,
+                    energyTypes: selectedDeckEnergies,
+                    coverCards: coverCardIds,
+                    timestamp: new Date(deckData.timestamp).toLocaleString()
+                });
+            } catch (error) {
+                console.warn('Failed to trigger mobile auto-save:', error);
+            }
+        }
     }
     
     class ImageCacheManager {
@@ -2126,6 +2215,9 @@
         // Register Service Worker for persistent caching
         registerServiceWorker();
         
+        // Clean up expired auto-save data on page load
+        cleanupExpiredAutoSaves();
+        
         loadCards();
         setupEventListeners();
         initializeCardObserver();
@@ -2173,10 +2265,11 @@
                         const proxyUrl = getImageUrl(imageToLoad);
 
                         img.onload = () => {
-                            cardContainer.classList.add('is-loaded');
+                            // Ensure shimmer is visible for at least 200ms
                             setTimeout(() => {
                                 cardContainer.classList.remove('is-loading');
-                            }, 110);
+                                cardContainer.classList.add('is-loaded');
+                            }, 200);
                             
                             // Mark as high-res if we loaded the cached high-res version
                             if (isHighRes) {
@@ -2614,12 +2707,11 @@
         const cardCollectionDiv = document.getElementById('card-collection');
         if (!cardCollectionDiv) return;
         
-        let skeletonsHTML = '<div class="row">';
+        let skeletonsHTML = '<div class="row g-2">';
         for (let i = 0; i < count; i++) {
             skeletonsHTML += `
-                <div class="col-4 col-sm-4 col-md-4 col-lg-3 col-xl-2 mb-3 card-skeleton-container">
-                    <div class="position-relative">
-                        <div class="card-skeleton"></div>
+                <div class="col-4 col-sm-4 col-md-4 col-lg-3 col-xl-2 mb-3 card-item">
+                    <div class="position-relative clickable-card is-loading">
                     </div>
                 </div>
             `;
@@ -2639,8 +2731,8 @@
         try {
             if (!append) {
                 if (cardCollectionDiv) {
-                    // Only show skeleton cards for initial load, not for search/filter operations
-                    if (isInitialLoad) {
+                    // Only show skeleton cards if not initial load (HTML already has them)
+                    if (!isInitialLoad) {
                         showCardSkeletons(12);
                     }
                 }
@@ -2731,7 +2823,7 @@
 
                 
                 if (typeof updateCardDisplay === 'function') {
-                    updateCardDisplay();
+                    updateCardDisplay(append, isInitialLoad);
                 } else {
                 }
                 
@@ -2877,20 +2969,115 @@
             }
 
             if (window.matchMedia("(hover: none)").matches) {
-                const autoSavedDeckJSON = sessionStorage.getItem('autoSavedDeck');
-                if (autoSavedDeckJSON && !restoredPendingDeck) {
+                // Enhanced mobile deck restoration with persistent storage
+                const restoreDeckFromStorage = () => {
                     try {
-                        const autoSavedDeck = JSON.parse(autoSavedDeckJSON);
-                        if (autoSavedDeck.cards && autoSavedDeck.cards.length > 0) {
+                        let autoSavedDeck = null;
+                        let storageSource = '';
+                        
+                        // Try session storage first (most recent)
+                        const sessionData = sessionStorage.getItem('autoSavedDeck');
+                        if (sessionData) {
+                            autoSavedDeck = JSON.parse(sessionData);
+                            storageSource = 'session';
+                        }
+                        
+                        // Fall back to persistent storage if session is empty
+                        if (!autoSavedDeck) {
+                            const persistentData = localStorage.getItem('autoSavedDeck_persistent');
+                            if (persistentData) {
+                                const parsedData = JSON.parse(persistentData);
+                                // Check if data is not too old (7 days max)
+                                const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
+                                if (!parsedData.timestamp || (Date.now() - parsedData.timestamp) < maxAge) {
+                                    autoSavedDeck = parsedData;
+                                    storageSource = 'persistent';
+                                } else {
+                                    // Remove expired data
+                                    localStorage.removeItem('autoSavedDeck_persistent');
+                                }
+                            }
+                        }
+                        
+                        if (autoSavedDeck && autoSavedDeck.cards && autoSavedDeck.cards.length > 0) {
+                            // Show restoration toast notification with source info
+                            if (window.showGlobalToast) {
+                                const message = storageSource === 'persistent' 
+                                    ? "Restoring previous draft..." 
+                                    : "Restoring unsaved changes...";
+                                window.showGlobalToast(message, "default", 3000);
+                            }
+                            
+                            // Restore deck metadata
                             document.getElementById('deck-name').value = autoSavedDeck.name || '';
-                            // Note: For auto-saved deck restoration, we might need to fetch specific cards
                             selectedDeckEnergies = autoSavedDeck.deck_types || [];
                             coverCardIds = (autoSavedDeck.cover_card_ids || []).map(id => String(id));
                             loadedDeckId = null;
                             deckSaved = false;
+                            
+                            // Restore actual cards to currentDeck array
+                            currentDeck = [];
+                            let restoredCount = 0;
+                            autoSavedDeck.cards.forEach(savedCard => {
+                                const fullCardData = allCards.find(c => c.id === savedCard.id);
+                                if (fullCardData) {
+                                    currentDeck.push(fullCardData);
+                                    restoredCount++;
+                                }
+                            });
+                            
+                            // Update all UI components after restoration
+                            updateDeckDisplay();
+                            updateEnergyCounter();
+                            updateCoverCardDisplay();
+                            
+                            // Immediately update energy icons
+                            updateDeckEnergyIconsVisualState();
+                            
+                            // Mobile-specific energy restoration with multiple attempts
+                            if (window.matchMedia("(hover: none)").matches) {
+                                // First attempt - immediate
+                                updateDeckEnergyIconsVisualState();
+                                
+                                // Second attempt - after next frame
+                                requestAnimationFrame(() => {
+                                    updateDeckEnergyIconsVisualState();
+                                    updateEnergyCounter();
+                                    
+                                    // Third attempt - after short delay for slower devices
+                                    setTimeout(() => {
+                                        // Find and manually update each energy icon
+                                        document.querySelectorAll('.energy-selection-bar .energy-icon-wrapper.deck-energy').forEach(icon => {
+                                            const energyType = icon.getAttribute('data-type');
+                                            if (selectedDeckEnergies.includes(energyType)) {
+                                                icon.classList.add('active');
+                                                // Force inline style as fallback
+                                                icon.style.opacity = '1';
+                                                icon.style.transform = 'scale(1.15)';
+                                            }
+                                        });
+                                        console.log('Mobile deck restoration complete - energy types:', selectedDeckEnergies);
+                                    }, 250);
+                                });
+                            }
+                            
+                            // Log successful restoration for debugging
+                            console.log(`Restored ${restoredCount} cards from ${storageSource} storage`);
+                            
+                            return true; // Successfully restored
                         }
                     } catch (error) {
+                        console.warn('Failed to restore deck from storage:', error);
+                        // Clean up corrupted data
+                        sessionStorage.removeItem('autoSavedDeck');
+                        localStorage.removeItem('autoSavedDeck_persistent');
                     }
+                    return false;
+                };
+                
+                // Attempt restoration if no pending deck was restored
+                if (!restoredPendingDeck) {
+                    restoreDeckFromStorage();
                 }
             }
 
@@ -2911,7 +3098,27 @@
             // Initialize deck display if no deck was loaded
             if (!editDeckId && !restoredPendingDeck) {
                 updateDeckDisplay();
-            } else {
+            }
+            
+            // Ensure energy icons are properly displayed on mobile after everything is loaded
+            if (window.matchMedia("(hover: none)").matches && selectedDeckEnergies.length > 0) {
+                console.log('Applying mobile energy fix for energies:', selectedDeckEnergies);
+                
+                // Wait for images to load and DOM to settle
+                setTimeout(() => {
+                    const energyIcons = document.querySelectorAll('.energy-selection-bar .energy-icon-wrapper.deck-energy');
+                    console.log('Found energy icons:', energyIcons.length);
+                    
+                    energyIcons.forEach(icon => {
+                        const energyType = icon.getAttribute('data-type');
+                        if (selectedDeckEnergies.includes(energyType)) {
+                            icon.classList.add('active');
+                            console.log(`Manually activated ${energyType} icon on mobile`);
+                        }
+                    });
+                    
+                    updateEnergyCounter();
+                }, 500);
             }
             
             // Always ensure deck display is initialized for empty decks
@@ -2985,13 +3192,6 @@
         updateDeckEnergyIconsVisualState();
         updateEnergyCounter();
 
-        // 2. Update export button visibility
-        const exportButton = document.getElementById('export-deck-btn');
-        if (loadedDeckId && deckSaved) {
-            exportButton.style.display = 'inline-block';
-        } else {
-            exportButton.style.display = 'none';
-        }
 
         // 3. Update all card visuals in the main collection view
         // This loops through every card element and calls your existing update function,
@@ -3005,10 +3205,54 @@
     }
 
     function updateDeckEnergyIconsVisualState() { // Example helper
-        document.querySelectorAll('.energy-selection-bar .energy-icon-wrapper.deck-energy').forEach(icon => {
-            const energyType = icon.getAttribute('data-type');
-            icon.classList.toggle('active', selectedDeckEnergies.includes(energyType));
+        // Update all deck energy icons - use more specific selector
+        const energyIcons = document.querySelectorAll('.energy-selection-bar .energy-icon-wrapper[data-type]');
+        
+        console.log('updateDeckEnergyIconsVisualState called:', {
+            foundIcons: energyIcons.length,
+            selectedEnergies: selectedDeckEnergies,
+            isMobile: window.matchMedia("(hover: none)").matches
         });
+        
+        energyIcons.forEach(icon => {
+            const energyType = icon.getAttribute('data-type');
+            const wasActive = icon.classList.contains('active');
+            
+            if (selectedDeckEnergies.includes(energyType)) {
+                icon.classList.add('active');
+                // Also ensure parent has active class if it's a wrapper
+                if (icon.classList.contains('deck-energy')) {
+                    icon.classList.add('active');
+                }
+                if (!wasActive) {
+                    console.log(`Added active class to ${energyType} icon`);
+                }
+            } else {
+                icon.classList.remove('active');
+                if (wasActive) {
+                    console.log(`Removed active class from ${energyType} icon`);
+                }
+            }
+        });
+        
+        // Force style recalculation on mobile with more aggressive approach
+        if (window.matchMedia("(hover: none)").matches) {
+            energyIcons.forEach(icon => {
+                // Force reflow
+                icon.style.display = 'none';
+                icon.offsetHeight;
+                icon.style.display = '';
+                
+                // Double-check active state visually
+                if (icon.classList.contains('active')) {
+                    // Ensure the styles are applied
+                    const img = icon.querySelector('img');
+                    if (img) {
+                        img.style.opacity = '1';
+                    }
+                }
+            });
+        }
     }
 
     function updateDropdownDisplays() {
@@ -3573,6 +3817,11 @@
                 }
             }
             updateEnergyCounter();
+            
+            // Trigger mobile auto-save when energy selection changes (even without cards)
+            if (window.matchMedia("(hover: none)").matches) {
+                triggerMobileAutoSave();
+            }
         };
 
         document.querySelectorAll('.energy-selection-bar .deck-energy').forEach(icon => {
@@ -3637,9 +3886,9 @@
                         currentDeck.splice(slotIndex, 1);
                         deckSaved = false;
 
-                        if (removedCardId === coverCardIds) {
-                            coverCardIds = null;
-                        }
+                        // Clean up cover cards if necessary
+                        cleanupCoverCardsAfterRemoval(removedCardId);
+                        
                         updateDeckDisplay();
                         updateCardStateInCollection(removedCardId);
                     }
@@ -3664,6 +3913,10 @@
                     if (indexToRemove !== -1) {
                         currentDeck.splice(indexToRemove, 1);
                         deckSaved = false;
+                        
+                        // Clean up cover cards if necessary
+                        cleanupCoverCardsAfterRemoval(cardIdToRemove);
+                        
                         updateDeckDisplay();
                         updateCardStateInCollection(cardIdToRemove);
                     }
@@ -3738,8 +3991,6 @@
         // Save deck button
         document.getElementById('save-deck-btn').addEventListener('click', saveDeck);
 
-        // Export deck button
-        document.getElementById('export-deck-btn').addEventListener('click', exportDeck);
 
         // Deck name input changes -> mark as unsaved
         document.getElementById('deck-name').addEventListener('input', () => { deckSaved = false; });
@@ -3749,17 +4000,35 @@
         setupCardZoom();
 
         if (window.matchMedia("(hover: none)").matches) {
+            // Enhanced mobile auto-save with better persistence
+            const autoSaveDeck = () => {
+                triggerMobileAutoSave();
+                if (!deckSaved && loadedDeckId === null && currentDeck.length > 0) {
+                    if (window.showGlobalToast) {
+                        window.showGlobalToast("Draft saved automatically", "success", 2000);
+                    }
+                }
+            };
+
+            // Save on visibility change (app backgrounding)
             document.addEventListener('visibilitychange', () => {
-                if (document.visibilityState === 'hidden' && !deckSaved && loadedDeckId === null && currentDeck.length > 0) {
-                    const deckData = {
-                        name: document.getElementById('deck-name').value,
-                        cards: currentDeck.map(c => ({ id: c.id })),
-                        deck_types: selectedDeckEnergies,
-                        cover_card_ids: coverCardIds
-                    };
-                    sessionStorage.setItem('autoSavedDeck', JSON.stringify(deckData));
+                if (document.visibilityState === 'hidden') {
+                    autoSaveDeck();
                 }
             });
+
+            // Also save periodically while editing (every 30 seconds)
+            let autoSaveInterval = setInterval(autoSaveDeck, 30000);
+            
+            // Clean up interval when deck is saved or page unloads
+            const cleanupAutoSave = () => {
+                if (autoSaveInterval) {
+                    clearInterval(autoSaveInterval);
+                    autoSaveInterval = null;
+                }
+            };
+            
+            window.addEventListener('beforeunload', cleanupAutoSave);
         } else {
             window.addEventListener('beforeunload', function(e) {
                 if (!deckSaved && !isDeckPristineOrEmpty()) {
@@ -4047,20 +4316,30 @@
         }
     }
 
-    function updateCardDisplay() {
-        
+    function updateCardDisplay(isAppend = false, isInitialLoad = false) {
         const cardCollection = document.getElementById('card-collection');
         if (!cardCollection) {
             return;
         }
 
+        let rowDiv;
+        let noResultsDiv;
         
-        // Always rebuild for paginated system - remove the isBuilt check
-        // if (!cardCollection.dataset.isBuilt) {
-            const rowDiv = document.createElement('div');
+        if (isAppend) {
+            // For append mode, find existing row
+            rowDiv = cardCollection.querySelector('.row');
+            noResultsDiv = cardCollection.querySelector('.no-results-message');
+            if (!rowDiv) {
+                rowDiv = document.createElement('div');
+                rowDiv.className = 'row g-2';
+                cardCollection.appendChild(rowDiv);
+            }
+        } else {
+            // For non-append mode, create new elements
+            rowDiv = document.createElement('div');
             rowDiv.className = 'row g-2';
-
-            const noResultsDiv = document.createElement('div');
+            
+            noResultsDiv = document.createElement('div');
             noResultsDiv.className = 'col-12 text-center p-5 no-results-message';
 
             const message = document.createElement('p');
@@ -4072,9 +4351,18 @@
             resetButton.addEventListener('click', resetAllFilters);
             noResultsDiv.appendChild(message);
             noResultsDiv.appendChild(resetButton);
-
+        }
+        
+        // When appending, only process new cards that aren't already displayed
+        const displayedCardIds = isAppend ? new Set(
+            Array.from(cardCollection.querySelectorAll('.card-item')).map(el => el.dataset.cardId)
+        ) : new Set();
+        
+        const cardsToDisplay = isAppend ? 
+            filteredCards.filter(card => !displayedCardIds.has(card.id.toString())) : 
+            filteredCards;
             
-            filteredCards.forEach((card, index) => {
+            cardsToDisplay.forEach((card, index) => {
                 
                 const colDiv = document.createElement('div');
                 colDiv.className = 'col-4 col-sm-4 col-md-4 col-lg-3 col-xl-2 mb-3 card-item';
@@ -4108,8 +4396,8 @@
                 if (highResSrc && highResImageCache.has(highResSrc)) {
                     imageToLoad = highResSrc;
                     isHighRes = true;
-                    // Remove loading state since we have cached high-res
-                    cardContainer.classList.remove('is-loading');
+                    // Don't remove loading state immediately - let onload handler do it
+                    // This ensures shimmer is visible even for cached images
                 }
                 
                 img.src = imageToLoad; // Load immediately instead of lazy loading
@@ -4121,9 +4409,13 @@
                     img.dataset.loadedResolution = 'high';
                 }
                 
-                // Add loading handlers to remove loading state
+                // Add loading handlers to remove loading state with minimum delay
                 img.onload = () => {
-                    cardContainer.classList.remove('is-loading');
+                    // Ensure shimmer is visible for at least 200ms
+                    setTimeout(() => {
+                        cardContainer.classList.remove('is-loading');
+                        cardContainer.classList.add('is-loaded');
+                    }, 200);
                 };
                 img.onerror = () => {
                     cardContainer.classList.remove('is-loading');
@@ -4139,9 +4431,76 @@
                 }
             });
             
-            cardCollection.innerHTML = '';
-            cardCollection.appendChild(rowDiv);
-            cardCollection.appendChild(noResultsDiv);
+            if (!isAppend) {
+                if (isInitialLoad) {
+                    const existingRow = cardCollection.querySelector('.row');
+                    if (existingRow) {
+                        // Get existing shimmer cards and new real cards
+                        const existingCards = Array.from(existingRow.querySelectorAll('.card-item'));
+                        const newCards = Array.from(rowDiv.querySelectorAll('.card-item'));
+                        
+                        // Transform shimmer cards into real cards by updating their content
+                        newCards.forEach((newCard, index) => {
+                            if (existingCards[index]) {
+                                const existingContainer = existingCards[index].querySelector('.clickable-card');
+                                const newContainer = newCard.querySelector('.clickable-card');
+                                
+                                if (existingContainer && newContainer) {
+                                    // Copy all data attributes from new card to existing card
+                                    Array.from(newCard.attributes).forEach(attr => {
+                                        if (attr.name.startsWith('data-')) {
+                                            existingCards[index].setAttribute(attr.name, attr.value);
+                                        }
+                                    });
+                                    
+                                    // Get the image from the new card
+                                    const newImg = newContainer.querySelector('img');
+                                    if (newImg) {
+                                        // Add the image to the existing shimmer container
+                                        existingContainer.appendChild(newImg);
+                                        
+                                        // When image loads, remove shimmer state
+                                        newImg.onload = () => {
+                                            setTimeout(() => {
+                                                existingContainer.classList.remove('is-loading');
+                                                existingContainer.classList.add('is-loaded');
+                                            }, 200);
+                                        };
+                                        newImg.onerror = () => {
+                                            existingContainer.classList.remove('is-loading');
+                                            existingContainer.classList.add('error-loading');
+                                        };
+                                    }
+                                } else {
+                                    // Fallback: replace entire card if structure is different
+                                    existingRow.insertBefore(newCard, existingCards[index]);
+                                    existingRow.removeChild(existingCards[index]);
+                                }
+                            } else {
+                                // Add any extra cards to the end
+                                existingRow.appendChild(newCard);
+                            }
+                        });
+                        
+                        // Remove any leftover shimmer cards
+                        existingCards.slice(newCards.length).forEach(card => {
+                            if (card.parentNode) {
+                                existingRow.removeChild(card);
+                            }
+                        });
+                    } else {
+                        // Fallback if no existing row found
+                        cardCollection.innerHTML = '';
+                        cardCollection.appendChild(rowDiv);
+                    }
+                } else {
+                    cardCollection.innerHTML = '';
+                    cardCollection.appendChild(rowDiv);
+                    if (noResultsDiv) {
+                        cardCollection.appendChild(noResultsDiv);
+                    }
+                }
+            }
             
             // Debug: Check if elements are actually in DOM
             setTimeout(() => {
@@ -4311,6 +4670,24 @@
 
         // Then count all cards in the deck with that name
         return currentDeck.filter(card => card.name === cardName).length;
+    }
+
+    function cleanupCoverCardsAfterRemoval(removedCardId) {
+        // Convert removedCardId to string for consistent comparison
+        const removedCardIdStr = removedCardId.toString();
+        
+        // Count how many copies of this specific card ID remain in the deck
+        const remainingCopies = currentDeck.filter(card => card.id.toString() === removedCardIdStr).length;
+        
+        // If no copies remain, remove this card from cover cards
+        if (remainingCopies === 0) {
+            const coverIndex = coverCardIds.indexOf(removedCardIdStr);
+            if (coverIndex > -1) {
+                coverCardIds.splice(coverIndex, 1);
+                // The updateCoverCardDisplay() function will handle reordering the remaining cover cards
+            }
+        }
+        // If copies remain, the cover card status is preserved (no action needed)
     }
     
     function addCardToDeck(cardId, clickedElement = null) {
@@ -4504,9 +4881,7 @@
                 coverCardIds = [];
 
                 // Reset the energy icon visual states
-                document.querySelectorAll('.energy-selection-bar .energy-icon-wrapper').forEach(icon => {
-                    icon.classList.remove('active');
-                });
+                updateDeckEnergyIconsVisualState();
 
                 deckSaved = false;
 
@@ -4697,6 +5072,10 @@
                 if (data.cover_card_ids) {
                     coverCardIds = data.cover_card_ids;
                 }
+                
+                // Clear auto-saved data on successful save
+                clearAutoSavedData();
+                
                 window.location.href = '/collection'; // Redirect after save
             } else {
                 // Use server's error message if available
@@ -4709,21 +5088,6 @@
         });
     }
 
-    function exportDeck() {
-        if (!loadedDeckId) {
-            alert('Please save your deck first before exporting.');
-            return;
-        }
-        
-        if (currentDeck.length === 0) {
-            alert('Your deck is empty! Please add some cards before exporting.');
-            return;
-        }
-        
-        // Open the export page in a new window
-        const exportUrl = `/deck/${loadedDeckId}/export`;
-        window.open(exportUrl, '_blank');
-    }
 
     function getRank(value, orderMap) {
         return orderMap[value] ?? orderMap['default']; // Use default if value not in map
