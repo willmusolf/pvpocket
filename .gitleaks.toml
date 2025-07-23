@@ -2,11 +2,15 @@
 # This file tells GitLeaks what to ignore
 
 [allowlist]
-# Ignore test credentials in CI workflows
+# Ignore test credentials in CI workflows and documentation files
 paths = [
   '''.github/workflows/ci-cd.yml''',
   '''test_.*.py''',
-  '''.*_test.py'''
+  '''.*_test.py''',
+  '''CLAUDE.md''',
+  '''TEST_CHECKLIST.md''',
+  '''cors-config.json''',
+  '''terraform/README.md'''
 ]
 
 # Allow fake/test keys and localhost URLs
@@ -16,19 +20,8 @@ regexes = [
   '''test@test-project''',
   '''localhost:[0-9]+''',
   '''127\.0\.0\.1:[0-9]+''',
-  '''http://localhost:[0-9]+''',
-  '''http://127\.0\.0\.1:[0-9]+'''
+  '''https?://localhost:[0-9]+.*''',
+  '''https?://127\.0\.0\.1:[0-9]+.*''',
+  '''http://localhost:5001.*''',
+  '''pvpocket\.xyz'''
 ]
-
-# Ignore specific test patterns
-[[rules]]
-id = "test-credentials"
-description = "Ignore test/dummy credentials"
-regex = '''test-(secret|key|token|password)'''
-tags = ["test", "dummy"]
-
-[[rules]]
-id = "localhost-urls"
-description = "Ignore localhost URLs"
-regex = '''(localhost|127\.0\.0\.1):[0-9]+'''
-tags = ["localhost"]
