@@ -520,6 +520,14 @@ def user_profile_and_settings():
             ):
                 try:
                     user_doc_ref.update({"profile_icon": new_icon})
+                    
+                    # Invalidate user cache to ensure immediate update
+                    try:
+                        from ..cache_manager import cache_manager
+                        cache_manager.invalidate_user_cache(user_id_str)
+                    except Exception as cache_error:
+                        current_app.logger.warning(f"Failed to invalidate user cache: {cache_error}")
+                    
                     session["display_toast_once"] = {
                         "message": "Profile icon updated successfully.",
                         "type": "success",

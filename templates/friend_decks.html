@@ -57,33 +57,43 @@
         justify-content: flex-start;
         padding: 0;
         overflow: visible;
+        transition: justify-content 0.2s ease-out, gap 0.2s ease-out;
     }
 
     .filter-bar .energy-icon-wrapper {
         position: relative;
         cursor: pointer;
-        width: 32px;
-        height: 32px;
+        width: 29px;
+        height: 29px;
         border-radius: 50%;
         overflow: visible;
         transition: all 0.2s ease;
         flex-shrink: 0;
+        background: none !important; /* Remove any gray background */
+        border: none !important; /* Remove any borders */
+        /* Touch optimizations */
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+        user-select: none;
+        -webkit-user-select: none;
     }
 
     .filter-bar .energy-icon-wrapper:not(.active) {
-        opacity: 0.4;
-        filter: saturate(0.5);
+        opacity: 0.5;
+        filter: saturate(0.8);
     }
 
-    .filter-bar .energy-icon-wrapper:hover:not(.active) {
-        opacity: 0.7;
+    .filter-bar .energy-icon-wrapper:hover {
+        opacity: 0.9;
+        filter: saturate(0.9);
     }
 
     .filter-bar .energy-icon-wrapper.active {
         opacity: 1;
-        transform: scale(1.15);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-        z-index: 10;
+        filter: saturate(1.1);
+        transform: scale(1.2);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        z-index: 2;
     }
 
     .filter-bar .energy-icon-wrapper.processing {
@@ -106,44 +116,40 @@
         }
     }
 
-    /* Touch optimizations for mobile */
-    .filter-bar .energy-icon-wrapper {
-        /* Touch optimizations */
-        -webkit-tap-highlight-color: transparent;
-        touch-action: manipulation;
-        user-select: none;
-        -webkit-user-select: none;
-    }
 
     @media (hover: none) and (pointer: coarse) {
-        /* Enhanced mobile touch support for energy icons */
+        /* Mobile touch optimizations */
         .filter-bar .energy-icon-wrapper {
-            width: 40px !important;
-            height: 40px !important;
-            padding: 4px; /* Larger padding for easier touching */
-            /* Add subtle background for better touch feedback */
-            background-color: rgba(0, 0, 0, 0.05);
-            border-radius: 50%;
+            width: 29px !important;
+            height: 29px !important;
         }
         
-        [data-theme="dark"] .filter-bar .energy-icon-wrapper {
-            background-color: rgba(255, 255, 255, 0.05);
-        }
-        
-        /* Fix hover states on touch devices */
+        /* Disable hover effects on touch devices but allow active states */
         .filter-bar .energy-icon-wrapper:hover:not(.active) {
-            opacity: 0.4 !important;
-            filter: saturate(0.5) !important;
+            opacity: 0.5 !important;
+            filter: saturate(0.8) !important;
             transform: none !important;
         }
-
-        /* Better active touch feedback */
+        
+        /* Ensure active states work on mobile */
         .filter-bar .energy-icon-wrapper.active {
-            background-color: rgba(var(--bs-primary-rgb), 0.1) !important;
+            opacity: 1 !important;
+            filter: saturate(1.1) !important;
+            transform: scale(1.2) !important;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3) !important;
+            z-index: 2 !important;
         }
 
-        .filter-bar .energy-icon-wrapper.processing {
-            background-color: rgba(var(--bs-primary-rgb), 0.15) !important;
+        /* Better search input touch target */
+        .filter-bar .form-control {
+            min-height: 44px;
+            font-size: 16px; /* Prevents iOS zoom */
+        }
+        
+        /* Improve touch feedback for all interactive elements */
+        .filter-bar .energy-icon-wrapper,
+        .filter-bar .form-control {
+            -webkit-tap-highlight-color: rgba(var(--bs-primary-rgb), 0.2);
         }
     }
     /* End of Filter Bar Styles */
@@ -179,6 +185,8 @@
         margin-top: 0.5rem;
         margin-bottom: 0rem;
         min-height: 1.2em;
+        position: relative;
+        padding-right: 20px; /* Make space for the info icon */
     }
 
     .collection-main-content {
@@ -407,43 +415,57 @@
         background-color: var(--input-bg);
     }
 
-    /* Mobile layout improvements - keep horizontal but force energy icons to wrap */
-    @media (max-width: 767.98px) {
-        .search-section {
-            flex: 1 1 180px; /* More space for search since no dropdown */
-            min-width: 180px;
-        }
-        
+    /* Smaller desktop screens: wrap energy icons under search bar */
+    @media (max-width: 1024px) {
         .energy-icons-section {
             flex: 1 1 100%; /* Force energy icons to wrap to next line */
             width: 100%;
+            margin-top: 0.5rem; /* Add some space between search and energy icons */
         }
         
         .filter-bar .energy-icons {
-            justify-content: center;
+            justify-content: flex-start; /* Align to left side like collection.html */
             gap: 6px;
+        }
+    }
+
+    /* Mobile layout improvements - try to keep everything in one row */
+    @media (max-width: 767.98px) {
+        .search-section {
+            flex: 1 1 120px; /* Allow search to shrink more */
+            min-width: 120px;
+        }
+        
+        .energy-icons-section {
+            flex: 0 0 auto; /* Don't force wrapping, try to fit */
+            /* Remove width: 100% to allow natural sizing */
+        }
+        
+        .filter-bar .energy-icons {
+            justify-content: flex-start; /* Align to start instead of center */
+            gap: 4px; /* Reduce gap for tighter spacing */
         }
         
         .filter-bar .energy-icon-wrapper {
-            width: 28px;
-            height: 28px;
+            width: 27px;
+            height: 27px;
         }
     }
     
     /* Additional mobile adjustments for very small screens */
     @media (max-width: 575.98px) {
         .search-section {
-            flex: 1 1 160px;
-            min-width: 160px;
+            flex: 1 1 100px;
+            min-width: 100px;
         }
         
         .filter-bar .energy-icons {
-            gap: 4px;
+            gap: 3px; /* Even tighter spacing for very small screens */
         }
         
         .filter-bar .energy-icon-wrapper {
-            width: 26px;
-            height: 26px;
+            width: 25px;
+            height: 25px;
         }
     }
 
@@ -485,15 +507,23 @@
         #deck-search-input {
             font-size: 16px; /* Prevents iOS zoom on focus */
         }
+    }
+    
+    /* Ultra-small screens: force icons to wrap if absolutely necessary */
+    @media (max-width: 380px) {
+        .energy-icons-section {
+            flex: 1 1 100%; /* Force wrapping only on ultra-small screens */
+            width: 100%;
+        }
         
-        .filter-bar .dropdown button {
-            font-size: 0.875rem;
-            padding: 0.5rem 0.75rem;
-            min-width: 90px; /* Smaller dropdown only on very small screens */
+        .filter-bar .energy-icons {
+            justify-content: center; /* Center the icons when wrapped */
+            gap: 4px;
         }
     }
     
     @media (hover: none) and (pointer: coarse) {
+        /* Remove hover effects on dropdown buttons */
         .deck-actions-dropdown .dropdown-toggle:hover,
         .deck-actions-dropdown .dropdown-toggle:active {
             background-color: transparent !important;
@@ -505,6 +535,31 @@
         [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle:active {
             color: var(--bs-gray-500) !important;
         }
+    }
+
+    /* Make description icon more visible and always positioned in top-right */
+    .card-title .bi-info-circle {
+        opacity: 0.7;
+        transition: opacity 0.2s ease;
+        position: absolute;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 2;
+    }
+    
+    .card-title .bi-info-circle:hover {
+        opacity: 1;
+    }
+    
+    [data-theme="dark"] .card-title .bi-info-circle {
+        color: #6c9bd2 !important;
+        opacity: 0.8;
+    }
+    
+    [data-theme="dark"] .card-title .bi-info-circle:hover {
+        color: #8bb3e4 !important;
+        opacity: 1;
     }
 
     .friend-header .friend-info {

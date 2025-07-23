@@ -225,15 +225,77 @@
     </div>
     <form id="deleteAccountFormProfilePage" method="POST" action="{{ url_for('auth.delete_account') }}" style="display: none;"></form>
 {% endblock %}
+
+{% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Scroll to icon selection if there's an error
+        // Scroll to icon selection when profile icon is clicked (desktop only)
         const profileIconScroller = document.getElementById('profileIconScroller');
         const changeIconAnchor = document.getElementById('changeIconAnchor');
+        
         if (profileIconScroller && changeIconAnchor) {
-            profileIconScroller.addEventListener('click', function() {
-                changeIconAnchor.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            profileIconScroller.addEventListener('click', function(event) {
+                // Only scroll on desktop devices (screen width >= 768px)
+                if (window.innerWidth >= 768) {
+                    changeIconAnchor.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center',
+                        inline: 'nearest'
+                    });
+                }
             });
+        }
+
+        // Profile icon instant update functionality
+        const changeIconForm = document.getElementById('changeIconFormProfile');
+        if (changeIconForm) {
+            changeIconForm.addEventListener('submit', function(event) {
+                // Get the selected icon
+                const selectedIcon = document.querySelector('input[name="profile_icon"]:checked');
+                if (selectedIcon) {
+                    // Find the corresponding image src
+                    const selectedIconImg = selectedIcon.nextElementSibling;
+                    if (selectedIconImg && selectedIconImg.tagName === 'IMG') {
+                        // Update ALL profile icons immediately
+                        const headerIcon = document.querySelector('.profile-header-icon');
+                        const mobileNavIcon = document.querySelector('#navbarUserDropdownMobile img');
+                        const desktopNavIcon = document.querySelector('#navbarUserDropdownDesktop img');
+                        
+                        if (headerIcon) {
+                            headerIcon.src = selectedIconImg.src;
+                        }
+                        if (mobileNavIcon) {
+                            mobileNavIcon.src = selectedIconImg.src;
+                        }
+                        if (desktopNavIcon) {
+                            desktopNavIcon.src = selectedIconImg.src;
+                        }
+                        
+                        // Store the new icon URL in localStorage to persist through page reload
+                        localStorage.setItem('pendingProfileIcon', selectedIconImg.src);
+                    }
+                }
+            });
+        }
+
+        // Check for pending profile icon update after page load
+        const pendingIcon = localStorage.getItem('pendingProfileIcon');
+        if (pendingIcon) {
+            const headerIcon = document.querySelector('.profile-header-icon');
+            const mobileNavIcon = document.querySelector('#navbarUserDropdownMobile img');
+            const desktopNavIcon = document.querySelector('#navbarUserDropdownDesktop img');
+            
+            if (headerIcon && headerIcon.src !== pendingIcon) {
+                headerIcon.src = pendingIcon;
+            }
+            if (mobileNavIcon && mobileNavIcon.src !== pendingIcon) {
+                mobileNavIcon.src = pendingIcon;
+            }
+            if (desktopNavIcon && desktopNavIcon.src !== pendingIcon) {
+                desktopNavIcon.src = pendingIcon;
+            }
+            
+            localStorage.removeItem('pendingProfileIcon');
         }
 
         // New code for username change confirmation
@@ -279,3 +341,4 @@
         }
     });
 </script>
+{% endblock %}
