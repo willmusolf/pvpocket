@@ -27,7 +27,7 @@ git commit -m "Description of what I changed"
 git push
 
 # That's it! Everything else happens automatically
-# ✅ CI/CD Pipeline: Fully configured and operational
+# ✅ CI/CD Pipeline: Fully configured with service account permissions
 ```
 
 ## 🚀 Deployment & Infrastructure Overview
