@@ -4179,16 +4179,47 @@
                 if (isInitialLoad) {
                     const existingRow = cardCollection.querySelector('.row');
                     if (existingRow) {
-                        // Get both existing shimmer cards and new real cards
+                        // Get existing shimmer cards and new real cards
                         const existingCards = Array.from(existingRow.querySelectorAll('.card-item'));
                         const newCards = Array.from(rowDiv.querySelectorAll('.card-item'));
                         
-                        // Replace shimmer cards with real cards one by one to avoid flicker
+                        // Transform shimmer cards into real cards by updating their content
                         newCards.forEach((newCard, index) => {
                             if (existingCards[index]) {
-                                // Replace the shimmer card with the real card
-                                existingRow.insertBefore(newCard, existingCards[index]);
-                                existingRow.removeChild(existingCards[index]);
+                                const existingContainer = existingCards[index].querySelector('.clickable-card');
+                                const newContainer = newCard.querySelector('.clickable-card');
+                                
+                                if (existingContainer && newContainer) {
+                                    // Copy all data attributes from new card to existing card
+                                    Array.from(newCard.attributes).forEach(attr => {
+                                        if (attr.name.startsWith('data-')) {
+                                            existingCards[index].setAttribute(attr.name, attr.value);
+                                        }
+                                    });
+                                    
+                                    // Get the image from the new card
+                                    const newImg = newContainer.querySelector('img');
+                                    if (newImg) {
+                                        // Add the image to the existing shimmer container
+                                        existingContainer.appendChild(newImg);
+                                        
+                                        // When image loads, remove shimmer state
+                                        newImg.onload = () => {
+                                            setTimeout(() => {
+                                                existingContainer.classList.remove('is-loading');
+                                                existingContainer.classList.add('is-loaded');
+                                            }, 200);
+                                        };
+                                        newImg.onerror = () => {
+                                            existingContainer.classList.remove('is-loading');
+                                            existingContainer.classList.add('error-loading');
+                                        };
+                                    }
+                                } else {
+                                    // Fallback: replace entire card if structure is different
+                                    existingRow.insertBefore(newCard, existingCards[index]);
+                                    existingRow.removeChild(existingCards[index]);
+                                }
                             } else {
                                 // Add any extra cards to the end
                                 existingRow.appendChild(newCard);
