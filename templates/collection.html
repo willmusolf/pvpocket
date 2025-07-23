@@ -1440,6 +1440,45 @@
                     const deckIndex = allDecks.findIndex(d => d.deck_id === deckId);
                     if (deckIndex !== -1) {
                         allDecks[deckIndex].is_public = result.is_public;
+                        // If a description was provided, update it in local data
+                        if (description && description.trim()) {
+                            allDecks[deckIndex].description = description;
+                        }
+                    }
+                    
+                    // If description was added during make public, re-render the entire deck card
+                    if (description && description.trim() && result.is_public && deckIndex !== -1) {
+                        const deckElement = document.getElementById(`deck-col-${deckId}`);
+                        if (deckElement) {
+                            // Hide any active tooltips before re-rendering to prevent ghost tooltips
+                            const existingTooltip = deckElement.querySelector('[data-bs-toggle="tooltip"]');
+                            if (existingTooltip) {
+                                const tooltipInstance = bootstrap.Tooltip.getInstance(existingTooltip);
+                                if (tooltipInstance) {
+                                    tooltipInstance.hide();
+                                    tooltipInstance.dispose();
+                                }
+                            }
+                            
+                            const pageData = JSON.parse(document.getElementById('page-data').textContent);
+                            const updatedDeckHTML = createDeckCardHTML(allDecks[deckIndex], pageData);
+                            deckElement.outerHTML = updatedDeckHTML;
+                            
+                            // Reinitialize tooltips for the new element and show immediately
+                            const newDeckElement = document.getElementById(`deck-col-${deckId}`);
+                            const tooltipElement = newDeckElement.querySelector('[data-bs-toggle="tooltip"]');
+                            if (tooltipElement) {
+                                const tooltipInstance = new bootstrap.Tooltip(tooltipElement);
+                                // Show the tooltip immediately to display the new description
+                                setTimeout(() => {
+                                    tooltipInstance.show();
+                                }, 150);
+                            }
+                            
+                            initializeImageLazyLoader();
+                            // No need to trigger search here as the deck card was re-rendered with current filters
+                            return; // Skip the individual UI updates below since we re-rendered
+                        }
                     }
                     
                     // Update UI elements with null checks
@@ -1482,7 +1521,7 @@
                                 }
                             }
                         }
-                        applyFilters(); // Reapply filters to reflect changes
+                        // No need to trigger search as only individual UI elements were updated
                     } catch (domError) {
                         console.error('DOM manipulation error:', domError);
                         // Don't show error to user as the operation succeeded on server
@@ -1580,6 +1619,16 @@
                     // Re-render the deck card to show the description icon and remove "Add Description" option
                     const deckElement = document.getElementById(`deck-col-${deckId}`);
                     if (deckElement && deckIndex !== -1) {
+                        // Hide any active tooltips before re-rendering to prevent ghost tooltips
+                        const existingTooltip = deckElement.querySelector('[data-bs-toggle="tooltip"]');
+                        if (existingTooltip) {
+                            const tooltipInstance = bootstrap.Tooltip.getInstance(existingTooltip);
+                            if (tooltipInstance) {
+                                tooltipInstance.hide();
+                                tooltipInstance.dispose();
+                            }
+                        }
+                        
                         const pageData = JSON.parse(document.getElementById('page-data').textContent);
                         const updatedDeckHTML = createDeckCardHTML(allDecks[deckIndex], pageData);
                         deckElement.outerHTML = updatedDeckHTML;
@@ -1588,7 +1637,11 @@
                         const newDeckElement = document.getElementById(`deck-col-${deckId}`);
                         const tooltipElement = newDeckElement.querySelector('[data-bs-toggle="tooltip"]');
                         if (tooltipElement) {
-                            new bootstrap.Tooltip(tooltipElement);
+                            const tooltipInstance = new bootstrap.Tooltip(tooltipElement);
+                            // Show the tooltip immediately to display the new description
+                            setTimeout(() => {
+                                tooltipInstance.show();
+                            }, 150);
                         }
                         
                         initializeImageLazyLoader();
