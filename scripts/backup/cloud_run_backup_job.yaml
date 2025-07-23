@@ -1,0 +1,34 @@
+apiVersion: run.googleapis.com/v1
+kind: Job
+metadata:
+  name: firestore-backup-job
+  labels:
+    app: pokemon-tcg-pocket
+    component: backup
+spec:
+  spec:
+    template:
+      spec:
+        template:
+          spec:
+            serviceAccountName: pokemon-tcg-pocket-jobs@pvpocket-dd286.iam.gserviceaccount.com
+            containers:
+            - name: backup
+              image: gcr.io/pvpocket-dd286/backup-job:latest
+              env:
+              - name: GCP_PROJECT_ID
+                value: "pvpocket-dd286"
+              - name: BACKUP_TYPE
+                value: "export"  # or "json"
+              - name: COLLECTION_IDS
+                value: "users,decks,cards,internal_config"
+              resources:
+                limits:
+                  cpu: "1"
+                  memory: "1Gi"
+                requests:
+                  cpu: "0.5"
+                  memory: "512Mi"
+            restartPolicy: Never
+        backoffLimit: 3
+        activeDeadlineSeconds: 3600  # 1 hour timeout
