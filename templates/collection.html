@@ -1158,6 +1158,18 @@
         window.deckScrollObserver.observe(scrollSentinel);
     }
 
+    function syncEnergyIconsWithFilters() {
+        // Ensure energy icon visual state matches the filter state
+        document.querySelectorAll('.filter-bar .energy-icon-wrapper').forEach(icon => {
+            const energyType = icon.dataset.type;
+            if (activeFilters.energyTypes.includes(energyType)) {
+                icon.classList.add('active');
+            } else {
+                icon.classList.remove('active');
+            }
+        });
+    }
+    
     function triggerSearch() {
         console.log('🔍 triggerSearch() called');
         console.log('📊 Current filters:', {
@@ -1165,6 +1177,9 @@
             energyTypes: activeFilters.energyTypes,
             privacyFilter: activeFilters.privacyFilter
         });
+        
+        // Sync UI state before search to ensure consistency
+        syncEnergyIconsWithFilters();
         
         // Reset pagination for new search
         currentPage = 1;
@@ -1260,13 +1275,26 @@
             });
         });
 
+        // Create a debounced version of triggerSearch for energy filters
+        let energyFilterTimeout = null;
+        const debouncedEnergySearch = () => {
+            clearTimeout(energyFilterTimeout);
+            energyFilterTimeout = setTimeout(() => {
+                triggerSearch();
+            }, 100); // Short delay to batch rapid clicks
+        };
+        
         document.querySelectorAll('.filter-bar .energy-icon-wrapper').forEach(icon => {
             const energyType = icon.dataset.type;
+            let isProcessing = false;
             
             // Use pointerdown for instant response like decks.html
             icon.addEventListener('pointerdown', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
+                
+                // Prevent processing overlapping clicks
+                if (isProcessing) return;
                 
                 const isCurrentlyActive = icon.classList.contains('active');
                 
@@ -1280,11 +1308,14 @@
                     icon.classList.add('active');
                 } else {
                     // Cannot add more than 3 filters
+                    if (window.showGlobalToast) {
+                        window.showGlobalToast("You can only select up to 3 energy types", "default");
+                    }
                     return;
                 }
                 
-                // Trigger search without any visual processing state
-                triggerSearch();
+                // Use debounced search to batch rapid clicks
+                debouncedEnergySearch();
             });
         });
     }
