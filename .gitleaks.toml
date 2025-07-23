@@ -5,8 +5,8 @@
 # Ignore test credentials in CI workflows
 paths = [
   '''.github/workflows/ci-cd.yml''',
-  '''test_*.py''',
-  '''*_test.py'''
+  '''test_.*.py''',
+  '''.*_test.py'''
 ]
 
 # Allow fake/test keys
