@@ -239,10 +239,11 @@
         height: 27px;
         margin: 0;
     }
-    .deck-energy.active {
-        opacity: 1;
-        transform: scale(1.15);
-        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    .deck-energy.active,
+    .energy-icon-wrapper.deck-energy.active {
+        opacity: 1 !important;
+        transform: scale(1.15) !important;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3) !important;
     }
     #card-collection {
         overflow-y: scroll;
@@ -3033,14 +3034,32 @@
                             // Immediately update energy icons
                             updateDeckEnergyIconsVisualState();
                             
-                            // Also ensure DOM is fully ready for mobile (use requestAnimationFrame for next paint)
-                            requestAnimationFrame(() => {
-                                // Double-check energy UI state after DOM paint
+                            // Mobile-specific energy restoration with multiple attempts
+                            if (window.matchMedia("(hover: none)").matches) {
+                                // First attempt - immediate
                                 updateDeckEnergyIconsVisualState();
-                                updateEnergyCounter();
                                 
-                                console.log('Mobile deck restoration complete - energy types:', selectedDeckEnergies);
-                            });
+                                // Second attempt - after next frame
+                                requestAnimationFrame(() => {
+                                    updateDeckEnergyIconsVisualState();
+                                    updateEnergyCounter();
+                                    
+                                    // Third attempt - after short delay for slower devices
+                                    setTimeout(() => {
+                                        // Find and manually update each energy icon
+                                        document.querySelectorAll('.energy-selection-bar .energy-icon-wrapper.deck-energy').forEach(icon => {
+                                            const energyType = icon.getAttribute('data-type');
+                                            if (selectedDeckEnergies.includes(energyType)) {
+                                                icon.classList.add('active');
+                                                // Force inline style as fallback
+                                                icon.style.opacity = '1';
+                                                icon.style.transform = 'scale(1.15)';
+                                            }
+                                        });
+                                        console.log('Mobile deck restoration complete - energy types:', selectedDeckEnergies);
+                                    }, 250);
+                                });
+                            }
                             
                             // Log successful restoration for debugging
                             console.log(`Restored ${restoredCount} cards from ${storageSource} storage`);
@@ -3079,7 +3098,27 @@
             // Initialize deck display if no deck was loaded
             if (!editDeckId && !restoredPendingDeck) {
                 updateDeckDisplay();
-            } else {
+            }
+            
+            // Ensure energy icons are properly displayed on mobile after everything is loaded
+            if (window.matchMedia("(hover: none)").matches && selectedDeckEnergies.length > 0) {
+                console.log('Applying mobile energy fix for energies:', selectedDeckEnergies);
+                
+                // Wait for images to load and DOM to settle
+                setTimeout(() => {
+                    const energyIcons = document.querySelectorAll('.energy-selection-bar .energy-icon-wrapper.deck-energy');
+                    console.log('Found energy icons:', energyIcons.length);
+                    
+                    energyIcons.forEach(icon => {
+                        const energyType = icon.getAttribute('data-type');
+                        if (selectedDeckEnergies.includes(energyType)) {
+                            icon.classList.add('active');
+                            console.log(`Manually activated ${energyType} icon on mobile`);
+                        }
+                    });
+                    
+                    updateEnergyCounter();
+                }, 500);
             }
             
             // Always ensure deck display is initialized for empty decks
@@ -3166,19 +3205,53 @@
     }
 
     function updateDeckEnergyIconsVisualState() { // Example helper
-        // Update all deck energy icons (handles both .deck-energy and .energy-icon-wrapper.deck-energy)
-        document.querySelectorAll('.energy-selection-bar .deck-energy, .energy-selection-bar .energy-icon-wrapper.deck-energy').forEach(icon => {
+        // Update all deck energy icons - use more specific selector
+        const energyIcons = document.querySelectorAll('.energy-selection-bar .energy-icon-wrapper[data-type]');
+        
+        console.log('updateDeckEnergyIconsVisualState called:', {
+            foundIcons: energyIcons.length,
+            selectedEnergies: selectedDeckEnergies,
+            isMobile: window.matchMedia("(hover: none)").matches
+        });
+        
+        energyIcons.forEach(icon => {
             const energyType = icon.getAttribute('data-type');
+            const wasActive = icon.classList.contains('active');
+            
             if (selectedDeckEnergies.includes(energyType)) {
                 icon.classList.add('active');
+                // Also ensure parent has active class if it's a wrapper
+                if (icon.classList.contains('deck-energy')) {
+                    icon.classList.add('active');
+                }
+                if (!wasActive) {
+                    console.log(`Added active class to ${energyType} icon`);
+                }
             } else {
                 icon.classList.remove('active');
+                if (wasActive) {
+                    console.log(`Removed active class from ${energyType} icon`);
+                }
             }
         });
         
-        // Log for mobile debugging
+        // Force style recalculation on mobile with more aggressive approach
         if (window.matchMedia("(hover: none)").matches) {
-            console.log('Updated deck energy icons for mobile, selected types:', selectedDeckEnergies);
+            energyIcons.forEach(icon => {
+                // Force reflow
+                icon.style.display = 'none';
+                icon.offsetHeight;
+                icon.style.display = '';
+                
+                // Double-check active state visually
+                if (icon.classList.contains('active')) {
+                    // Ensure the styles are applied
+                    const img = icon.querySelector('img');
+                    if (img) {
+                        img.style.opacity = '1';
+                    }
+                }
+            });
         }
     }
 
