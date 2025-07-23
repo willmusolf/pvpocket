@@ -18,11 +18,13 @@ regexes = [
 
 # Ignore specific test patterns
 [[rules]]
+id = "test-credentials"
 description = "Ignore test/dummy credentials"
 regex = '''test-(secret|key|token|password)'''
 tags = ["test", "dummy"]
 
 [[rules]]
+id = "localhost-urls"
 description = "Ignore localhost URLs"
 regex = '''(localhost|127\.0\.0\.1):[0-9]+'''
 tags = ["localhost"]
