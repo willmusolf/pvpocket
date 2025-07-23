@@ -55,13 +55,20 @@ Thumbs.db
 .flaskenv
 secrets/
 secrets
-app.yaml
-app-test.yaml
 credentials.json
 token.json
-main.py
-shared_utils.py
-CLAUDE.md
+
+# Deployment files with secrets
+app-deploy.yaml
+app-*-deploy.yaml
+
+# Keep tracked but exclude from accidental commits
+# (These files should not contain secrets after our changes)
+# app.yaml - keeping tracked (secrets removed)
+# app-test.yaml - keeping tracked 
+# main.py - keeping tracked
+# shared_utils.py - keeping tracked  
+# CLAUDE.md - keeping tracked
 
 
 # IDE specific files

@@ -1,0 +1,103 @@
+# Google Cloud Monitoring Alert Policies
+# Deploy with: gcloud alpha monitoring policies create --policy-from-file=alerting.yaml
+
+displayName: "Pokemon TCG Pocket - High Error Rate"
+documentation:
+  content: "Error rate is above 5% for the Pokemon TCG Pocket application"
+  mimeType: "text/markdown"
+conditions:
+  - displayName: "High Error Rate"
+    conditionThreshold:
+      filter: 'resource.type="gae_app" AND resource.label.module_id="default"'
+      comparison: COMPARISON_GREATER_THAN
+      thresholdValue: 0.05
+      duration: 300s
+      aggregations:
+        - alignmentPeriod: 60s
+          perSeriesAligner: ALIGN_RATE
+          crossSeriesReducer: REDUCE_MEAN
+          groupByFields:
+            - resource.label.module_id
+combiner: OR
+enabled: true
+notificationChannels:
+  # Add your notification channel IDs here
+  # - projects/YOUR_PROJECT/notificationChannels/YOUR_CHANNEL_ID
+
+---
+
+displayName: "Pokemon TCG Pocket - High Latency"
+documentation:
+  content: "Average response time is above 2 seconds"
+  mimeType: "text/markdown"
+conditions:
+  - displayName: "High Response Time"
+    conditionThreshold:
+      filter: 'resource.type="gae_app" AND metric.type="appengine.googleapis.com/http/server/response_latencies"'
+      comparison: COMPARISON_GREATER_THAN
+      thresholdValue: 2000
+      duration: 300s
+      aggregations:
+        - alignmentPeriod: 60s
+          perSeriesAligner: ALIGN_MEAN
+          crossSeriesReducer: REDUCE_MEAN
+combiner: OR
+enabled: true
+
+---
+
+displayName: "Pokemon TCG Pocket - Cache Hit Rate Low"
+documentation:
+  content: "Cache hit rate has dropped below 90%"
+  mimeType: "text/markdown"
+conditions:
+  - displayName: "Low Cache Hit Rate"
+    conditionThreshold:
+      filter: 'resource.type="global" AND metric.type="custom.googleapis.com/cache/hit_rate"'
+      comparison: COMPARISON_LESS_THAN
+      thresholdValue: 0.9
+      duration: 600s
+      aggregations:
+        - alignmentPeriod: 300s
+          perSeriesAligner: ALIGN_MEAN
+combiner: OR
+enabled: true
+
+---
+
+displayName: "Pokemon TCG Pocket - Database Connection Issues"
+documentation:
+  content: "Database connection pool is near capacity or failing"
+  mimeType: "text/markdown"
+conditions:
+  - displayName: "High Database Connection Usage"
+    conditionThreshold:
+      filter: 'resource.type="global" AND metric.type="custom.googleapis.com/database/connection_pool_usage"'
+      comparison: COMPARISON_GREATER_THAN
+      thresholdValue: 0.8
+      duration: 300s
+      aggregations:
+        - alignmentPeriod: 60s
+          perSeriesAligner: ALIGN_MEAN
+combiner: OR
+enabled: true
+
+---
+
+displayName: "Pokemon TCG Pocket - Memory Usage High"
+documentation:
+  content: "Memory usage is above 80% for App Engine instances"
+  mimeType: "text/markdown"
+conditions:
+  - displayName: "High Memory Usage"
+    conditionThreshold:
+      filter: 'resource.type="gae_app" AND metric.type="appengine.googleapis.com/system/memory/usage"'
+      comparison: COMPARISON_GREATER_THAN
+      thresholdValue: 0.8
+      duration: 600s
+      aggregations:
+        - alignmentPeriod: 300s
+          perSeriesAligner: ALIGN_MEAN
+          crossSeriesReducer: REDUCE_MEAN
+combiner: OR
+enabled: true
