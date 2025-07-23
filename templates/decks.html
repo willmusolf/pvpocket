@@ -2895,12 +2895,31 @@
                     try {
                         const autoSavedDeck = JSON.parse(autoSavedDeckJSON);
                         if (autoSavedDeck.cards && autoSavedDeck.cards.length > 0) {
+                            // Show restoration toast notification
+                            if (window.showGlobalToast) {
+                                window.showGlobalToast("Restoring unsaved changes...", "default", 3000);
+                            }
+                            
+                            // Restore deck metadata
                             document.getElementById('deck-name').value = autoSavedDeck.name || '';
-                            // Note: For auto-saved deck restoration, we might need to fetch specific cards
                             selectedDeckEnergies = autoSavedDeck.deck_types || [];
                             coverCardIds = (autoSavedDeck.cover_card_ids || []).map(id => String(id));
                             loadedDeckId = null;
                             deckSaved = false;
+                            
+                            // Restore actual cards to currentDeck array
+                            currentDeck = [];
+                            autoSavedDeck.cards.forEach(savedCard => {
+                                const fullCardData = allCards.find(c => c.id === savedCard.id);
+                                if (fullCardData) {
+                                    currentDeck.push(fullCardData);
+                                }
+                            });
+                            
+                            // Update all UI components after restoration
+                            updateDeckDisplay();
+                            updateEnergyCounter();
+                            updateCoverCardDisplay();
                         }
                     } catch (error) {
                     }
