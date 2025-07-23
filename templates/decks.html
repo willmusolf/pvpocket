@@ -2173,10 +2173,11 @@
                         const proxyUrl = getImageUrl(imageToLoad);
 
                         img.onload = () => {
-                            cardContainer.classList.add('is-loaded');
+                            // Ensure shimmer is visible for at least 200ms
                             setTimeout(() => {
                                 cardContainer.classList.remove('is-loading');
-                            }, 110);
+                                cardContainer.classList.add('is-loaded');
+                            }, 200);
                             
                             // Mark as high-res if we loaded the cached high-res version
                             if (isHighRes) {
@@ -4108,8 +4109,8 @@
                 if (highResSrc && highResImageCache.has(highResSrc)) {
                     imageToLoad = highResSrc;
                     isHighRes = true;
-                    // Remove loading state since we have cached high-res
-                    cardContainer.classList.remove('is-loading');
+                    // Don't remove loading state immediately - let onload handler do it
+                    // This ensures shimmer is visible even for cached images
                 }
                 
                 img.src = imageToLoad; // Load immediately instead of lazy loading
@@ -4121,9 +4122,13 @@
                     img.dataset.loadedResolution = 'high';
                 }
                 
-                // Add loading handlers to remove loading state
+                // Add loading handlers to remove loading state with minimum delay
                 img.onload = () => {
-                    cardContainer.classList.remove('is-loading');
+                    // Ensure shimmer is visible for at least 200ms
+                    setTimeout(() => {
+                        cardContainer.classList.remove('is-loading');
+                        cardContainer.classList.add('is-loaded');
+                    }, 200);
                 };
                 img.onerror = () => {
                     cardContainer.classList.remove('is-loading');
