@@ -133,10 +133,10 @@ jobs:
         GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
         TASK_AUTH_TOKEN: ${{ secrets.TASK_AUTH_TOKEN }}
       run: |
-        cat > app-test-deploy.yaml << 'EOF'
+        cat > app-test-deploy.yaml << EOF
         runtime: python311
         service: test
-        entrypoint: gunicorn -b :$$PORT run:app
+        entrypoint: gunicorn -b :\$PORT run:app
         
         automatic_scaling:
           target_cpu_utilization: 0.6
@@ -157,19 +157,17 @@ jobs:
           FLASK_ENV: 'staging'
           GCP_PROJECT_ID: 'pvpocket-dd286'
           FIREBASE_SECRET_NAME: 'firebase-admin-sdk-json'
+          SECRET_KEY: '${{ env.SECRET_KEY }}'
+          REFRESH_SECRET_KEY: '${{ env.REFRESH_SECRET_KEY }}'
+          GOOGLE_OAUTH_CLIENT_ID: '${{ env.GOOGLE_OAUTH_CLIENT_ID }}'
+          GOOGLE_OAUTH_CLIENT_SECRET: '${{ env.GOOGLE_OAUTH_CLIENT_SECRET }}'
+          TASK_AUTH_TOKEN: '${{ env.TASK_AUTH_TOKEN }}'
           USE_FIRESTORE_CACHE: 'false'
           CACHE_TTL_HOURS: '24'
           USER_CACHE_TTL_MINUTES: '30'
           MAX_DB_CONNECTIONS: '10'
           MONITORING_ENABLED: 'true'
         EOF
-        
-        # Add secrets from GitHub secrets (available in environment)
-        echo "          SECRET_KEY: '${{ env.SECRET_KEY }}'" >> app-test-deploy.yaml
-        echo "          REFRESH_SECRET_KEY: '${{ env.REFRESH_SECRET_KEY }}'" >> app-test-deploy.yaml
-        echo "          GOOGLE_OAUTH_CLIENT_ID: '${{ env.GOOGLE_OAUTH_CLIENT_ID }}'" >> app-test-deploy.yaml
-        echo "          GOOGLE_OAUTH_CLIENT_SECRET: '${{ env.GOOGLE_OAUTH_CLIENT_SECRET }}'" >> app-test-deploy.yaml
-        echo "          TASK_AUTH_TOKEN: '${{ env.TASK_AUTH_TOKEN }}'" >> app-test-deploy.yaml
         
     - name: Deploy to Test Environment
       run: |
@@ -210,9 +208,9 @@ jobs:
         
     - name: Create production deployment configuration
       run: |
-        cat > app-prod-deploy.yaml << 'EOF'
+        cat > app-prod-deploy.yaml << EOF
         runtime: python311
-        entrypoint: gunicorn -b :$$PORT run:app
+        entrypoint: gunicorn -b :\$PORT run:app
         
         automatic_scaling:
           target_cpu_utilization: 0.6
@@ -235,19 +233,17 @@ jobs:
           FLASK_ENV: 'production'
           GCP_PROJECT_ID: 'pvpocket-dd286'
           FIREBASE_SECRET_NAME: 'firebase-admin-sdk-json'
+          SECRET_KEY: '${{ env.SECRET_KEY }}'
+          REFRESH_SECRET_KEY: '${{ env.REFRESH_SECRET_KEY }}'
+          GOOGLE_OAUTH_CLIENT_ID: '${{ env.GOOGLE_OAUTH_CLIENT_ID }}'
+          GOOGLE_OAUTH_CLIENT_SECRET: '${{ env.GOOGLE_OAUTH_CLIENT_SECRET }}'
+          TASK_AUTH_TOKEN: '${{ env.TASK_AUTH_TOKEN }}'
           USE_FIRESTORE_CACHE: 'false'
           CACHE_TTL_HOURS: '24'
           USER_CACHE_TTL_MINUTES: '30'
           MAX_DB_CONNECTIONS: '15'
           MONITORING_ENABLED: 'true'
         EOF
-        
-        # Add secrets from Secret Manager (retrieved in previous step)
-        echo "          SECRET_KEY: '${{ env.SECRET_KEY }}'" >> app-prod-deploy.yaml
-        echo "          REFRESH_SECRET_KEY: '${{ env.REFRESH_SECRET_KEY }}'" >> app-prod-deploy.yaml
-        echo "          GOOGLE_OAUTH_CLIENT_ID: '${{ env.GOOGLE_OAUTH_CLIENT_ID }}'" >> app-prod-deploy.yaml
-        echo "          GOOGLE_OAUTH_CLIENT_SECRET: '${{ env.GOOGLE_OAUTH_CLIENT_SECRET }}'" >> app-prod-deploy.yaml
-        echo "          TASK_AUTH_TOKEN: '${{ env.TASK_AUTH_TOKEN }}'" >> app-prod-deploy.yaml
         
     - name: Deploy to Production
       run: |
