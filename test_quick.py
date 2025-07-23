@@ -7,6 +7,11 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 def test_import():
     try:
+        import os
+        # Set test environment to skip Firebase in CI
+        os.environ['FLASK_CONFIG'] = 'testing'
+        os.environ['CI'] = 'true'
+        
         from app import create_app
         print("✅ App imports successfully!")
         return True
