@@ -514,39 +514,58 @@
             padding: 0.5rem 0.75rem;
         }
 
-        /* Remove hover effects on dropdown buttons */
+        /* Remove ALL effects on dropdown buttons including pressed/selected states */
         .deck-actions-dropdown .dropdown-toggle:hover,
-        .deck-actions-dropdown .dropdown-toggle:active {
+        .deck-actions-dropdown .dropdown-toggle:active,
+        .deck-actions-dropdown .dropdown-toggle:focus,
+        .deck-actions-dropdown .dropdown-toggle[aria-expanded="true"],
+        .deck-actions-dropdown .dropdown-toggle.show {
             background-color: transparent !important;
             color: var(--bs-secondary-color) !important;
+            transform: none !important;
+            box-shadow: none !important;
+            border-color: transparent !important;
         }
 
         /* Dark mode compatibility */
         [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle:hover,
-        [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle:active {
+        [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle:active,
+        [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle:focus,
+        [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle[aria-expanded="true"],
+        [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle.show {
             color: var(--bs-gray-500) !important;
+            background-color: transparent !important;
+            transform: none !important;
+            box-shadow: none !important;
+            border-color: transparent !important;
         }
 
-        /* Remove gray hover/active effects on filter dropdown buttons (mobile only) */
+        /* Remove ALL effects on filter dropdown buttons including pressed/selected states */
         .btn-outline-secondary.dropdown-toggle:hover,
         .btn-outline-secondary.dropdown-toggle:active,
-        .btn-outline-secondary.dropdown-toggle:focus {
+        .btn-outline-secondary.dropdown-toggle:focus,
+        .btn-outline-secondary.dropdown-toggle[aria-expanded="true"],
+        .btn-outline-secondary.dropdown-toggle.show {
             background-color: transparent !important;
             border-color: var(--border-color) !important;
             color: var(--text-color) !important;
             outline: none !important;
             box-shadow: none !important;
+            transform: none !important;
         }
 
         /* Dark mode compatibility for filter dropdowns (mobile only) */
         [data-theme="dark"] .btn-outline-secondary.dropdown-toggle:hover,
         [data-theme="dark"] .btn-outline-secondary.dropdown-toggle:active,
-        [data-theme="dark"] .btn-outline-secondary.dropdown-toggle:focus {
+        [data-theme="dark"] .btn-outline-secondary.dropdown-toggle:focus,
+        [data-theme="dark"] .btn-outline-secondary.dropdown-toggle[aria-expanded="true"],
+        [data-theme="dark"] .btn-outline-secondary.dropdown-toggle.show {
             background-color: transparent !important;
             border-color: var(--border-color) !important;
             color: var(--text-color) !important;
             outline: none !important;
             box-shadow: none !important;
+            transform: none !important;
         }
 
         /* Remove all mobile click effects on dropdown buttons */
