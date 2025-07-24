@@ -485,7 +485,7 @@
         opacity: 1;
     }
     
-    @media (hover: none) and (pointer: coarse) {
+    @media (hover: none) {
         /* Mobile touch optimizations */
         .filter-bar .energy-icon-wrapper {
             width: 29px !important;
@@ -590,6 +590,23 @@
         .dropdown-section .btn,
         .filter-bar .form-control {
             -webkit-tap-highlight-color: rgba(var(--bs-primary-rgb), 0.2);
+        }
+        
+        /* Remove ALL dropdown menu item hover effects on mobile */
+        .dropdown-menu .dropdown-item:hover,
+        .dropdown-menu .dropdown-item:focus,
+        .dropdown-menu .dropdown-item:active {
+            background-color: transparent !important;
+            color: inherit !important;
+            transform: none !important;
+        }
+        
+        [data-theme="dark"] .dropdown-menu .dropdown-item:hover,
+        [data-theme="dark"] .dropdown-menu .dropdown-item:focus,
+        [data-theme="dark"] .dropdown-menu .dropdown-item:active {
+            background-color: transparent !important;
+            color: inherit !important;
+            transform: none !important;
         }
     }
 
