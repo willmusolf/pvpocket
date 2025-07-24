@@ -1124,13 +1124,12 @@
                     loadDecksPage(currentPage + 1, true).then(() => {
                         // Hide loading spinner after load
                         spinner.style.display = 'none';
-                        text.textContent = hasMoreDecks ? 'Scroll for more decks' : 'All decks loaded';
                         
-                        // Hide the entire indicator if no more decks
+                        // Hide the entire indicator immediately if no more decks
                         if (!hasMoreDecks) {
-                            setTimeout(() => {
-                                scrollSentinel.style.display = 'none';
-                            }, 2000);
+                            scrollSentinel.style.display = 'none';
+                        } else {
+                            text.textContent = 'Scroll for more decks';
                         }
                     }).catch(() => {
                         // Hide spinner on error

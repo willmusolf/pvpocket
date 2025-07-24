@@ -596,16 +596,17 @@
 
         // --- UPDATED: Attach listeners to both mobile and desktop elements ---
         searchBtns.forEach((btn, index) => {
-            btn.addEventListener('click', () => debouncedPerformSearch(searchInputs[index].value));
+            btn.addEventListener('click', () => performSearchInternal(searchInputs[index].value));
         });
         searchInputs.forEach(input => {
             input.addEventListener('keyup', (event) => {
                 if (event.key === 'Enter') {
-                    debouncedPerformSearch(input.value);
-                } else {
-                    // Also debounce regular typing
-                    debouncedPerformSearch(input.value);
+                    performSearchInternal(input.value);
+                } else if (input.value.trim() === '') {
+                    // Clear search results when input is empty
+                    searchResultsContainers.forEach(c => c.innerHTML = '');
                 }
+                // Removed automatic search while typing for privacy
             });
         });
 
@@ -903,6 +904,25 @@
             
             return result;
         };
+
+        // Ensure only one dropdown is open at a time
+        function setupDropdownManagement() {
+            document.addEventListener('shown.bs.dropdown', function (event) {
+                // Close all other dropdowns when one is opened
+                const allDropdowns = document.querySelectorAll('[data-bs-toggle="dropdown"]');
+                allDropdowns.forEach(dropdown => {
+                    if (dropdown !== event.target && dropdown.getAttribute('aria-expanded') === 'true') {
+                        const dropdownInstance = bootstrap.Dropdown.getInstance(dropdown);
+                        if (dropdownInstance) {
+                            dropdownInstance.hide();
+                        }
+                    }
+                });
+            });
+        }
+
+        // Initialize dropdown management
+        setupDropdownManagement();
     });
 
 </script>

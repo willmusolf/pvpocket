@@ -150,12 +150,7 @@
     }
 }
 
-/* 17. Fix potential overlap issues */
-.navbar-collapse.show {
-    background-color: var(--card-bg);
-    border-top: 1px solid var(--border-color);
-    margin-top: 0.5rem;
-}
+/* 17. Fix potential overlap issues - removed background/border to prevent visual jump */
 
 /* 18. Ensure dropdown stays within viewport on mobile */
 @media (max-width: 575px) {
