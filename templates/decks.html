@@ -1394,32 +1394,62 @@
     @media (hover: none) {
         /* --- General Mobile Hover Resets --- */
 
-        /* Remove ALL hover/click effects on filter dropdowns for mobile */
+        /* Remove ALL effects on filter dropdowns including pressed/selected states */
         #cardTypeDropdown:hover,
+        #cardTypeDropdown:active,
+        #cardTypeDropdown:focus,
         #cardTypeDropdown[aria-expanded="true"],
+        #cardTypeDropdown.show,
         #stageTypeDropdown:hover,
+        #stageTypeDropdown:active,
+        #stageTypeDropdown:focus,
         #stageTypeDropdown[aria-expanded="true"],
+        #stageTypeDropdown.show,
         #setDropdown:hover,
+        #setDropdown:active,
+        #setDropdown:focus,
         #setDropdown[aria-expanded="true"],
+        #setDropdown.show,
         #rarityDropdown:hover,
-        #rarityDropdown[aria-expanded="true"] {
+        #rarityDropdown:active,
+        #rarityDropdown:focus,
+        #rarityDropdown[aria-expanded="true"],
+        #rarityDropdown.show {
             background-color: transparent !important;
             border-color: var(--border-color) !important;
             color: var(--text-color) !important;
+            transform: none !important;
+            box-shadow: none !important;
+            outline: none !important;
         }
 
-        /* Dark mode mobile - remove ALL effects */
+        /* Dark mode mobile - remove ALL effects including pressed/selected states */
         [data-theme="dark"] #cardTypeDropdown:hover,
+        [data-theme="dark"] #cardTypeDropdown:active,
+        [data-theme="dark"] #cardTypeDropdown:focus,
         [data-theme="dark"] #cardTypeDropdown[aria-expanded="true"],
+        [data-theme="dark"] #cardTypeDropdown.show,
         [data-theme="dark"] #stageTypeDropdown:hover,
+        [data-theme="dark"] #stageTypeDropdown:active,
+        [data-theme="dark"] #stageTypeDropdown:focus,
         [data-theme="dark"] #stageTypeDropdown[aria-expanded="true"],
+        [data-theme="dark"] #stageTypeDropdown.show,
         [data-theme="dark"] #setDropdown:hover,
+        [data-theme="dark"] #setDropdown:active,
+        [data-theme="dark"] #setDropdown:focus,
         [data-theme="dark"] #setDropdown[aria-expanded="true"],
+        [data-theme="dark"] #setDropdown.show,
         [data-theme="dark"] #rarityDropdown:hover,
-        [data-theme="dark"] #rarityDropdown[aria-expanded="true"] {
+        [data-theme="dark"] #rarityDropdown:active,
+        [data-theme="dark"] #rarityDropdown:focus,
+        [data-theme="dark"] #rarityDropdown[aria-expanded="true"],
+        [data-theme="dark"] #rarityDropdown.show {
             background-color: transparent !important;
             border-color: var(--border-color) !important;
             color: var(--text-color) !important;
+            transform: none !important;
+            box-shadow: none !important;
+            outline: none !important;
         }
 
         /* Remove all mobile click effects on FILTER dropdown buttons only */
@@ -1484,15 +1514,18 @@
             transform: none !important;
         }
         
-        /* Remove ALL filter bar button hover effects on mobile */
+        /* Remove ALL filter bar button effects including pressed/selected states */
         .filter-bar .dropdown button:hover,
         .filter-bar .dropdown button:focus,
-        .filter-bar .dropdown button:active {
+        .filter-bar .dropdown button:active,
+        .filter-bar .dropdown button[aria-expanded="true"],
+        .filter-bar .dropdown button.show {
             background-color: var(--input-bg) !important;
             border-color: var(--border-color) !important;
             color: var(--input-text) !important;
             transform: none !important;
             box-shadow: none !important;
+            outline: none !important;
         }
         
         /* Remove profile dropdown hover effects for mobile only */
