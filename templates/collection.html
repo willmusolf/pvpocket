@@ -544,6 +544,35 @@
             border-color: var(--bs-border-color) !important;
             color: var(--bs-body-color) !important;
         }
+
+        /* Remove all mobile click effects on dropdown buttons */
+        .btn-outline-secondary.dropdown-toggle {
+            -webkit-tap-highlight-color: transparent !important;
+            -webkit-touch-callout: none !important;
+            -webkit-user-select: none !important;
+            -moz-user-select: none !important;
+            -ms-user-select: none !important;
+            user-select: none !important;
+            transition: none !important;
+            transform: none !important;
+            animation: none !important;
+        }
+
+        /* Prevent any transform effects on mobile taps */
+        .btn-outline-secondary.dropdown-toggle:active,
+        .btn-outline-secondary.dropdown-toggle.active,
+        .btn-outline-secondary.dropdown-toggle:focus {
+            transform: none !important;
+            animation: none !important;
+            transition: none !important;
+            box-shadow: none !important;
+        }
+
+        /* Remove webkit button styling on mobile */
+        .btn-outline-secondary.dropdown-toggle::-moz-focus-inner {
+            border: 0 !important;
+            padding: 0 !important;
+        }
         
         /* Better search input touch target */
         .filter-bar .form-control {
