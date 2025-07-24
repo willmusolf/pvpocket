@@ -10,10 +10,10 @@
     {% endif %}
 {% endmacro %}
 
-<nav class="navbar navbar-expand-lg p-4 border-bottom" id="mainNavbar">
+<nav class="navbar navbar-expand-lg py-2 px-3 border-bottom" id="mainNavbar">
     <div class="container-fluid align-items-center">
-        <a class="navbar-brand d-flex align-items-center fs-4" href="{{ url_for('main.index') }}">
-            <img src="{{ url_for('static', filename='navbar-icon.png') }}" alt="PvPocket Logo" width="40" height="40" class="me-2">
+        <a class="navbar-brand d-flex align-items-center fs-5" href="{{ url_for('main.index') }}">
+            <img src="{{ url_for('static', filename='navbar-icon.png') }}" alt="PvPocket Logo" width="32" height="32" class="me-2">
             PvPocket
         </a>
 
@@ -33,19 +33,19 @@
             </button>
         </div>
 
-        <div class="collapse navbar-collapse text-end text-lg-start pt-3 pt-lg-0" id="navbarNav">
+        <div class="collapse navbar-collapse text-end text-lg-start pt-2 pt-lg-0" id="navbarNav">
             <ul class="navbar-nav me-auto">
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('decks.list_decks') }}">Deck Builder</a>
+                    <a class="nav-link nav-tab {{ 'active' if request.endpoint and request.endpoint.startswith('decks.') else '' }}" href="{{ url_for('decks.list_decks') }}">Deck Builder</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('collection_bp.view_collection') }}">My Collection</a>
+                    <a class="nav-link nav-tab {{ 'active' if request.endpoint and request.endpoint.startswith('collection_bp.') else '' }}" href="{{ url_for('collection_bp.view_collection') }}">My Collection</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('battle.battle') }}">Battle Simulator</a>
+                    <a class="nav-link nav-tab {{ 'active' if request.endpoint and request.endpoint.startswith('battle.') else '' }}" href="{{ url_for('battle.battle') }}">Battle Simulator</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('meta.meta_rankings') }}">Meta Rankings</a>
+                    <a class="nav-link nav-tab {{ 'active' if request.endpoint and request.endpoint.startswith('meta.') else '' }}" href="{{ url_for('meta.meta_rankings') }}">Meta Rankings</a>
                 </li>
             </ul>
             
@@ -69,12 +69,113 @@
         width: auto !important;
     }
     
+    /* Clean tab-style navigation for desktop */
+    @media (min-width: 992px) {
+        #mainNavbar .navbar-nav {
+            gap: 8px;
+        }
+        
+        #mainNavbar .nav-tab {
+            padding: 10px 20px !important;
+            border-radius: 8px;
+            position: relative;
+            background-color: transparent;
+            transition: all 0.2s ease;
+            font-weight: 400;
+            border: none;
+        }
+        
+        #mainNavbar .nav-tab:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+            text-decoration: none;
+            transform: translateY(-1px);
+        }
+        
+        #mainNavbar .nav-tab.active {
+            background-color: rgba(0, 0, 0, 0.08);
+            color: var(--text-color) !important;
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        #mainNavbar .nav-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            height: 3px;
+            background-color: #0d6efd;
+            border-radius: 2px;
+        }
+        
+        /* Dark mode tab styling */
+        [data-theme="dark"] #mainNavbar .nav-tab:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+        }
+        
+        [data-theme="dark"] #mainNavbar .nav-tab.active {
+            background-color: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        [data-theme="dark"] #mainNavbar .nav-tab.active::after {
+            background-color: #6ea8fe;
+        }
+    }
+    
+    /* Mobile navigation - clean vertical layout */
+    @media (max-width: 991px) {
+        #mainNavbar .navbar-nav {
+            gap: 4px;
+        }
+        
+        #mainNavbar .nav-tab {
+            padding: 12px 16px !important;
+            border-radius: 8px;
+            margin: 0;
+            transition: all 0.2s ease;
+        }
+        
+        #mainNavbar .nav-tab:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+            text-decoration: none;
+        }
+        
+        #mainNavbar .nav-tab.active {
+            background-color: rgba(0, 0, 0, 0.08);
+            font-weight: 600;
+            border-left: 4px solid #0d6efd;
+            padding-left: 12px !important;
+        }
+        
+        [data-theme="dark"] #mainNavbar .nav-tab:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+        }
+        
+        [data-theme="dark"] #mainNavbar .nav-tab.active {
+            background-color: rgba(255, 255, 255, 0.12);
+            border-left-color: #6ea8fe;
+        }
+    }
+    
     /* Profile dropdown button styling */
     #mainNavbar .nav-link.dropdown-toggle {
-        border-radius: 6px;
-        padding: 6px 10px;
+        border-radius: 8px;
+        padding: 8px 12px;
         background-color: transparent;
-        transition: none;
+        transition: all 0.2s ease;
+    }
+    
+    /* Add hover effect to profile dropdown to match nav links */
+    #mainNavbar .nav-link.dropdown-toggle:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+        transform: translateY(-1px);
+    }
+    
+    [data-theme="dark"] #mainNavbar .nav-link.dropdown-toggle:hover {
+        background-color: rgba(255, 255, 255, 0.08);
     }
     
     /* Force profile dropdown to be black in light mode (override Bootstrap's navbar-light) */
@@ -100,12 +201,10 @@
         background-color: rgba(255, 255, 255, 0.05);
     }
     
-    /* Remove all focus and hover styles to prevent stuck states */
-    #mainNavbar .nav-link.dropdown-toggle:hover,
+    /* Remove focus styles but keep hover */
     #mainNavbar .nav-link.dropdown-toggle:focus,
     #mainNavbar .nav-link.dropdown-toggle:focus-visible,
     #mainNavbar .nav-link.dropdown-toggle:active {
-        background-color: transparent;
         box-shadow: none;
         outline: none;
     }
