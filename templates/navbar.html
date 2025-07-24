@@ -19,11 +19,11 @@
 
         <div class="d-flex align-items-center">
             
-            <div class="nav-item dropdown d-lg-none me-2">
-                <a class="nav-link dropdown-toggle" href="#" id="navbarUserDropdownMobile" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <div class="nav-item dropdown d-lg-none" style="margin-right: calc(0.5rem + 2px) !important;">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarUserDropdownMobile" role="button" data-bs-toggle="dropdown" data-bs-auto-close="true" aria-expanded="false" style="-webkit-tap-highlight-color: transparent;">
                     <img src="{{ current_user_profile_icon_url }}" alt="Profile" class="rounded-circle" style="width: 38px; height: 38px; object-fit: cover; background-color: var(--border-color);">
                 </a>
-                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarUserDropdownMobile">
+                <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="navbarUserDropdownMobile">
                     {{ account_dropdown_items(request.full_path) }}
                 </ul>
             </div>
@@ -49,12 +49,12 @@
                 </li>
             </ul>
             
-            <ul class="navbar-nav d-none d-lg-block me-2">
+            <ul class="navbar-nav d-none d-lg-block" style="margin-right: calc(0.5rem + 2px) !important;">
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="navbarUserDropdownDesktop" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarUserDropdownDesktop" role="button" data-bs-toggle="dropdown" data-bs-auto-close="true" aria-expanded="false" style="-webkit-tap-highlight-color: transparent;">
                         <img src="{{ current_user_profile_icon_url }}" alt="Profile" class="rounded-circle" style="width: 38px; height: 38px; object-fit: cover; background-color: var(--border-color);">
                     </a>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarUserDropdownDesktop">
+                    <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="navbarUserDropdownDesktop">
                         {{ account_dropdown_items(request.full_path) }}
                     </ul>
                 </li>
@@ -67,6 +67,20 @@
     #mainNavbar .dropdown-menu {
         min-width: 150px !important;
         width: auto !important;
+        /* Ensure proper positioning on mobile */
+        position: absolute;
+        inset: 0px auto auto 0px;
+        margin: 0px;
+        transform: translate3d(0px, 40px, 0px);
+    }
+    
+    /* Fix dropdown menu positioning on mobile specifically */
+    @media (max-width: 991px) {
+        #mainNavbar .dropdown-menu {
+            right: 0 !important;
+            left: auto !important;
+            transform: translate3d(0px, 10px, 0px) !important;
+        }
     }
     
     /* Clean tab-style navigation for desktop */
@@ -166,6 +180,13 @@
         padding: 8px 12px;
         background-color: transparent;
         transition: all 0.2s ease;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        -khtml-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
     }
     
     /* Add hover effect to profile dropdown to match nav links */
@@ -202,11 +223,15 @@
     }
     
     /* Remove focus styles but keep hover */
-    #mainNavbar .nav-link.dropdown-toggle:focus,
-    #mainNavbar .nav-link.dropdown-toggle:focus-visible,
-    #mainNavbar .nav-link.dropdown-toggle:active {
+    #mainNavbar .nav-link.dropdown-toggle:focus {
         box-shadow: none;
         outline: none;
+    }
+    
+    /* Keep focus-visible for accessibility */
+    #mainNavbar .nav-link.dropdown-toggle:focus-visible {
+        outline: 2px solid #0d6efd;
+        outline-offset: 2px;
     }
     
     /* Only show background when explicitly open */
