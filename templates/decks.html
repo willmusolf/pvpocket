@@ -183,6 +183,52 @@
         white-space: normal;
         word-wrap: break-word;
     }
+
+    /* Force dropdown menus to stay light even in dark mode */
+    .dropdown-menu {
+        background-color: #ffffff !important;
+        border: 1px solid #dee2e6 !important;
+        color: #212529 !important;
+    }
+
+    .dropdown-menu .dropdown-item {
+        color: #212529 !important;
+        background-color: transparent !important;
+    }
+
+    .dropdown-menu .dropdown-item:hover,
+    .dropdown-menu .dropdown-item:focus {
+        background-color: #f8f9fa !important;
+        color: #1e2125 !important;
+    }
+
+    .dropdown-menu .dropdown-item.active {
+        background-color: #0d6efd !important;
+        color: #ffffff !important;
+    }
+
+    /* Ensure this applies even in dark mode */
+    [data-theme="dark"] .dropdown-menu {
+        background-color: #ffffff !important;
+        border: 1px solid #dee2e6 !important;
+        color: #212529 !important;
+    }
+
+    [data-theme="dark"] .dropdown-menu .dropdown-item {
+        color: #212529 !important;
+        background-color: transparent !important;
+    }
+
+    [data-theme="dark"] .dropdown-menu .dropdown-item:hover,
+    [data-theme="dark"] .dropdown-menu .dropdown-item:focus {
+        background-color: #f8f9fa !important;
+        color: #1e2125 !important;
+    }
+
+    [data-theme="dark"] .dropdown-menu .dropdown-item.active {
+        background-color: #0d6efd !important;
+        color: #ffffff !important;
+    }
     .filter-bar .energy-icons {
         display: flex;
         flex-wrap: wrap;
@@ -301,7 +347,7 @@
         z-index: 10;
     }
     .card-item:hover .badge {
-        transform: scale(1.05);
+        /* No transform - keep badge anchored to card like remove button */
         transition: all 0.2s ease;
     }
     .card-item .badge {
@@ -1303,31 +1349,72 @@
         #card-count-search {
             font-size: 0.8rem;
         }
+    }
 
-        /* Remove gray hover/active effects on filter dropdown buttons */
-        .btn-outline-secondary.dropdown-toggle:hover,
-        .btn-outline-secondary.dropdown-toggle:active,
-        .btn-outline-secondary.dropdown-toggle:focus {
+    /* Keep hover effect but remove stuck active state for FILTER dropdowns */
+    #cardTypeDropdown:hover,
+    #cardTypeDropdown[aria-expanded="true"],
+    #stageTypeDropdown:hover,
+    #stageTypeDropdown[aria-expanded="true"],
+    #setDropdown:hover,
+    #setDropdown[aria-expanded="true"],
+    #rarityDropdown:hover,
+    #rarityDropdown[aria-expanded="true"] {
+        background-color: rgba(0, 0, 0, 0.15) !important;
+        border-color: var(--border-color) !important;
+        color: var(--text-color) !important;
+    }
+
+    /* Dark mode compatibility for FILTER dropdowns */
+    [data-theme="dark"] #cardTypeDropdown:hover,
+    [data-theme="dark"] #cardTypeDropdown[aria-expanded="true"],
+    [data-theme="dark"] #stageTypeDropdown:hover,
+    [data-theme="dark"] #stageTypeDropdown[aria-expanded="true"],
+    [data-theme="dark"] #setDropdown:hover,
+    [data-theme="dark"] #setDropdown[aria-expanded="true"],
+    [data-theme="dark"] #rarityDropdown:hover,
+    [data-theme="dark"] #rarityDropdown[aria-expanded="true"] {
+        background-color: rgba(255, 255, 255, 0.15) !important;
+        border-color: var(--border-color) !important;
+        color: var(--text-color) !important;
+    }
+
+    @media (hover: none) {
+        /* --- General Mobile Hover Resets --- */
+
+        /* Remove ALL hover/click effects on filter dropdowns for mobile */
+        #cardTypeDropdown:hover,
+        #cardTypeDropdown[aria-expanded="true"],
+        #stageTypeDropdown:hover,
+        #stageTypeDropdown[aria-expanded="true"],
+        #setDropdown:hover,
+        #setDropdown[aria-expanded="true"],
+        #rarityDropdown:hover,
+        #rarityDropdown[aria-expanded="true"] {
             background-color: transparent !important;
             border-color: var(--border-color) !important;
             color: var(--text-color) !important;
-            outline: none !important;
-            box-shadow: none !important;
         }
 
-        /* Dark mode compatibility for filter dropdowns */
-        [data-theme="dark"] .btn-outline-secondary.dropdown-toggle:hover,
-        [data-theme="dark"] .btn-outline-secondary.dropdown-toggle:active,
-        [data-theme="dark"] .btn-outline-secondary.dropdown-toggle:focus {
+        /* Dark mode mobile - remove ALL effects */
+        [data-theme="dark"] #cardTypeDropdown:hover,
+        [data-theme="dark"] #cardTypeDropdown[aria-expanded="true"],
+        [data-theme="dark"] #stageTypeDropdown:hover,
+        [data-theme="dark"] #stageTypeDropdown[aria-expanded="true"],
+        [data-theme="dark"] #setDropdown:hover,
+        [data-theme="dark"] #setDropdown[aria-expanded="true"],
+        [data-theme="dark"] #rarityDropdown:hover,
+        [data-theme="dark"] #rarityDropdown[aria-expanded="true"] {
             background-color: transparent !important;
             border-color: var(--border-color) !important;
             color: var(--text-color) !important;
-            outline: none !important;
-            box-shadow: none !important;
         }
 
-        /* Remove all mobile click effects on dropdown buttons */
-        .btn-outline-secondary.dropdown-toggle {
+        /* Remove all mobile click effects on FILTER dropdown buttons only */
+        #cardTypeDropdown,
+        #stageTypeDropdown,
+        #setDropdown,
+        #rarityDropdown {
             -webkit-tap-highlight-color: transparent !important;
             -webkit-touch-callout: none !important;
             -webkit-user-select: none !important;
@@ -1339,10 +1426,19 @@
             animation: none !important;
         }
 
-        /* Prevent any transform effects on mobile taps */
-        .btn-outline-secondary.dropdown-toggle:active,
-        .btn-outline-secondary.dropdown-toggle.active,
-        .btn-outline-secondary.dropdown-toggle:focus {
+        /* Prevent any transform effects on mobile taps for FILTER dropdowns only */
+        #cardTypeDropdown:active,
+        #cardTypeDropdown.active,
+        #cardTypeDropdown:focus,
+        #stageTypeDropdown:active,
+        #stageTypeDropdown.active,
+        #stageTypeDropdown:focus,
+        #setDropdown:active,
+        #setDropdown.active,
+        #setDropdown:focus,
+        #rarityDropdown:active,
+        #rarityDropdown.active,
+        #rarityDropdown:focus {
             transform: none !important;
             animation: none !important;
             transition: none !important;
@@ -1350,8 +1446,11 @@
             outline: none !important;
         }
 
-        /* Remove webkit button styling on mobile */
-        .btn-outline-secondary.dropdown-toggle::-moz-focus-inner {
+        /* Remove webkit button styling on mobile for FILTER dropdowns only */
+        #cardTypeDropdown::-moz-focus-inner,
+        #stageTypeDropdown::-moz-focus-inner,
+        #setDropdown::-moz-focus-inner,
+        #rarityDropdown::-moz-focus-inner {
             border: 0 !important;
             padding: 0 !important;
         }
@@ -3487,6 +3586,14 @@
                         }
                     }
                     applyFilters();
+                    
+                    // Hide dropdown and remove hover state like sort dropdown
+                    if (button && typeof bootstrap !== 'undefined' && bootstrap.Dropdown) {
+                        const bsDropdownInstance = bootstrap.Dropdown.getInstance(button);
+                        if (bsDropdownInstance) {
+                            bsDropdownInstance.hide();
+                        }
+                    }
                 }
             });
         });
