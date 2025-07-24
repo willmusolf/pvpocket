@@ -1309,8 +1309,10 @@
         .btn-outline-secondary.dropdown-toggle:active,
         .btn-outline-secondary.dropdown-toggle:focus {
             background-color: transparent !important;
-            border-color: var(--bs-border-color) !important;
-            color: var(--bs-body-color) !important;
+            border-color: var(--border-color) !important;
+            color: var(--text-color) !important;
+            outline: none !important;
+            box-shadow: none !important;
         }
 
         /* Dark mode compatibility for filter dropdowns */
@@ -1318,8 +1320,10 @@
         [data-theme="dark"] .btn-outline-secondary.dropdown-toggle:active,
         [data-theme="dark"] .btn-outline-secondary.dropdown-toggle:focus {
             background-color: transparent !important;
-            border-color: var(--bs-border-color) !important;
-            color: var(--bs-body-color) !important;
+            border-color: var(--border-color) !important;
+            color: var(--text-color) !important;
+            outline: none !important;
+            box-shadow: none !important;
         }
 
         /* Remove all mobile click effects on dropdown buttons */
@@ -1343,6 +1347,7 @@
             animation: none !important;
             transition: none !important;
             box-shadow: none !important;
+            outline: none !important;
         }
 
         /* Remove webkit button styling on mobile */
@@ -4050,11 +4055,7 @@
             // Enhanced mobile auto-save with better persistence
             const autoSaveDeck = () => {
                 triggerMobileAutoSave();
-                if (!deckSaved && loadedDeckId === null && currentDeck.length > 0) {
-                    if (window.showGlobalToast) {
-                        window.showGlobalToast("Draft saved automatically", "success", 2000);
-                    }
-                }
+                // Silent auto-save - no notification needed
             };
 
             // Save on visibility change (app backgrounding)
@@ -4064,8 +4065,8 @@
                 }
             });
 
-            // Also save periodically while editing (every 30 seconds)
-            let autoSaveInterval = setInterval(autoSaveDeck, 30000);
+            // Also save periodically while editing (every 60 seconds)
+            let autoSaveInterval = setInterval(autoSaveDeck, 60000);
             
             // Clean up interval when deck is saved or page unloads
             const cleanupAutoSave = () => {

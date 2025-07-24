@@ -532,8 +532,10 @@
         .btn-outline-secondary.dropdown-toggle:active,
         .btn-outline-secondary.dropdown-toggle:focus {
             background-color: transparent !important;
-            border-color: var(--bs-border-color) !important;
-            color: var(--bs-body-color) !important;
+            border-color: var(--border-color) !important;
+            color: var(--text-color) !important;
+            outline: none !important;
+            box-shadow: none !important;
         }
 
         /* Dark mode compatibility for filter dropdowns */
@@ -541,8 +543,10 @@
         [data-theme="dark"] .btn-outline-secondary.dropdown-toggle:active,
         [data-theme="dark"] .btn-outline-secondary.dropdown-toggle:focus {
             background-color: transparent !important;
-            border-color: var(--bs-border-color) !important;
-            color: var(--bs-body-color) !important;
+            border-color: var(--border-color) !important;
+            color: var(--text-color) !important;
+            outline: none !important;
+            box-shadow: none !important;
         }
 
         /* Remove all mobile click effects on dropdown buttons */
@@ -566,6 +570,7 @@
             animation: none !important;
             transition: none !important;
             box-shadow: none !important;
+            outline: none !important;
         }
 
         /* Remove webkit button styling on mobile */
