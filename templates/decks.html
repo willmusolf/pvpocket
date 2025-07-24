@@ -1454,6 +1454,62 @@
             border: 0 !important;
             padding: 0 !important;
         }
+        
+        /* Remove ALL dropdown item hover effects on mobile */
+        .dropdown-menu .dropdown-item:hover,
+        .dropdown-menu .dropdown-item:focus,
+        .dropdown-menu .dropdown-item:active {
+            background-color: transparent !important;
+            color: #212529 !important;
+            transform: none !important;
+        }
+        
+        [data-theme="dark"] .dropdown-menu .dropdown-item:hover,
+        [data-theme="dark"] .dropdown-menu .dropdown-item:focus,
+        [data-theme="dark"] .dropdown-menu .dropdown-item:active {
+            background-color: transparent !important;
+            color: #212529 !important;
+            transform: none !important;
+        }
+        
+        /* Remove ALL filter bar button hover effects on mobile */
+        .filter-bar .dropdown button:hover,
+        .filter-bar .dropdown button:focus,
+        .filter-bar .dropdown button:active {
+            background-color: var(--input-bg) !important;
+            border-color: var(--border-color) !important;
+            color: var(--input-text) !important;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+        
+        /* Remove profile dropdown hover effects for mobile only */
+        #mainNavbar .nav-link.dropdown-toggle:hover,
+        #mainNavbar .nav-link.dropdown-toggle:focus,
+        #mainNavbar .nav-link.dropdown-toggle:active {
+            background-color: transparent !important;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+        
+        #mainNavbar .dropdown.show .nav-link.dropdown-toggle:hover,
+        #mainNavbar .dropdown.show .nav-link.dropdown-toggle:focus {
+            background-color: transparent !important;
+            transform: none !important;
+        }
+        
+        [data-theme="dark"] #mainNavbar .nav-link.dropdown-toggle:hover,
+        [data-theme="dark"] #mainNavbar .nav-link.dropdown-toggle:focus,
+        [data-theme="dark"] #mainNavbar .nav-link.dropdown-toggle:active {
+            background-color: transparent !important;
+            transform: none !important;
+        }
+        
+        [data-theme="dark"] #mainNavbar .dropdown.show .nav-link.dropdown-toggle:hover,
+        [data-theme="dark"] #mainNavbar .dropdown.show .nav-link.dropdown-toggle:focus {
+            background-color: transparent !important;
+            transform: none !important;
+        }
     }
 </style>
 {% endblock %}
