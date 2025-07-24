@@ -1412,23 +1412,29 @@
         #cardTypeDropdown:active,
         #cardTypeDropdown:focus,
         #cardTypeDropdown[aria-expanded="true"],
+        #cardTypeDropdown.show,
         #stageTypeDropdown:hover,
         #stageTypeDropdown:active,
         #stageTypeDropdown:focus,
         #stageTypeDropdown[aria-expanded="true"],
+        #stageTypeDropdown.show,
         #setDropdown:hover,
         #setDropdown:active,
         #setDropdown:focus,
         #setDropdown[aria-expanded="true"],
+        #setDropdown.show,
         #rarityDropdown:hover,
         #rarityDropdown:active,
         #rarityDropdown:focus,
-        #rarityDropdown[aria-expanded="true"] {
+        #rarityDropdown[aria-expanded="true"],
+        #rarityDropdown.show {
             background-color: var(--bs-btn-bg) !important;
             border-color: var(--bs-btn-border-color) !important;
             color: var(--bs-btn-color) !important;
             box-shadow: none !important;
             transform: none !important;
+            filter: none !important;
+            opacity: 1 !important;
         }
     }
 </style>
