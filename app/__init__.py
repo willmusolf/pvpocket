@@ -9,9 +9,11 @@ from datetime import datetime
 import secrets
 import threading
 import json
+from typing import Dict, Any
 from google.cloud import secretmanager
 from google.api_core.exceptions import NotFound, PermissionDenied
 from .cache_manager import cache_manager
+from .security import init_security, security_manager
 
 from flask_login import (
     current_user,
@@ -73,6 +75,9 @@ def _load_cards_from_firestore_and_cache():
 
 
 def create_app(config_name="default"):
+    startup_start_time = time.time()
+    print(f"🚀 Starting optimized app initialization...")
+    
     app = Flask(
         __name__,
         template_folder="../templates",
@@ -88,8 +93,12 @@ def create_app(config_name="default"):
             "FATAL ERROR: SECRET_KEY is not set. Please set it in your .env file."
         )
 
+    # Initialize critical services first (security, auth, database)
+    print("🔄 Initializing critical services...")
+    
     profanity.load_censor_words()
 
+    # Initialize Firebase (critical for database access)
     if not firebase_admin._apps:
         try:
             bucket_name = "pvpocket-dd286.firebasestorage.app"
@@ -115,7 +124,15 @@ def create_app(config_name="default"):
 
     app.config["FIRESTORE_DB"] = firestore.client()
     login_manager.init_app(app)
+    
+    # Initialize security middleware (rate limiting, security headers)
+    init_security(app)
+    
+    print("✅ Critical services initialized (Firebase, Auth, Security)")
 
+    # Initialize non-critical services (can be moved later if needed)
+    print("🔄 Initializing non-critical services...")
+    
     try:
         bucket = storage.bucket()
         blobs = list(bucket.list_blobs(prefix="profile_icons/"))
@@ -148,29 +165,36 @@ def create_app(config_name="default"):
         app.config["PROFILE_ICON_URLS"] = {}
         app.config["DEFAULT_PROFILE_ICON_URL"] = ""
 
-    # Initialize card collection - always ensure full collection is available
-    try:
-        from .services import CardService
-        print("🔄 Initializing card collection...")
-        
-        # Use the app context to access the CardService
-        with app.app_context():
-            card_collection = CardService.get_card_collection()
-            print(f"✅ Card collection initialized with {len(card_collection)} cards.")
-            
-            # If we got less than expected, it means we're using priority loading
-            # and background loading will fill in the rest
-            if len(card_collection) < 1000:
-                print(f"🔄 Priority collection active. Full collection will load in background.")
-            
-    except Exception as e:
-        print(f"CRITICAL: Error initializing card collection: {e}", flush=True)
-        import traceback
-        traceback.print_exc()
-        card_collection = CardCollection()
-
-    # Note: card_collection no longer stored in app.config for better memory management
-    # Access via card_service.get_card_collection() instead
+    # Schedule deferred card collection initialization
+    # This prevents blocking startup while ensuring cards are available quickly
+    print("🔄 Scheduling deferred card collection initialization...")
+    
+    # Import services to register background task handlers
+    from .services import CardService
+    from .task_queue import task_queue
+    
+    # Register card loading task handler
+    def card_loading_handler(payload: Dict[str, Any]):
+        """Background task to load card collection after startup."""
+        try:
+            with app.app_context():
+                print("🔄 Background: Loading card collection...")
+                collection = CardService._load_full_collection(cache_as_full=True)
+                print(f"✅ Background: Loaded and cached {len(collection)} cards.")
+        except Exception as e:
+            print(f"❌ Background card loading failed: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    task_queue.register_task_handler("load_card_collection", card_loading_handler)
+    
+    # Schedule the card loading task to run after startup (5 second delay)
+    task_queue.enqueue_task("load_card_collection", {}, delay_seconds=5)
+    
+    print("✅ Deferred card collection loading scheduled.")
+    
+    # Note: Cards will be loaded on-demand if requested before background loading completes
+    # This ensures the app starts quickly while maintaining functionality
 
     if app.config.get("GOOGLE_OAUTH_CLIENT_ID") and app.config.get(
         "GOOGLE_OAUTH_CLIENT_SECRET"
@@ -263,11 +287,9 @@ def create_app(config_name="default"):
         return original_url
 
     @app.route("/api/refresh-cards", methods=["POST"])
+    @security_manager.require_refresh_key
     def refresh_cards_cache():
         """Refresh card collection cache using Redis."""
-        provided_key = request.headers.get("X-Refresh-Key")
-        if not provided_key or provided_key != current_app.config["REFRESH_SECRET_KEY"]:
-            return jsonify({"error": "Unauthorized"}), 401
         
         try:
             # Invalidate existing cache
@@ -310,19 +332,23 @@ def create_app(config_name="default"):
     app.register_blueprint(friends_bp)
     app.register_blueprint(internal_bp)
 
-    # Initialize monitoring system
+    # Initialize monitoring system (after all other services)
+    print("🔄 Starting performance monitoring...")
     from .monitoring import performance_monitor
     performance_monitor.start_monitoring()
     
     # Startup summary
+    startup_time = time.time() - startup_start_time
     print("\n" + "="*50)
-    print("🚀 POKEMON TCG POCKET - SCALABILITY SYSTEMS")
+    print("🚀 POKEMON TCG POCKET - OPTIMIZED STARTUP")
     print("="*50)
     print("✅ In-Memory Cache: Active")
     print("✅ Database Connection Pool: Active") 
     print("✅ Background Task Queue: Active")
     print("✅ Performance Monitor: Active")
     print("✅ Service Layer: Loaded")
+    print("⚡ Deferred Card Loading: Scheduled")
+    print(f"⏱️  Total Startup Time: {startup_time:.2f}s")
     print("="*50 + "\n")
 
     app.before_request(check_username_requirement)
