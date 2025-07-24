@@ -418,6 +418,12 @@
         text-align: right !important;
         direction: rtl;
     }
+    
+    /* Active dropdown item styling - same as decks.html */
+    .dropdown-menu .dropdown-item.active {
+        background-color: #0d6efd;
+        color: #ffffff;
+    }
 
     /* Media Queries for column count and sizing */
     @media (max-width: 575.98px) { 
@@ -803,7 +809,7 @@
                                         All Decks
                                     </button>
                                     <ul class="dropdown-menu">
-                                        <li><a class="dropdown-item" href="#" data-filter="all">All Decks</a></li>
+                                        <li><a class="dropdown-item active" href="#" data-filter="all">All Decks</a></li>
                                         <li><a class="dropdown-item" href="#" data-filter="public">Public Only</a></li>
                                         <li><a class="dropdown-item" href="#" data-filter="private">Private Only</a></li>
                                     </ul>
@@ -1388,6 +1394,14 @@
                     // Update dropdown button text
                     const dropdownButton = document.getElementById('privacyFilterDropdown');
                     dropdownButton.textContent = e.target.textContent;
+                    
+                    // Remove active class from all items
+                    document.querySelectorAll('#privacyFilterDropdown + .dropdown-menu .dropdown-item').forEach(dropdownItem => {
+                        dropdownItem.classList.remove('active');
+                    });
+                    
+                    // Add active class to clicked item
+                    e.target.classList.add('active');
                     
                     triggerSearch();
                 }

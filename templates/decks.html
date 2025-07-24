@@ -2789,19 +2789,40 @@
                     return { isPromo: false, prefix: "", suffix: code, original: code };
                 }
 
-                uniqueSetsData.sort((a, b) => {
-                    const parsedA = parseSetCode(a.code);
-                    const parsedB = parseSetCode(b.code);
-                    if (parsedA.isPromo && !parsedB.isPromo) return 1;
-                    if (!parsedA.isPromo && parsedB.isPromo) return -1;
-                    if (parsedA.isPromo && parsedB.isPromo) {
-                        return parsedA.original.localeCompare(parsedB.original);
+                // Define set order - higher numbers = newer sets (can infinitely increase)
+                const setReleaseOrder = {
+                    "Genetic Apex": 1,          // Oldest set
+                    "Mythical Island": 2,
+                    "Space-Time Smackdown": 3,
+                    "Triumphant Light": 4,
+                    "Shining Revelry": 5,
+                    "Celestial Guardians": 6,
+                    "Extradimensional Crisis": 7,
+                    "Eevee Grove": 8,           // Most recent known set
+                    "Promo-A": -1               // Special set - always appears last
+                };
+                
+                // Assign automatic priorities to new sets (higher than current max)
+                const maxKnownPriority = Math.max(...Object.values(setReleaseOrder).filter(p => p > 0));
+                let nextNewSetPriority = maxKnownPriority + 1;
+                
+                uniqueSetsData.forEach(setData => {
+                    if (!setReleaseOrder[setData.name] && setData.name !== "Promo-A") {
+                        setReleaseOrder[setData.name] = nextNewSetPriority;
+                        nextNewSetPriority++; // Next new set gets even higher number
                     }
-                    if (parsedA.prefix > parsedB.prefix) return -1;
-                    if (parsedA.prefix < parsedB.prefix) return 1;
-                    if (parsedA.suffix > parsedB.suffix) return -1;
-                    if (parsedA.suffix < parsedB.suffix) return 1;
-                    return 0;
+                });
+                
+                uniqueSetsData.sort((a, b) => {
+                    const orderA = setReleaseOrder[a.name] || 0;
+                    const orderB = setReleaseOrder[b.name] || 0;
+                    
+                    // Handle Promo-A special case (always last)
+                    if (orderA === -1) return 1;
+                    if (orderB === -1) return -1;
+                    
+                    // Sort by priority descending (higher numbers first = newer sets first)
+                    return orderB - orderA;
                 });
                 
                 orderedSetNamesForSort = uniqueSetsData.map(setObj => setObj.name);

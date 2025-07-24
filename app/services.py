@@ -17,9 +17,11 @@ class CardService:
     # Define priority sets for initial loading (most recent/popular sets)
     # NOTE: This should be updated when new sets are released
     PRIORITY_SETS = [
-        "Eevee Grove",          # Most recent
+        "Eevee Grove",              # Most recent
         "Extradimensional Crisis",  # Second most recent
-        "Celestial Guardians"   # Third most recent
+        "Celestial Guardians",      # Third most recent
+        "Shining Revelry",          # Fourth most recent
+        "Triumphant Light"          # Fifth most recent
     ]
     
     # Track background loading state
@@ -49,7 +51,7 @@ class CardService:
     
     @staticmethod
     def get_card_collection() -> CardCollection:
-        """Get card collection with priority loading optimization."""
+        """Get card collection with graceful fallback for startup optimization."""
         # Always try full collection from cache first
         full_collection = cache_manager.get_card_collection(cache_key="global_cards")
         
@@ -69,9 +71,20 @@ class CardService:
                 CardService._background_load_remaining_sets()
             return priority_collection
         
-        # No cached collections available - load full collection immediately
-        # This ensures users always get all cards available for search
-        print("⚠️ No cached collections found. Loading full collection immediately.")
+        # No cached collections available - try loading priority collection first for better startup performance
+        print("⚠️ No cached collections found. Loading priority collection for faster startup...")
+        priority_collection = CardService._get_priority_card_collection()
+        
+        if priority_collection and len(priority_collection.cards) > 0:
+            print(f"✅ Loaded priority collection with {len(priority_collection)} cards.")
+            # Start background loading of remaining sets
+            if not CardService._is_background_loading_active():
+                print("🔄 Starting background loading of remaining sets...")
+                CardService._background_load_remaining_sets()
+            return priority_collection
+        
+        # Fallback to full collection if priority loading fails
+        print("⚠️ Priority loading failed. Loading full collection as fallback.")
         return CardService._load_full_collection()
     
     @staticmethod
@@ -371,6 +384,71 @@ class UserService:
         cache_manager.invalidate_user_cache(user_id)
 
 
+class DatabaseService:
+    """Service for handling database connections and operations."""
+    
+    @staticmethod
+    def get_db():
+        """Helper to get Firestore DB client from app config."""
+        from flask import current_app
+        db = current_app.config.get("FIRESTORE_DB")
+        if not db:
+            current_app.logger.critical(
+                "Firestore client (FIRESTORE_DB) not available in app config."
+            )
+            raise Exception("Firestore client not available. Check app initialization.")
+        return db
+
+
+
+class UrlService:
+    """Service for handling URL transformations and processing."""
+    
+    @staticmethod
+    def process_firebase_to_cdn_url(image_path: str) -> str:
+        """
+        Convert Firebase storage URLs to CDN URLs.
+        Always converts to CDN regardless of environment.
+        
+        Args:
+            image_path: The original image path (URL or relative path)
+            
+        Returns:
+            CDN URL ready for use
+        """
+        if not image_path:
+            return image_path
+            
+        # If already a CDN URL, return as-is
+        if image_path.startswith('https://cdn.pvpocket.xyz'):
+            return image_path
+            
+        # Define the mappings
+        OLD_STORAGE_BASE_URL = 'https://storage.googleapis.com/pvpocket-dd286.firebasestorage.app'
+        CDN_BASE_URL = 'https://cdn.pvpocket.xyz'
+        
+        # Simple direct replacement
+        if image_path.startswith(OLD_STORAGE_BASE_URL):
+            return image_path.replace(OLD_STORAGE_BASE_URL, CDN_BASE_URL)
+            
+        # Handle other Firebase URLs
+        if 'firebasestorage.googleapis.com' in image_path:
+            # Extract path after /o/
+            if '/o/' in image_path:
+                path_part = image_path.split('/o/', 1)[1].split('?')[0]
+                from urllib.parse import unquote
+                relative_path = unquote(path_part)
+                return f"{CDN_BASE_URL}/{relative_path}"
+                
+        # For relative paths
+        if not image_path.startswith('http'):
+            clean_path = image_path.lstrip('/')
+            return f"{CDN_BASE_URL}/{clean_path}"
+            
+        # Fallback - return original
+        return image_path
+
+
 class MetricsService:
     """Service for tracking application metrics."""
     
@@ -394,4 +472,6 @@ class MetricsService:
 # Convenience instances
 card_service = CardService()
 user_service = UserService()
+database_service = DatabaseService()
+url_service = UrlService()
 metrics_service = MetricsService()
