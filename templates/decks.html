@@ -179,56 +179,34 @@
         overflow-y: auto;
     }
     .filter-bar .dropdown-menu .dropdown-item {
-        border-bottom: 1px solid #e9ecef;
+        border-bottom: 1px solid var(--border-color);
         white-space: normal;
         word-wrap: break-word;
     }
 
-    /* Force dropdown menus to stay light even in dark mode */
+    /* Proper dropdown styling for both light and dark modes */
     .dropdown-menu {
-        background-color: #ffffff !important;
-        border: 1px solid #dee2e6 !important;
-        color: #212529 !important;
+        background-color: var(--card-bg);
+        border: 1px solid var(--border-color);
+        color: var(--text-color);
     }
 
     .dropdown-menu .dropdown-item {
-        color: #212529 !important;
-        background-color: transparent !important;
+        color: var(--text-color);
+        background-color: transparent;
     }
 
     .dropdown-menu .dropdown-item:hover,
     .dropdown-menu .dropdown-item:focus {
-        background-color: #f8f9fa !important;
-        color: #1e2125 !important;
+        background-color: var(--hover-shadow);
+        color: var(--text-color);
     }
 
     .dropdown-menu .dropdown-item.active {
-        background-color: #0d6efd !important;
-        color: #ffffff !important;
+        background-color: #0d6efd;
+        color: #ffffff;
     }
 
-    /* Ensure this applies even in dark mode */
-    [data-theme="dark"] .dropdown-menu {
-        background-color: #ffffff !important;
-        border: 1px solid #dee2e6 !important;
-        color: #212529 !important;
-    }
-
-    [data-theme="dark"] .dropdown-menu .dropdown-item {
-        color: #212529 !important;
-        background-color: transparent !important;
-    }
-
-    [data-theme="dark"] .dropdown-menu .dropdown-item:hover,
-    [data-theme="dark"] .dropdown-menu .dropdown-item:focus {
-        background-color: #f8f9fa !important;
-        color: #1e2125 !important;
-    }
-
-    [data-theme="dark"] .dropdown-menu .dropdown-item.active {
-        background-color: #0d6efd !important;
-        color: #ffffff !important;
-    }
     .filter-bar .energy-icons {
         display: flex;
         flex-wrap: wrap;
@@ -1569,6 +1547,7 @@
                             </div>
 
                             <div class="dropdown"> <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" id="sortDropdownButton" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Set ↑
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="sortDropdownButton" id="sort-options-dropdown">
                                     <li>
@@ -5600,6 +5579,25 @@
         });
 
     }
+    
+    // Ensure only one dropdown is open at a time - simple approach
+    document.addEventListener('DOMContentLoaded', function() {
+        const dropdownToggles = document.querySelectorAll('[data-bs-toggle="dropdown"]');
+        
+        dropdownToggles.forEach(toggle => {
+            toggle.addEventListener('click', function() {
+                // Close all other dropdowns when this one is clicked
+                dropdownToggles.forEach(otherToggle => {
+                    if (otherToggle !== toggle) {
+                        const dropdownInstance = bootstrap.Dropdown.getInstance(otherToggle);
+                        if (dropdownInstance) {
+                            dropdownInstance.hide();
+                        }
+                    }
+                });
+            });
+        });
+    });
     
 </script>
 {% endblock %}
