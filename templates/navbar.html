@@ -19,7 +19,7 @@
 
         <div class="d-flex align-items-center">
             
-            <div class="nav-item dropdown d-lg-none" style="margin-right: calc(0.5rem + 2px) !important;">
+            <div class="nav-item dropdown d-lg-none" style="margin-right: calc(0.5rem + 4px) !important;">
                 <a class="nav-link dropdown-toggle" href="#" id="navbarUserDropdownMobile" role="button" data-bs-toggle="dropdown" data-bs-auto-close="true" aria-expanded="false" style="-webkit-tap-highlight-color: transparent;">
                     <img src="{{ current_user_profile_icon_url }}" alt="Profile" class="rounded-circle" style="width: 38px; height: 38px; object-fit: cover; background-color: var(--border-color);">
                 </a>
@@ -49,7 +49,7 @@
                 </li>
             </ul>
             
-            <ul class="navbar-nav d-none d-lg-block" style="margin-right: calc(0.5rem + 2px) !important;">
+            <ul class="navbar-nav d-none d-lg-block" style="margin-right: calc(0.5rem + 4px) !important;">
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="navbarUserDropdownDesktop" role="button" data-bs-toggle="dropdown" data-bs-auto-close="true" aria-expanded="false" style="-webkit-tap-highlight-color: transparent;">
                         <img src="{{ current_user_profile_icon_url }}" alt="Profile" class="rounded-circle" style="width: 38px; height: 38px; object-fit: cover; background-color: var(--border-color);">
@@ -67,11 +67,22 @@
     #mainNavbar .dropdown-menu {
         min-width: 150px !important;
         width: auto !important;
-        /* Ensure proper positioning on mobile */
+        /* Ensure proper positioning */
         position: absolute;
         inset: 0px auto auto 0px;
         margin: 0px;
         transform: translate3d(0px, 40px, 0px);
+    }
+    
+    /* Desktop dropdown positioning */
+    @media (min-width: 992px) {
+        #mainNavbar .dropdown-menu {
+            max-width: 200px !important;
+            right: 0 !important;
+            left: auto !important;
+            transform: translate3d(0px, 50px, 0px) !important;
+            text-align: right !important;
+        }
     }
     
     /* Fix dropdown menu positioning on mobile specifically */
@@ -79,8 +90,23 @@
         #mainNavbar .dropdown-menu {
             right: 0 !important;
             left: auto !important;
-            transform: translate3d(0px, 10px, 0px) !important;
+            transform: translate3d(0px, 48px, 0px) !important;
+            max-width: calc(100vw - 2rem) !important;
+            box-sizing: border-box;
+            overflow: hidden;
+            text-align: right !important;
         }
+    }
+    
+    /* Right-align dropdown items */
+    #mainNavbar .dropdown-item {
+        text-align: right !important;
+        direction: rtl;
+    }
+    
+    #mainNavbar .dropdown-header {
+        text-align: right !important;
+        direction: rtl;
     }
     
     /* Clean tab-style navigation for desktop */
@@ -180,13 +206,17 @@
         padding: 8px 12px;
         background-color: transparent;
         transition: all 0.2s ease;
-        -webkit-tap-highlight-color: transparent;
+        -webkit-tap-highlight-color: transparent !important;
         -webkit-touch-callout: none;
         -webkit-user-select: none;
         -khtml-user-select: none;
         -moz-user-select: none;
         -ms-user-select: none;
         user-select: none;
+        touch-action: manipulation;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
     }
     
     /* Add hover effect to profile dropdown to match nav links */
