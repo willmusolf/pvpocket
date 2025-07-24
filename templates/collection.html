@@ -628,6 +628,25 @@
             color: inherit !important;
             transform: none !important;
         }
+        
+        /* Remove ALL effects from privacy filter dropdown button */
+        #privacyFilterDropdown {
+            -webkit-tap-highlight-color: transparent !important;
+        }
+        
+        #privacyFilterDropdown:hover,
+        #privacyFilterDropdown:active,
+        #privacyFilterDropdown:focus,
+        #privacyFilterDropdown[aria-expanded="true"],
+        #privacyFilterDropdown.show {
+            background-color: inherit !important;
+            border-color: inherit !important;
+            color: inherit !important;
+            box-shadow: none !important;
+            transform: none !important;
+            filter: none !important;
+            opacity: inherit !important;
+        }
     }
 
     /* Loading indicator styles */
