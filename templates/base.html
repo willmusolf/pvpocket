@@ -290,8 +290,8 @@
             const savedTheme = localStorage.getItem('theme');
             const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
             
-            // Apply theme based on saved preference or OS preference
-            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+            // Apply theme based on saved preference, defaulting to dark mode
+            if (savedTheme !== 'light') {
                 document.documentElement.setAttribute('data-theme', 'dark');
                 const darkModeToggle = document.getElementById('darkModeToggle');
                 if (darkModeToggle) {
