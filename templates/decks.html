@@ -1260,10 +1260,10 @@
         }
         .filter-bar .col-md-4 {
             padding: 0 3px;
-            padding-left: 12px;
+            padding-left: 11px;
         }
         .filter-bar .col-md-4 .filter-label-top {
-            margin-left: -4px;
+            margin-left: -3px;
         }
         .filter-bar .col-md-3 .dropdown {
             margin-top: auto;
@@ -1371,31 +1371,65 @@
     }
 
 
-    /* Remove all visual effects from filter dropdown buttons */
-    #cardTypeDropdown,
-    #stageTypeDropdown,
-    #setDropdown,
-    #rarityDropdown {
-        -webkit-tap-highlight-color: transparent !important;
-    }
-    
+    /* Desktop hover effects for filter dropdowns */
     #cardTypeDropdown:hover,
-    #cardTypeDropdown:active,
-    #cardTypeDropdown:focus,
+    #cardTypeDropdown[aria-expanded="true"],
     #stageTypeDropdown:hover,
-    #stageTypeDropdown:active,
-    #stageTypeDropdown:focus,
+    #stageTypeDropdown[aria-expanded="true"],
     #setDropdown:hover,
-    #setDropdown:active,
-    #setDropdown:focus,
+    #setDropdown[aria-expanded="true"],
     #rarityDropdown:hover,
-    #rarityDropdown:active,
-    #rarityDropdown:focus {
-        background-color: var(--bs-btn-bg) !important;
-        border-color: var(--bs-btn-border-color) !important;
-        color: var(--bs-btn-color) !important;
-        box-shadow: none !important;
-        transform: none !important;
+    #rarityDropdown[aria-expanded="true"] {
+        background-color: rgba(0, 0, 0, 0.15) !important;
+        border-color: var(--border-color) !important;
+        color: var(--text-color) !important;
+    }
+
+    /* Dark mode compatibility for filter dropdowns */
+    [data-theme="dark"] #cardTypeDropdown:hover,
+    [data-theme="dark"] #cardTypeDropdown[aria-expanded="true"],
+    [data-theme="dark"] #stageTypeDropdown:hover,
+    [data-theme="dark"] #stageTypeDropdown[aria-expanded="true"],
+    [data-theme="dark"] #setDropdown:hover,
+    [data-theme="dark"] #setDropdown[aria-expanded="true"],
+    [data-theme="dark"] #rarityDropdown:hover,
+    [data-theme="dark"] #rarityDropdown[aria-expanded="true"] {
+        background-color: rgba(255, 255, 255, 0.15) !important;
+        border-color: var(--border-color) !important;
+        color: var(--text-color) !important;
+    }
+
+    /* Mobile-only: Remove all visual effects from filter dropdown buttons */
+    @media (hover: none) {
+        #cardTypeDropdown,
+        #stageTypeDropdown,
+        #setDropdown,
+        #rarityDropdown {
+            -webkit-tap-highlight-color: transparent !important;
+        }
+        
+        #cardTypeDropdown:hover,
+        #cardTypeDropdown:active,
+        #cardTypeDropdown:focus,
+        #cardTypeDropdown[aria-expanded="true"],
+        #stageTypeDropdown:hover,
+        #stageTypeDropdown:active,
+        #stageTypeDropdown:focus,
+        #stageTypeDropdown[aria-expanded="true"],
+        #setDropdown:hover,
+        #setDropdown:active,
+        #setDropdown:focus,
+        #setDropdown[aria-expanded="true"],
+        #rarityDropdown:hover,
+        #rarityDropdown:active,
+        #rarityDropdown:focus,
+        #rarityDropdown[aria-expanded="true"] {
+            background-color: var(--bs-btn-bg) !important;
+            border-color: var(--bs-btn-border-color) !important;
+            color: var(--bs-btn-color) !important;
+            box-shadow: none !important;
+            transform: none !important;
+        }
     }
 </style>
 {% endblock %}
