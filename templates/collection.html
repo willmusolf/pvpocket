@@ -402,6 +402,23 @@
         }
     }
 
+    /* Fix privacy filter dropdown positioning - align right on all screen sizes */
+    #privacyFilterDropdown + .dropdown-menu {
+        right: 0 !important;
+        left: auto !important;
+        transform: translate3d(0px, 40px, 0px) !important;
+        text-align: right !important;
+        min-width: auto !important;
+        width: auto !important;
+        max-width: 120px !important;
+    }
+    
+    /* Right-align dropdown items text */
+    #privacyFilterDropdown + .dropdown-menu .dropdown-item {
+        text-align: right !important;
+        direction: rtl;
+    }
+
     /* Media Queries for column count and sizing */
     @media (max-width: 575.98px) { 
         .col-12.col-sm-6.col-md-4.col-lg-3.mb-4 {
