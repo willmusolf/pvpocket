@@ -1259,7 +1259,6 @@
             padding: 0 5px 0 3px;
         }
         .filter-bar .col-md-4 {
-            padding: 0 3px;
             padding-left: 12px;
         }
         .filter-bar .col-md-4 .filter-label-top {
@@ -1408,33 +1407,50 @@
             -webkit-tap-highlight-color: transparent !important;
         }
         
+        #cardTypeDropdown,
         #cardTypeDropdown:hover,
         #cardTypeDropdown:active,
         #cardTypeDropdown:focus,
         #cardTypeDropdown[aria-expanded="true"],
         #cardTypeDropdown.show,
+        #stageTypeDropdown,
         #stageTypeDropdown:hover,
         #stageTypeDropdown:active,
         #stageTypeDropdown:focus,
         #stageTypeDropdown[aria-expanded="true"],
         #stageTypeDropdown.show,
+        #setDropdown,
         #setDropdown:hover,
         #setDropdown:active,
         #setDropdown:focus,
         #setDropdown[aria-expanded="true"],
         #setDropdown.show,
+        #rarityDropdown,
         #rarityDropdown:hover,
         #rarityDropdown:active,
         #rarityDropdown:focus,
         #rarityDropdown[aria-expanded="true"],
         #rarityDropdown.show {
-            background-color: var(--bs-btn-bg) !important;
-            border-color: var(--bs-btn-border-color) !important;
-            color: var(--bs-btn-color) !important;
+            background-color: transparent !important;
+            border-color: #6c757d !important;
+            color: #6c757d !important;
             box-shadow: none !important;
             transform: none !important;
             filter: none !important;
             opacity: 1 !important;
+        }
+        
+        /* Override Bootstrap's btn-outline-secondary defaults on mobile */
+        .filter-bar .btn-outline-secondary,
+        .filter-bar .btn-outline-secondary:hover,
+        .filter-bar .btn-outline-secondary:active,
+        .filter-bar .btn-outline-secondary:focus,
+        .filter-bar .btn-outline-secondary.show,
+        .filter-bar .btn-outline-secondary[aria-expanded="true"] {
+            background-color: transparent !important;
+            border-color: #6c757d !important;
+            color: #6c757d !important;
+            box-shadow: none !important;
         }
     }
 </style>
