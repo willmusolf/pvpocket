@@ -27,13 +27,36 @@
     }
     
     .hero-section {
-        background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)); /* Keep your image */
+        background-image: url('{{ url_for("static", filename="hero-image.jpg") }}');
         background-size: cover;
         background-position: center;
-        color: white;
-        padding: 60px 0; /* Slightly reduced padding */
+        background-repeat: no-repeat;
+        padding: 80px 0;
         margin-bottom: 40px;
-        border-radius: 0.5rem; /* Consistent border-radius */
+        border-radius: 0.5rem;
+        min-height: 400px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .hero-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.6));
+        backdrop-filter: blur(1px);
+        -webkit-backdrop-filter: blur(1px);
+        z-index: 1;
+    }
+    
+    .hero-section .container {
+        position: relative;
+        z-index: 2;
+        color: white;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
     }
     
     .card-count {
@@ -73,11 +96,31 @@
     .feature-card .deck-manage-icon { color: var(--bs-success); } /* Green */
     .feature-card .meta-rank-icon { color: var(--bs-info); } /* Teal/Cyan */
 
+    /* Subtle glass button in hero section */
+    .hero-section .btn-outline-light {
+        background: rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(2px);
+        -webkit-backdrop-filter: blur(2px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        color: white;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .hero-section .btn-outline-light:hover {
+        background: rgba(255, 255, 255, 0.2);
+        border-color: rgba(255, 255, 255, 0.7);
+        color: white;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+
     @media (hover: none){
         .btn-outline-light:hover,
         .btn-outline-light:active {
             color: var(--bs-light) !important;
-            background-color: transparent !important;
+            background-color: rgba(255, 255, 255, 0.15) !important;
+            transform: none !important;
         }
     }
 
