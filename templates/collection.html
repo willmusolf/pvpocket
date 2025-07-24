@@ -1127,7 +1127,7 @@
                 if (hasMoreDecks) {
                     setupInfiniteScroll();
                 } else {
-                    // No more decks - clean up any existing sentinel
+                    // No more decks - clean up any existing sentinel immediately
                     const existingSentinel = document.getElementById('deck-scroll-sentinel');
                     if (existingSentinel) {
                         existingSentinel.remove();
@@ -1242,7 +1242,7 @@
                             const currentText = currentScrollSentinel.querySelector('.load-more-text');
                             
                             if (!window.hasMoreDecks) {
-                                // No more decks - remove the entire sentinel and clean up observer
+                                // No more decks - remove the entire sentinel and clean up observer immediately
                                 currentScrollSentinel.remove();
                                 if (window.deckScrollObserver) {
                                     window.deckScrollObserver.disconnect();
