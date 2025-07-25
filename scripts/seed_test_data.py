@@ -17,18 +17,33 @@ def seed_emulator():
     os.environ['FIRESTORE_EMULATOR_HOST'] = 'localhost:8080'
     os.environ['FIREBASE_STORAGE_EMULATOR_HOST'] = 'localhost:9199'
     
-    # Initialize Firebase Admin SDK for emulator
-    if not firebase_admin._apps:
-        # Use demo project for emulator
-        cred = credentials.ApplicationDefault()
-        firebase_admin.initialize_app(cred, {
-            'projectId': 'demo-test-project',
-        })
-    
-    db = firestore.client()
+    try:
+        # Initialize Firebase Admin SDK for emulator
+        if not firebase_admin._apps:
+            # Use demo project for emulator - no credentials needed for emulator
+            firebase_admin.initialize_app(options={
+                'projectId': 'demo-test-project',
+            })
+        
+        db = firestore.client()
+        
+        # Test connection to emulator
+        test_doc = db.collection('_test').document('_connection_test')
+        test_doc.set({'test': True})
+        test_doc.delete()
+        print("✅ Successfully connected to Firebase emulator!")
+        
+    except Exception as e:
+        print(f"❌ Failed to connect to Firebase emulator: {e}")
+        print("Make sure the Firebase emulator is running on localhost:8080")
+        raise
     
     # Load seed data
     seed_file = Path(__file__).parent.parent / 'tests' / 'test_seed_data.json'
+    if not seed_file.exists():
+        print(f"❌ Seed data file not found: {seed_file}")
+        raise FileNotFoundError(f"Seed data file not found: {seed_file}")
+        
     with open(seed_file) as f:
         seed_data = json.load(f)
     

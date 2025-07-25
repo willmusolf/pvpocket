@@ -218,8 +218,16 @@ jobs:
         firebase emulators:start --only firestore,storage --project demo-test-project &
         EMULATOR_PID=$!
         
-        # Wait for emulators to start
-        sleep 15
+        # Wait for emulators to start and be ready
+        echo "⏳ Waiting for Firebase emulators to be ready..."
+        for i in {1..30}; do
+          if curl -s http://localhost:8080 > /dev/null 2>&1; then
+            echo "✅ Firestore emulator is ready!"
+            break
+          fi
+          echo "Waiting for emulators... ($i/30)"
+          sleep 2
+        done
         
         # Install Firebase Admin SDK for seeding
         pip install firebase-admin || echo "Firebase Admin SDK already installed"
@@ -227,7 +235,12 @@ jobs:
         # Seed test data for integration tests
         if [ -f "scripts/seed_test_data.py" ]; then
           echo "🌱 Seeding Firebase emulator with test data..."
-          python scripts/seed_test_data.py || echo "⚠️ Seeding skipped (optional)"
+          python scripts/seed_test_data.py
+          if [ $? -eq 0 ]; then
+            echo "✅ Test data seeded successfully!"
+          else
+            echo "⚠️ Seeding failed, but continuing with tests..."
+          fi
         fi
         
         # Run comprehensive test suite
