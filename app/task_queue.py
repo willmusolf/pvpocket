@@ -20,7 +20,7 @@ try:
     CLOUD_TASKS_AVAILABLE = True
 except ImportError:
     CLOUD_TASKS_AVAILABLE = False
-    print("Google Cloud Tasks not available, using in-memory queue fallback")
+    # Will log when TaskQueue is initialized
 
 
 class TaskQueue:
@@ -36,18 +36,22 @@ class TaskQueue:
             try:
                 self.client = tasks_v2.CloudTasksClient()
                 self.queue_path = self.client.queue_path(self.project_id, self.location, self.queue_name)
+                # Log only in development/debug mode
                 print(f"✅ TASKS: Initialized Cloud Tasks queue: {self.queue_path}")
             except Exception as e:
                 print(f"Failed to initialize Cloud Tasks: {e}")
                 self.client = None
                 self._setup_memory_fallback()
         else:
+            if not CLOUD_TASKS_AVAILABLE and os.environ.get('WERKZEUG_RUN_MAIN'):
+                print("Google Cloud Tasks not available, using in-memory queue fallback")
             self.client = None
             self._setup_memory_fallback()
     
     def _setup_memory_fallback(self):
         """Set up in-memory task processing for development."""
-        print("⚠️ TASKS: Using in-memory task queue fallback")
+        if os.environ.get('WERKZEUG_RUN_MAIN'):
+            print("⚠️ TASKS: Using in-memory task queue fallback")
         self._memory_queue = queue.Queue()
         self._workers = []
         self._running = True
@@ -79,20 +83,37 @@ class TaskQueue:
             
             handler = self._task_registry.get(task_type)
             if handler:
-                print(f"Processing task: {task_type}")
+                try:
+                    if current_app.debug:
+                        current_app.logger.debug(f"Processing task: {task_type}")
+                except RuntimeError:
+                    # No Flask context available, skip debug logging
+                    pass
                 handler(payload)
             else:
-                print(f"No handler registered for task type: {task_type}")
+                try:
+                    current_app.logger.error(f"No handler registered for task type: {task_type}")
+                except RuntimeError:
+                    print(f"No handler registered for task type: {task_type}")
                 
         except Exception as e:
-            print(f"Error processing task {task_data.get('task_type', 'unknown')}: {e}")
+            try:
+                current_app.logger.error(f"Error processing task {task_data.get('task_type', 'unknown')}: {e}")
+            except RuntimeError:
+                print(f"Error processing task {task_data.get('task_type', 'unknown')}: {e}")
     
     def register_task_handler(self, task_type: str, handler: Callable):
         """Register a handler for a specific task type."""
         if not hasattr(self, '_task_registry'):
             self._task_registry = {}
         self._task_registry[task_type] = handler
-        print(f"Registered handler for task type: {task_type}")
+        # Only log task registration in main process to avoid duplication
+        try:
+            if current_app.debug and os.environ.get('WERKZEUG_RUN_MAIN'):
+                current_app.logger.debug(f"Registered handler for task type: {task_type}")
+        except (RuntimeError, NameError):
+            # No Flask context or import available, skip logging
+            pass
     
     def enqueue_task(self, task_type: str, payload: Dict[str, Any], 
                     delay_seconds: int = 0, url: str = None) -> bool:
@@ -168,7 +189,12 @@ class TaskQueue:
                 # Immediate task
                 self._memory_queue.put(task_data)
             
-            print(f"Enqueued memory task: {task_type}")
+            try:
+                if current_app.debug:
+                    current_app.logger.debug(f"Enqueued memory task: {task_type}")
+            except RuntimeError:
+                # No Flask context available, skip logging
+                pass
             return True
             
         except Exception as e:

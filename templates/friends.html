@@ -87,6 +87,24 @@
         --bs-dropdown-link-hover-bg: #495057;
         --bs-dropdown-divider-bg: #495057;
     }
+    
+    /* RTL dropdown styling - matching navbar style */
+    .friend-actions-dropdown .dropdown-menu {
+        min-width: auto !important;
+        width: max-content !important;
+        text-align: right !important;
+    }
+    
+    .friend-actions-dropdown .dropdown-item {
+        text-align: right !important;
+        direction: rtl;
+        padding: 0.25rem 1rem;
+    }
+    
+    .friend-actions-dropdown .dropdown-header {
+        text-align: right !important;
+        direction: rtl;
+    }
     [data-theme="dark"] #search-input-desktop::placeholder {
         color: var(--bs-gray-500);
         opacity: 1;
@@ -561,7 +579,7 @@
             window.friendsScrollObserver = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     if (entry.isIntersecting && hasMoreFriends && !isLoadingFriends) {
-                        console.log('Loading next page of friends...');
+                        // Loading next page of friends
                         
                         // Show loading spinner
                         const spinner = scrollSentinel.querySelector('.spinner-border');
@@ -596,16 +614,17 @@
 
         // --- UPDATED: Attach listeners to both mobile and desktop elements ---
         searchBtns.forEach((btn, index) => {
-            btn.addEventListener('click', () => debouncedPerformSearch(searchInputs[index].value));
+            btn.addEventListener('click', () => performSearchInternal(searchInputs[index].value));
         });
         searchInputs.forEach(input => {
             input.addEventListener('keyup', (event) => {
                 if (event.key === 'Enter') {
-                    debouncedPerformSearch(input.value);
-                } else {
-                    // Also debounce regular typing
-                    debouncedPerformSearch(input.value);
+                    performSearchInternal(input.value);
+                } else if (input.value.trim() === '') {
+                    // Clear search results when input is empty
+                    searchResultsContainers.forEach(c => c.innerHTML = '');
                 }
+                // Removed automatic search while typing for privacy
             });
         });
 
@@ -903,6 +922,25 @@
             
             return result;
         };
+
+        // Ensure only one dropdown is open at a time
+        function setupDropdownManagement() {
+            document.addEventListener('shown.bs.dropdown', function (event) {
+                // Close all other dropdowns when one is opened
+                const allDropdowns = document.querySelectorAll('[data-bs-toggle="dropdown"]');
+                allDropdowns.forEach(dropdown => {
+                    if (dropdown !== event.target && dropdown.getAttribute('aria-expanded') === 'true') {
+                        const dropdownInstance = bootstrap.Dropdown.getInstance(dropdown);
+                        if (dropdownInstance) {
+                            dropdownInstance.hide();
+                        }
+                    }
+                });
+            });
+        }
+
+        // Initialize dropdown management
+        setupDropdownManagement();
     });
 
 </script>

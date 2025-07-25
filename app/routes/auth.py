@@ -13,6 +13,7 @@ from urllib.parse import urlparse, urljoin
 from datetime import datetime, timezone  # For Firestore Timestamps
 import uuid
 import re
+import os
 
 from flask_login import (
     login_user,
@@ -69,30 +70,18 @@ def check_username_requirement():
 
 def is_safe_url(target):
     if not target:
-        try:
-            print(
-                "[IS_SAFE_URL_DEBUG] Target is None or empty, returning False.", flush=True
-            )
-        except (BrokenPipeError, IOError):
-            pass
+        if current_app.debug:
+            current_app.logger.debug("[IS_SAFE_URL_DEBUG] Target is None or empty, returning False.")
         return False
     ref_url = urlparse(request.host_url)
     test_url = urlparse(urljoin(request.host_url, target))
     is_internal_host = ref_url.netloc == test_url.netloc
     is_valid_scheme = test_url.scheme in ("http", "https")
     result = is_valid_scheme and is_internal_host
-    try:
-        print(
-            f"[IS_SAFE_URL_DEBUG] Target: '{target}', Host URL: '{request.host_url}'",
-            flush=True,
-        )
-        print(f"[IS_SAFE_URL_DEBUG] Ref URL: {ref_url}, Test URL: {test_url}", flush=True)
-        print(
-            f"[IS_SAFE_URL_DEBUG] Is internal host: {is_internal_host}, Is valid scheme: {is_valid_scheme}, Overall result: {result}",
-            flush=True,
-        )
-    except (BrokenPipeError, IOError):
-        pass
+    if current_app.debug:
+        current_app.logger.debug(f"[IS_SAFE_URL_DEBUG] Target: '{target}', Host URL: '{request.host_url}'")
+        current_app.logger.debug(f"[IS_SAFE_URL_DEBUG] Ref URL: {ref_url}, Test URL: {test_url}")
+        current_app.logger.debug(f"[IS_SAFE_URL_DEBUG] Is internal host: {is_internal_host}, Is valid scheme: {is_valid_scheme}, Overall result: {result}")
     return result
 
 
@@ -115,25 +104,19 @@ def login_prompt_page():
         return redirect(url_for("auth.user_profile_and_settings"))
 
     next_param = request.args.get("next")
-    print(
-        f"[AUTH_DEBUG] /login-prompt called. next_param from request.args: '{next_param}'",
-        flush=True,
-    )
+    if current_app.debug:
+        current_app.logger.debug(f"[AUTH_DEBUG] /login-prompt called. next_param from request.args: '{next_param}'")
 
     # Store the 'next' URL in OUR OWN session key, if valid
     if next_param and is_safe_url(next_param):
         session["custom_login_next_url"] = next_param  # Use a distinct session key
-        print(
-            f"[AUTH_DEBUG] Stored in session['custom_login_next_url']: '{next_param}'",
-            flush=True,
-        )
+        if current_app.debug:
+            current_app.logger.debug(f"[AUTH_DEBUG] Stored in session['custom_login_next_url']: '{next_param}'")
     else:
         # If next_param is bad or missing, clear any old one to be safe
         session.pop("custom_login_next_url", None)
-        print(
-            f"[AUTH_DEBUG] No valid next_param for login_prompt, custom_login_next_url cleared/not set.",
-            flush=True,
-        )
+        if current_app.debug:
+            current_app.logger.debug("[AUTH_DEBUG] No valid next_param for login_prompt, custom_login_next_url cleared/not set.")
 
     return render_template("login_prompt.html")
 
@@ -141,10 +124,7 @@ def login_prompt_page():
 def is_username_globally_unique(username_to_check, current_user_id_to_ignore=None):
     db = current_app.config.get("FIRESTORE_DB")
     if not db:
-        print(
-            "is_username_globally_unique: Firestore client not available. Assuming unique for safety.",
-            flush=True,
-        )
+        current_app.logger.warning("is_username_globally_unique: Firestore client not available. Assuming unique for safety.")
         return True  # Or handle error, but for now, fail open if DB is down
 
     username_lower = username_to_check.lower()
@@ -159,14 +139,16 @@ def is_username_globally_unique(username_to_check, current_user_id_to_ignore=Non
 
     for doc in docs:  # Should be at most one document due to limit(1)
         if doc.id != current_user_id_to_ignore:
-            print(f"Username '{username_lower}' taken by user ID: {doc.id}", flush=True)
+            if current_app.debug:
+                current_app.logger.debug(f"Username '{username_lower}' taken by user ID: {doc.id}")
             return False  # Username taken by someone else
     return True  # Username is unique or taken by the user being ignored
 
 
 @oauth_authorized.connect_via(google)  # Decorator should already be above your function
 def google_authorized(blueprint, token):
-    print("--- @oauth_authorized google_authorized (Firestore) ---", flush=True)
+    if current_app.debug:
+        current_app.logger.debug("--- @oauth_authorized google_authorized (Firestore) ---")
 
     if not token:
         # Using session for toast as flash might not appear after immediate redirect by Flask-Dance
@@ -174,7 +156,7 @@ def google_authorized(blueprint, token):
             "message": "Failed to log in with Google (no token).",
             "type": "error",
         }
-        print("[AUTH_FIRESTORE] No token received.", flush=True)
+        current_app.logger.warning("[AUTH_FIRESTORE] No token received.")
         return redirect(url_for("main.index"))  # Or auth.login_prompt_page
 
     try:
@@ -184,27 +166,32 @@ def google_authorized(blueprint, token):
     except Exception as e:
         msg = "Failed to fetch user info from Google. See logs for detailed error."
         session["display_toast_once"] = {"message": msg, "type": "error"}
-        print(f"[AUTH_FIRESTORE] {msg}", flush=True)
+        current_app.logger.error(f"[AUTH_FIRESTORE] {msg}")
         return redirect(url_for("main.index"))  # Or auth.login_prompt_page
 
     google_id = str(google_user_info.get("sub"))
     email = google_user_info.get("email")
-    print(
-        f"[AUTH_FIRESTORE] User info fetched for Google ID: {google_id}, Email presence: {email is not None}",
-        flush=True,
-    )
+    if current_app.debug:
+        current_app.logger.debug(f"[AUTH_FIRESTORE] User info fetched for Google ID: {google_id}, Email presence: {email is not None}")
 
     if not email:
         session["display_toast_once"] = {
             "message": "Could not retrieve a verified email from Google.",
             "type": "error",
         }
-        print("[AUTH_FIRESTORE] No email from Google.", flush=True)
+        current_app.logger.warning("[AUTH_FIRESTORE] No email from Google.")
         return redirect(url_for("auth.login_prompt_page"))
 
     db = current_app.config.get("FIRESTORE_DB")
     if not db:
-        print("[AUTH_FIRESTORE] CRITICAL: Firestore client not available!", flush=True)
+        current_app.logger.error("[AUTH_FIRESTORE] CRITICAL: Firestore client not available!")
+        # Alert only in production for critical database failure during authentication
+        if os.environ.get('FLASK_ENV') == 'production':
+            try:
+                from ..alerts import alert_authentication_failure
+                alert_authentication_failure("Firestore client not available during Google OAuth login")
+            except:
+                pass
         session["display_toast_once"] = {
             "message": "Database service unavailable. Please try again later.",
             "type": "error",
@@ -222,7 +209,8 @@ def google_authorized(blueprint, token):
     for user_doc in query_google_id:  # Iterator, will run at most once
         user_app_id = user_doc.id
         user_data_for_login = user_doc.to_dict()
-        print(f"[AUTH_FIRESTORE] Found user by Google ID: {user_app_id}", flush=True)
+        if current_app.debug:
+            current_app.logger.debug(f"[AUTH_FIRESTORE] Found user by Google ID: {user_app_id}")
         break
 
     # 2. If not found by Google ID, find by email and link Google ID
@@ -241,15 +229,10 @@ def google_authorized(blueprint, token):
                     user_data_for_login["google_id"] = (
                         google_id  # Update in-memory dict for current login
                     )
-                    print(
-                        f"[AUTH_FIRESTORE] Linking Google ID to existing user {user_app_id} by email.",
-                        flush=True,
-                    )
+                    if current_app.debug:
+                        current_app.logger.debug(f"[AUTH_FIRESTORE] Linking Google ID to existing user {user_app_id} by email.")
                 except Exception as e_update_gid:
-                    print(
-                        f"[AUTH_FIRESTORE] ERROR linking Google ID for user {user_app_id}: {e_update_gid}",
-                        flush=True,
-                    )
+                    current_app.logger.error(f"[AUTH_FIRESTORE] ERROR linking Google ID for user {user_app_id}: {e_update_gid}")
                     # Continue login with existing data, Google ID linking can be retried or handled
             break
 
@@ -269,15 +252,10 @@ def google_authorized(blueprint, token):
         }
         try:
             users_collection_ref.document(user_app_id).set(user_data_for_login)
-            print(
-                f"[AUTH_FIRESTORE] Created new user in Firestore. App ID: {user_app_id}",
-                flush=True,
-            )
+            if current_app.debug:
+                current_app.logger.debug(f"[AUTH_FIRESTORE] Created new user in Firestore. App ID: {user_app_id}")
         except Exception as e_create:
-            print(
-                f"[AUTH_FIRESTORE] ERROR creating user {user_app_id} in Firestore: {e_create}",
-                flush=True,
-            )
+            current_app.logger.error(f"[AUTH_FIRESTORE] ERROR creating user {user_app_id} in Firestore: {e_create}")
             session["display_toast_once"] = {
                 "message": "Critical error creating your account. Please try again.",
                 "type": "error",
@@ -290,20 +268,15 @@ def google_authorized(blueprint, token):
         # For User class init: user_data_for_login is passed directly
         user_instance_to_login = User(user_id=user_app_id, data=user_data_for_login)
         login_user(user_instance_to_login, remember=True)
-        print(
-            f"[AUTH_FIRESTORE] User '{user_instance_to_login.username}' (ID: {user_app_id}) logged in with Flask-Login.",
-            flush=True,
-        )
+        if current_app.debug:
+            current_app.logger.debug(f"[AUTH_FIRESTORE] User '{user_instance_to_login.username}' (ID: {user_app_id}) logged in with Flask-Login.")
     else:
         # This case should ideally not be reached if logic above is correct
         session["display_toast_once"] = {
             "message": "User identification or creation failed after Google authentication.",
             "type": "error",
         }
-        print(
-            "[AUTH_FIRESTORE] ERROR: user_data_for_login or user_app_id was None before login_user.",
-            flush=True,
-        )
+        current_app.logger.error("[AUTH_FIRESTORE] ERROR: user_data_for_login or user_app_id was None before login_user.")
         return redirect(url_for("auth.login_prompt_page"))
 
     # 5. Determine final redirect URL (your existing logic for 'next' parameter)
@@ -314,28 +287,22 @@ def google_authorized(blueprint, token):
         final_next_url_after_setup = next_url_from_flask_dance
     else:
         if next_url_from_flask_dance:
-            print(
-                f"[AUTH_FIRESTORE] Flask-Dance next_url ('{next_url_from_flask_dance}') was unsafe.",
-                flush=True,
-            )
+            if current_app.debug:
+                current_app.logger.debug(f"[AUTH_FIRESTORE] Flask-Dance next_url ('{next_url_from_flask_dance}') was unsafe.")
         custom_next_url = session.pop("custom_login_next_url", None)
         if custom_next_url and is_safe_url(custom_next_url):
             final_next_url_after_setup = custom_next_url
         elif custom_next_url:
-            print(
-                f"[AUTH_FIRESTORE] Custom_login_next_url ('{custom_next_url}') was unsafe.",
-                flush=True,
-            )
+            if current_app.debug:
+                current_app.logger.debug(f"[AUTH_FIRESTORE] Custom_login_next_url ('{custom_next_url}') was unsafe.")
 
     if not final_next_url_after_setup or final_next_url_after_setup == url_for(
         "main.index"
     ):
         final_next_url_after_setup = url_for("auth.user_profile_and_settings")
     # --- End of your 'next_url' logic ---
-    print(
-        f"[AUTH_FIRESTORE] Determined next URL after setup: {final_next_url_after_setup}",
-        flush=True,
-    )
+    if current_app.debug:
+        current_app.logger.debug(f"[AUTH_FIRESTORE] Determined next URL after setup: {final_next_url_after_setup}")
 
     # 6. Check if username needs to be set (based on data from Firestore)
     # Use user_data_for_login which is the most up-to-date dict from Firestore or new creation
@@ -349,9 +316,8 @@ def google_authorized(blueprint, token):
             "message": f"Successfully signed in as {user_data_for_login.get('username')}!",
             "type": "success",
         }
-        print(
-            f"[AUTH_FIRESTORE] Redirecting to: {final_next_url_after_setup}", flush=True
-        )
+        if current_app.debug:
+            current_app.logger.debug(f"[AUTH_FIRESTORE] Redirecting to: {final_next_url_after_setup}")
         return redirect(final_next_url_after_setup)
 
 
@@ -455,10 +421,7 @@ def set_username_page():
                 }
                 return redirect(next_url_on_success)
             except Exception as e_update:
-                print(
-                    f"Error updating username in Firestore for {user_id_str}: {e_update}",
-                    flush=True,
-                )
+                current_app.logger.error(f"Error updating username in Firestore for {user_id_str}: {e_update}")
                 username_error = (
                     "A server error occurred setting username. Please try again."
                 )
@@ -643,15 +606,18 @@ def store_intended_redirect():
         return jsonify(success=False, error="No data provided."), 400
 
     next_url = data.get("next_url")
-    print(f"[AUTH_DEBUG /auth/store-intended-redirect] Received next_url: '{next_url}'", flush=True)
+    if current_app.debug:
+        current_app.logger.debug(f"[AUTH_DEBUG /auth/store-intended-redirect] Received next_url: '{next_url}'")
 
     if next_url and is_safe_url(next_url):
         session["custom_login_next_url"] = next_url # Use your reliable session key
-        print(f"[AUTH_DEBUG /auth/store-intended-redirect] Stored in session['custom_login_next_url']: '{next_url}'", flush=True)
+        if current_app.debug:
+            current_app.logger.debug(f"[AUTH_DEBUG /auth/store-intended-redirect] Stored in session['custom_login_next_url']: '{next_url}'")
         return jsonify(success=True, message="Intended redirect URL stored.")
     else:
         session.pop("custom_login_next_url", None) # Clear any old or unsafe URL
-        print(f"[AUTH_DEBUG /auth/store-intended-redirect] Invalid or no next_url provided. Cleared custom_login_next_url.", flush=True)
+        if current_app.debug:
+            current_app.logger.debug("[AUTH_DEBUG /auth/store-intended-redirect] Invalid or no next_url provided. Cleared custom_login_next_url.")
         return jsonify(success=False, error="Invalid or unsafe next_url provided."), 400
 
 

@@ -24,7 +24,7 @@
     }
     .container {
         padding-left: 10px;
-        padding-right: 10px;
+        padding-right: 5px;
         max-width: 98%;
     }
     #main-navbar-container .navbar-collapse {
@@ -129,7 +129,7 @@
         opacity: 0.7;
         font-weight: 600;
         text-transform: uppercase;
-        margin-bottom: 8px;
+        margin-bottom: 4px;
         display: block;
         line-height: 1;
     }
@@ -179,10 +179,34 @@
         overflow-y: auto;
     }
     .filter-bar .dropdown-menu .dropdown-item {
-        border-bottom: 1px solid #e9ecef;
+        border-bottom: 1px solid var(--border-color);
         white-space: normal;
         word-wrap: break-word;
     }
+
+    /* Proper dropdown styling for both light and dark modes */
+    .dropdown-menu {
+        background-color: var(--card-bg);
+        border: 1px solid var(--border-color);
+        color: var(--text-color);
+    }
+
+    .dropdown-menu .dropdown-item {
+        color: var(--text-color);
+        background-color: transparent;
+    }
+
+    .dropdown-menu .dropdown-item:hover,
+    .dropdown-menu .dropdown-item:focus {
+        background-color: var(--hover-shadow);
+        color: var(--text-color);
+    }
+
+    .dropdown-menu .dropdown-item.active {
+        background-color: #0d6efd;
+        color: #ffffff;
+    }
+
     .filter-bar .energy-icons {
         display: flex;
         flex-wrap: wrap;
@@ -301,7 +325,7 @@
         z-index: 10;
     }
     .card-item:hover .badge {
-        transform: scale(1.05);
+        /* No transform - keep badge anchored to card like remove button */
         transition: all 0.2s ease;
     }
     .card-item .badge {
@@ -943,8 +967,16 @@
     @media (max-width: 800px) {
         .filter-bar {
             width: 100%;
-            padding-left: 10px;
-            padding-right: 10px;
+            padding-left: 8px;
+            padding-right: 8px;
+        }
+        .filter-bar .row {
+            margin-right: 0;
+            margin-left: 0;
+        }
+        .filter-bar .col-md-8,
+        .filter-bar .col-md-4 {
+            padding: 0 5px;
         }
         .filter-bar .dropdown button {
             width: 100%;
@@ -1202,6 +1234,13 @@
             margin-bottom: 0;
             display: flex;
             flex-direction: column;
+            padding: 0 5px 0 3px;
+        }
+        .filter-bar .col-md-4 {
+            padding-left: 9px;
+        }
+        .filter-bar .col-md-4 .filter-label-top {
+            margin-left: -2px;
         }
         .filter-bar .col-md-3 .dropdown {
             margin-top: auto;
@@ -1216,16 +1255,16 @@
             display: flex;
             justify-content: flex-start;
             gap: 6px;
-            padding-left: 0;
-            width: calc(100% + 20px);
-            margin-left: -5px;
-            margin-right: -15px;
+            padding-left: 4px;
+            width: 100%;
+            margin-left: 0;
+            margin-right: 0;
             flex-wrap: nowrap;
             overflow-x: auto;
             -ms-overflow-style: none;
             scrollbar-width: none;
             margin-top: 2px;
-            padding: 9px 5px;
+            padding: 9px 0 9px 4px;
         }
         .filter-bar .energy-icon-wrapper {
             width: 22px;
@@ -1302,6 +1341,78 @@
 
         #card-count-search {
             font-size: 0.8rem;
+        }
+        .filter-container {
+            min-height: auto;
+        }
+    }
+
+
+    /* Desktop hover effects for filter dropdowns */
+    #cardTypeDropdown:hover,
+    #cardTypeDropdown[aria-expanded="true"],
+    #stageTypeDropdown:hover,
+    #stageTypeDropdown[aria-expanded="true"],
+    #setDropdown:hover,
+    #setDropdown[aria-expanded="true"],
+    #rarityDropdown:hover,
+    #rarityDropdown[aria-expanded="true"] {
+        background-color: rgba(0, 0, 0, 0.15) !important;
+        border-color: var(--border-color) !important;
+        color: var(--text-color) !important;
+    }
+
+    /* Dark mode compatibility for filter dropdowns */
+    [data-theme="dark"] #cardTypeDropdown:hover,
+    [data-theme="dark"] #cardTypeDropdown[aria-expanded="true"],
+    [data-theme="dark"] #stageTypeDropdown:hover,
+    [data-theme="dark"] #stageTypeDropdown[aria-expanded="true"],
+    [data-theme="dark"] #setDropdown:hover,
+    [data-theme="dark"] #setDropdown[aria-expanded="true"],
+    [data-theme="dark"] #rarityDropdown:hover,
+    [data-theme="dark"] #rarityDropdown[aria-expanded="true"] {
+        background-color: rgba(255, 255, 255, 0.15) !important;
+        border-color: var(--border-color) !important;
+        color: var(--text-color) !important;
+    }
+
+    /* Mobile-only: Remove all visual effects from filter dropdown buttons */
+    @media (hover: none) {
+        #cardTypeDropdown,
+        #stageTypeDropdown,
+        #setDropdown,
+        #rarityDropdown {
+            -webkit-tap-highlight-color: transparent !important;
+        }
+        
+        /* Reset all states to default appearance - exactly like sort dropdown */
+        #cardTypeDropdown:hover,
+        #cardTypeDropdown:active,
+        #cardTypeDropdown:focus,
+        #cardTypeDropdown[aria-expanded="true"],
+        #cardTypeDropdown.show,
+        #stageTypeDropdown:hover,
+        #stageTypeDropdown:active,
+        #stageTypeDropdown:focus,
+        #stageTypeDropdown[aria-expanded="true"],
+        #stageTypeDropdown.show,
+        #setDropdown:hover,
+        #setDropdown:active,
+        #setDropdown:focus,
+        #setDropdown[aria-expanded="true"],
+        #setDropdown.show,
+        #rarityDropdown:hover,
+        #rarityDropdown:active,
+        #rarityDropdown:focus,
+        #rarityDropdown[aria-expanded="true"],
+        #rarityDropdown.show {
+            background-color: inherit !important;
+            border-color: inherit !important;
+            color: inherit !important;
+            box-shadow: none !important;
+            transform: none !important;
+            filter: none !important;
+            opacity: inherit !important;
         }
     }
 </style>
@@ -1436,6 +1547,7 @@
                             </div>
 
                             <div class="dropdown"> <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" id="sortDropdownButton" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Set ↑
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="sortDropdownButton" id="sort-options-dropdown">
                                     <li>
@@ -1573,7 +1685,7 @@
         try {
             sessionStorage.removeItem('autoSavedDeck');
             localStorage.removeItem('autoSavedDeck_persistent');
-            console.log('Cleared auto-saved deck data');
+            // Cleared auto-saved deck data
         } catch (error) {
             console.warn('Failed to clear auto-saved data:', error);
         }
@@ -1618,7 +1730,7 @@
                 const parsed = JSON.parse(persistentData);
                 if (parsed.timestamp && (Date.now() - parsed.timestamp) > maxAge) {
                     localStorage.removeItem('autoSavedDeck_persistent');
-                    console.log('Cleaned up expired auto-save data');
+                    // Cleaned up expired auto-save data
                 }
             }
         } catch (error) {
@@ -1643,13 +1755,7 @@
                 sessionStorage.setItem('autoSavedDeck', JSON.stringify(deckData));
                 localStorage.setItem('autoSavedDeck_persistent', JSON.stringify(deckData));
                 
-                console.log('Mobile auto-save triggered:', {
-                    deckName: deckData.name,
-                    cardCount: deckData.cards.length,
-                    energyTypes: selectedDeckEnergies,
-                    coverCards: coverCardIds,
-                    timestamp: new Date(deckData.timestamp).toLocaleString()
-                });
+                // Mobile auto-save triggered
             } catch (error) {
                 console.warn('Failed to trigger mobile auto-save:', error);
             }
@@ -2677,19 +2783,40 @@
                     return { isPromo: false, prefix: "", suffix: code, original: code };
                 }
 
-                uniqueSetsData.sort((a, b) => {
-                    const parsedA = parseSetCode(a.code);
-                    const parsedB = parseSetCode(b.code);
-                    if (parsedA.isPromo && !parsedB.isPromo) return 1;
-                    if (!parsedA.isPromo && parsedB.isPromo) return -1;
-                    if (parsedA.isPromo && parsedB.isPromo) {
-                        return parsedA.original.localeCompare(parsedB.original);
+                // Define set order - higher numbers = newer sets (can infinitely increase)
+                const setReleaseOrder = {
+                    "Genetic Apex": 1,          // Oldest set
+                    "Mythical Island": 2,
+                    "Space-Time Smackdown": 3,
+                    "Triumphant Light": 4,
+                    "Shining Revelry": 5,
+                    "Celestial Guardians": 6,
+                    "Extradimensional Crisis": 7,
+                    "Eevee Grove": 8,           // Most recent known set
+                    "Promo-A": -1               // Special set - always appears last
+                };
+                
+                // Assign automatic priorities to new sets (higher than current max)
+                const maxKnownPriority = Math.max(...Object.values(setReleaseOrder).filter(p => p > 0));
+                let nextNewSetPriority = maxKnownPriority + 1;
+                
+                uniqueSetsData.forEach(setData => {
+                    if (!setReleaseOrder[setData.name] && setData.name !== "Promo-A") {
+                        setReleaseOrder[setData.name] = nextNewSetPriority;
+                        nextNewSetPriority++; // Next new set gets even higher number
                     }
-                    if (parsedA.prefix > parsedB.prefix) return -1;
-                    if (parsedA.prefix < parsedB.prefix) return 1;
-                    if (parsedA.suffix > parsedB.suffix) return -1;
-                    if (parsedA.suffix < parsedB.suffix) return 1;
-                    return 0;
+                });
+                
+                uniqueSetsData.sort((a, b) => {
+                    const orderA = setReleaseOrder[a.name] || 0;
+                    const orderB = setReleaseOrder[b.name] || 0;
+                    
+                    // Handle Promo-A special case (always last)
+                    if (orderA === -1) return 1;
+                    if (orderB === -1) return -1;
+                    
+                    // Sort by priority descending (higher numbers first = newer sets first)
+                    return orderB - orderA;
                 });
                 
                 orderedSetNamesForSort = uniqueSetsData.map(setObj => setObj.name);
@@ -2721,29 +2848,143 @@
         cardCollectionDiv.innerHTML = skeletonsHTML;
     }
 
-    // New paginated card loading function
+    // Request throttling and retry logic for rate limiting
+    const requestThrottler = {
+        queue: [],
+        isProcessing: false,
+        lastRequestTime: 0,
+        minInterval: 400, // More conservative 400ms between requests (2.5 requests/second)
+        maxRetries: 3,
+        baseDelay: 1000, // Slower recovery to avoid rapid retries
+        pendingRequests: new Set(), // Track pending requests to avoid duplicates
+        
+        async makeRequest(url, options = {}) {
+            return new Promise((resolve, reject) => {
+                // Check if this exact request is already pending
+                if (this.pendingRequests.has(url)) {
+                    reject(new Error('Duplicate request - already in progress'));
+                    return;
+                }
+                
+                this.pendingRequests.add(url);
+                this.queue.push({ url, options, resolve, reject, retries: 0 });
+                this.processQueue();
+            });
+        },
+        
+        async processQueue() {
+            if (this.isProcessing || this.queue.length === 0) return;
+            
+            this.isProcessing = true;
+            
+            while (this.queue.length > 0) {
+                const request = this.queue.shift();
+                const now = Date.now();
+                const timeSinceLastRequest = now - this.lastRequestTime;
+                
+                // Throttle requests to prevent hitting rate limits
+                if (timeSinceLastRequest < this.minInterval) {
+                    await new Promise(resolve => setTimeout(resolve, this.minInterval - timeSinceLastRequest));
+                }
+                
+                try {
+                    this.lastRequestTime = Date.now();
+                    const response = await fetch(request.url, request.options);
+                    
+                    // Read rate limit headers to adjust throttling
+                    const rateLimitLimit = response.headers.get('X-RateLimit-Limit');
+                    const rateLimitWindow = response.headers.get('X-RateLimit-Window');
+                    
+                    if (rateLimitLimit && rateLimitWindow) {
+                        // Adjust throttling based on server limits (conservative usage)
+                        const requestsPerSecond = parseInt(rateLimitLimit) / parseInt(rateLimitWindow);
+                        // Use only 60% of the rate limit capacity for safety
+                        this.minInterval = Math.max(1000 / (requestsPerSecond * 0.6), 300); // Minimum 300ms
+                    }
+                    
+                    if (response.status === 429) {
+                        // Handle rate limiting with exponential backoff
+                        if (request.retries < this.maxRetries) {
+                            const delay = this.baseDelay * Math.pow(2, request.retries);
+                            request.retries++;
+                            
+                            // Re-queue the request after delay
+                            setTimeout(() => {
+                                this.queue.unshift(request);
+                                this.processQueue();
+                            }, delay);
+                            continue;
+                        } else {
+                            request.reject(new Error(`Rate limit exceeded after ${this.maxRetries} retries`));
+                            continue;
+                        }
+                    }
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    this.pendingRequests.delete(request.url); // Clean up pending requests
+                    request.resolve(data);
+                    
+                } catch (error) {
+                    // For non-429 errors, retry once then fail
+                    if (request.retries === 0 && error.message.includes('HTTP error')) {
+                        request.retries++;
+                        setTimeout(() => {
+                            this.queue.unshift(request);
+                            this.processQueue();
+                        }, 1000);
+                        continue;
+                    }
+                    
+                    this.pendingRequests.delete(request.url); // Clean up pending requests
+                    request.reject(error);
+                }
+            }
+            
+            this.isProcessing = false;
+        }
+    };
+
+    // Enhanced paginated card loading function with 429 handling
     async function loadCardsPage(page = 1, append = false, isInitialLoad = false) {
-        if (isLoading) return;
+        if (isLoading) {
+            return;
+        }
+        
+        // Additional check to prevent multiple simultaneous requests for the same page
+        const requestKey = `${page}-${append}-${JSON.stringify(selectedFilters)}`;
+        if (window.lastRequestKey === requestKey) {
+            return;
+        }
+        window.lastRequestKey = requestKey;
         
         isLoading = true;
         const cardCollectionDiv = document.getElementById('card-collection');
+        
+        // Show user-friendly loading states
+        if (append) {
+            showInfiniteScrollLoading(true);
+        }
         
         try {
             if (!append) {
                 if (cardCollectionDiv) {
                     // Only show skeleton cards if not initial load (HTML already has them)
                     if (!isInitialLoad) {
-                        showCardSkeletons(12);
+                        showCardSkeletons(16); // Increased to better match new page size
                     }
                 }
                 loadedIds.clear();
                 filteredCards = [];
             }
 
-            // Build query parameters
+            // Build query parameters with reasonable page size
             const params = new URLSearchParams({
                 page: page.toString(),
-                limit: '24' // Load 24 cards per page for good performance
+                limit: '36' // Balanced page size for good performance
             });
 
             // Add filters to query
@@ -2797,13 +3038,8 @@
                 params.append('direction', currentSortDirection);
             }
 
-
-            const response = await fetch(`/api/cards/paginated?${params}`);
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-
-            const data = await response.json();
+            // Use throttled request to handle rate limiting
+            const data = await requestThrottler.makeRequest(`/api/cards/paginated?${params}`);
             
             if (data.success && data.cards) {
                 
@@ -2868,17 +3104,88 @@
             }
 
         } catch (error) {
-            if (!append && cardCollectionDiv) {
-                cardCollectionDiv.innerHTML = '';
+            // Enhanced error handling with user feedback
+            if (error.message.includes('Rate limit exceeded')) {
+                showRateLimitMessage();
+                // Don't disable infinite scroll - allow retry after delay
+                setTimeout(() => {
+                    if (hasMoreCards && !isLoading) {
+                        loadCardsPage(page, append, isInitialLoad);
+                    }
+                }, 3000);
+            } else if (error.message.includes('Duplicate request')) {
+                // Silently ignore duplicate requests - they're already being processed
+            } else {
+                if (!append && cardCollectionDiv) {
+                    cardCollectionDiv.innerHTML = '<div class="text-center p-3"><div class="alert alert-warning">Failed to load cards. <button class="btn btn-sm btn-primary" onclick="loadCardsPage(1, false, false)">Try Again</button></div></div>';
+                }
+                hasMoreCards = false;
             }
-            hasMoreCards = false;
         } finally {
             isLoading = false;
+            window.lastRequestKey = null; // Clear the request key to allow future requests
             hideSearchInputSpinner();
+            if (append) {
+                showInfiniteScrollLoading(false);
+            }
         }
     }
 
-    // Set up infinite scroll
+    // User feedback functions for better UX during rate limiting
+    function showRateLimitMessage() {
+        const cardCollectionDiv = document.getElementById('card-collection');
+        if (!cardCollectionDiv) return;
+        
+        const existingMessage = cardCollectionDiv.querySelector('.rate-limit-message');
+        if (existingMessage) return; // Don't show multiple messages
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'rate-limit-message text-center p-3';
+        messageDiv.innerHTML = `
+            <div class="alert alert-info mb-0">
+                <div class="d-flex align-items-center justify-content-center">
+                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span>Loading more cards... Please wait a moment</span>
+                </div>
+            </div>
+        `;
+        
+        cardCollectionDiv.appendChild(messageDiv);
+        
+        // Remove message after 5 seconds
+        setTimeout(() => {
+            if (messageDiv.parentNode) {
+                messageDiv.remove();
+            }
+        }, 5000);
+    }
+    
+    function showInfiniteScrollLoading(show) {
+        const cardCollectionDiv = document.getElementById('card-collection');
+        if (!cardCollectionDiv) return;
+        
+        let loadingDiv = cardCollectionDiv.querySelector('.infinite-scroll-loading');
+        
+        if (show && !loadingDiv) {
+            loadingDiv = document.createElement('div');
+            loadingDiv.className = 'infinite-scroll-loading text-center p-3';
+            loadingDiv.innerHTML = `
+                <div class="d-flex align-items-center justify-content-center">
+                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span>Loading more cards...</span>
+                </div>
+            `;
+            cardCollectionDiv.appendChild(loadingDiv);
+        } else if (!show && loadingDiv) {
+            loadingDiv.remove();
+        }
+    }
+
+    // Enhanced infinite scroll setup with smarter triggering
     function setupInfiniteScroll() {
         const cardCollectionDiv = document.getElementById('card-collection');
         if (!cardCollectionDiv) return;
@@ -2893,19 +3200,27 @@
             cardCollectionDiv.appendChild(sentinel);
         }
 
-        // Set up intersection observer for infinite scroll
+        // Set up intersection observer for infinite scroll with throttling
         if (window.scrollObserver) {
             window.scrollObserver.disconnect();
         }
 
+        // Add back some intersection observer throttling for stability
+        let lastTriggerTime = 0;
+        const throttleDelay = 500; // 500ms between triggers
+        
         window.scrollObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting && hasMoreCards && !isLoading) {
-                    loadCardsPage(currentPage + 1, true);
+                    const now = Date.now();
+                    if (now - lastTriggerTime > throttleDelay) {
+                        lastTriggerTime = now;
+                        loadCardsPage(currentPage + 1, true);
+                    }
                 }
             });
         }, {
-            rootMargin: '100px'
+            rootMargin: '200px' // More conservative preloading
         });
 
         window.scrollObserver.observe(sentinel);
@@ -3056,13 +3371,13 @@
                                                 icon.style.transform = 'scale(1.15)';
                                             }
                                         });
-                                        console.log('Mobile deck restoration complete - energy types:', selectedDeckEnergies);
+                                        // Mobile deck restoration complete
                                     }, 250);
                                 });
                             }
                             
                             // Log successful restoration for debugging
-                            console.log(`Restored ${restoredCount} cards from ${storageSource} storage`);
+                            // Restored cards from storage
                             
                             return true; // Successfully restored
                         }
@@ -3102,18 +3417,18 @@
             
             // Ensure energy icons are properly displayed on mobile after everything is loaded
             if (window.matchMedia("(hover: none)").matches && selectedDeckEnergies.length > 0) {
-                console.log('Applying mobile energy fix for energies:', selectedDeckEnergies);
+                // Applying mobile energy fix for energies
                 
                 // Wait for images to load and DOM to settle
                 setTimeout(() => {
                     const energyIcons = document.querySelectorAll('.energy-selection-bar .energy-icon-wrapper.deck-energy');
-                    console.log('Found energy icons:', energyIcons.length);
+                    // Found energy icons
                     
                     energyIcons.forEach(icon => {
                         const energyType = icon.getAttribute('data-type');
                         if (selectedDeckEnergies.includes(energyType)) {
                             icon.classList.add('active');
-                            console.log(`Manually activated ${energyType} icon on mobile`);
+                            // Manually activated energy icon on mobile
                         }
                     });
                     
@@ -3208,11 +3523,7 @@
         // Update all deck energy icons - use more specific selector
         const energyIcons = document.querySelectorAll('.energy-selection-bar .energy-icon-wrapper[data-type]');
         
-        console.log('updateDeckEnergyIconsVisualState called:', {
-            foundIcons: energyIcons.length,
-            selectedEnergies: selectedDeckEnergies,
-            isMobile: window.matchMedia("(hover: none)").matches
-        });
+        // updateDeckEnergyIconsVisualState called
         
         energyIcons.forEach(icon => {
             const energyType = icon.getAttribute('data-type');
@@ -3225,12 +3536,12 @@
                     icon.classList.add('active');
                 }
                 if (!wasActive) {
-                    console.log(`Added active class to ${energyType} icon`);
+                    // Added active class to energy icon
                 }
             } else {
                 icon.classList.remove('active');
                 if (wasActive) {
-                    console.log(`Removed active class from ${energyType} icon`);
+                    // Removed active class from energy icon
                 }
             }
         });
@@ -3435,6 +3746,14 @@
                         }
                     }
                     applyFilters();
+                    
+                    // Hide dropdown and remove hover state like sort dropdown
+                    if (button && typeof bootstrap !== 'undefined' && bootstrap.Dropdown) {
+                        const bsDropdownInstance = bootstrap.Dropdown.getInstance(button);
+                        if (bsDropdownInstance) {
+                            bsDropdownInstance.hide();
+                        }
+                    }
                 }
             });
         });
@@ -3464,7 +3783,7 @@
         };
         
         const rarityKeywords = {
-            'shiny': '✵✵',  // Map to the UI display value
+            'shiny': 'SPECIAL_SHINY',  // Special marker to prevent filter bar updates
             'crown': 'Crown Rare'
         };
         
@@ -3614,7 +3933,7 @@
             selectedFilters.stageType = 'All';
             typedFilters.delete('stageType');
         }
-        if (typedFilters.has('rarity') && !keywords.rarity) {
+        if (typedFilters.has('rarity') && (!keywords.rarity || keywords.rarity === 'SPECIAL_SHINY')) {
             selectedFilters.rarity = 'All';
             typedFilters.delete('rarity');
         }
@@ -3689,7 +4008,7 @@
         }
         
         // Update rarity dropdown
-        if (keywords.rarity) {
+        if (keywords.rarity && keywords.rarity !== 'SPECIAL_SHINY') {
             selectedFilters.rarity = keywords.rarity;
             typedFilters.add('rarity'); // Mark as typed
             const button = document.getElementById('rarityDropdown');
@@ -4003,11 +4322,7 @@
             // Enhanced mobile auto-save with better persistence
             const autoSaveDeck = () => {
                 triggerMobileAutoSave();
-                if (!deckSaved && loadedDeckId === null && currentDeck.length > 0) {
-                    if (window.showGlobalToast) {
-                        window.showGlobalToast("Draft saved automatically", "success", 2000);
-                    }
-                }
+                // Silent auto-save - no notification needed
             };
 
             // Save on visibility change (app backgrounding)
@@ -4017,8 +4332,8 @@
                 }
             });
 
-            // Also save periodically while editing (every 30 seconds)
-            let autoSaveInterval = setInterval(autoSaveDeck, 30000);
+            // Also save periodically while editing (every 60 seconds)
+            let autoSaveInterval = setInterval(autoSaveDeck, 60000);
             
             // Clean up interval when deck is saved or page unloads
             const cleanupAutoSave = () => {
@@ -5463,6 +5778,25 @@
         });
 
     }
+    
+    // Ensure only one dropdown is open at a time - simple approach
+    document.addEventListener('DOMContentLoaded', function() {
+        const dropdownToggles = document.querySelectorAll('[data-bs-toggle="dropdown"]');
+        
+        dropdownToggles.forEach(toggle => {
+            toggle.addEventListener('click', function() {
+                // Close all other dropdowns when this one is clicked
+                dropdownToggles.forEach(otherToggle => {
+                    if (otherToggle !== toggle) {
+                        const dropdownInstance = bootstrap.Dropdown.getInstance(otherToggle);
+                        if (dropdownInstance) {
+                            dropdownInstance.hide();
+                        }
+                    }
+                });
+            });
+        });
+    });
     
 </script>
 {% endblock %}

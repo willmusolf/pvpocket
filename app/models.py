@@ -52,15 +52,19 @@ def load_user(user_id_from_session):
         if cached_user_data:
             return User(user_id=user_id_str, data=cached_user_data)
     except Exception as e:
-        print(f"[LOAD_USER_CACHE] Error loading user from cache: {e}", flush=True)
+        # Only log cache errors in debug mode
+        if current_app and current_app.debug:
+            print(f"[LOAD_USER_CACHE] Error loading user from cache: {e}", flush=True)
     
     # Fallback to Firestore if not in cache
     db = current_app.config.get("FIRESTORE_DB")
     if not db:
-        print(
-            "[LOAD_USER_FIRESTORE] Firestore client not available in app.config.",
-            flush=True,
-        )
+        # Only log critical errors in debug mode
+        if current_app and current_app.debug:
+            print(
+                "[LOAD_USER_FIRESTORE] Firestore client not available in app.config.",
+                flush=True,
+            )
         return None
 
     try:
@@ -73,13 +77,17 @@ def load_user(user_id_from_session):
             cache_manager.set_user_data(user_id_str, user_data, ttl_minutes=30)
             return User(user_id=user_id_str, data=user_data)
         else:
-            print(
-                f"[LOAD_USER_FIRESTORE] User '{user_id_str}' not found in Firestore.",
-                flush=True,
-            )
+            # Only log user not found in debug mode
+            if current_app and current_app.debug:
+                print(
+                    f"[LOAD_USER_FIRESTORE] User '{user_id_str}' not found in Firestore.",
+                    flush=True,
+                )
             return None
     except Exception as e:
-        print(
-            f"Error loading user {user_id_from_session} from Firestore: {e}", flush=True
-        )
+        # Only log Firestore errors in debug mode
+        if current_app and current_app.debug:
+            print(
+                f"Error loading user {user_id_from_session} from Firestore: {e}", flush=True
+            )
         return None

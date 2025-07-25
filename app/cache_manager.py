@@ -74,7 +74,10 @@ class CacheManager:
     def __init__(self):
         """Initialize in-memory cache manager."""
         self._client = InMemoryCache()
-        print("✅ CACHE: Using in-memory cache system")
+        # Only log in debug mode
+        from flask import current_app
+        if current_app and current_app.debug:
+            print("✅ CACHE: Using in-memory cache system")
     
     @property
     def client(self):
@@ -87,7 +90,6 @@ class CacheManager:
             cached_data = self.client.get(f"cards:{cache_key}")
             if cached_data:
                 collection = pickle.loads(cached_data)
-                print(f"✅ CACHE HIT: Retrieved {len(collection)} cards from cache")
                 # Record cache hit
                 try:
                     from .monitoring import performance_monitor
@@ -95,7 +97,6 @@ class CacheManager:
                 except ImportError:
                     pass
                 return collection
-            print(f"⚠️ CACHE MISS: Card collection not found in cache")
             # Record cache miss
             try:
                 from .monitoring import performance_monitor
@@ -104,7 +105,6 @@ class CacheManager:
                 pass
             return None
         except Exception as e:
-            print(f"❌ CACHE ERROR: Error retrieving card collection: {e}")
             # Record cache error
             try:
                 from .monitoring import performance_monitor
@@ -120,7 +120,10 @@ class CacheManager:
             ttl = timedelta(hours=ttl_hours)
             return self.client.set(f"cards:{cache_key}", pickled_data, ex=ttl)
         except Exception as e:
-            print(f"Error caching card collection: {e}")
+            # Only log in debug mode
+            from flask import current_app
+            if current_app and current_app.debug:
+                print(f"Error caching card collection: {e}")
             return False
     
     def get_user_data(self, user_id: str) -> Optional[Dict]:
@@ -128,14 +131,12 @@ class CacheManager:
         try:
             cached_data = self.client.get(f"user:{user_id}")
             if cached_data:
-                print(f"✅ USER CACHE HIT: Retrieved data for user {user_id[:8]}...")
                 try:
                     from .monitoring import performance_monitor
                     performance_monitor.metrics.record_cache_hit("user_data")
                 except ImportError:
                     pass
                 return json.loads(cached_data)
-            print(f"⚠️ USER CACHE MISS: No cached data for user {user_id[:8]}...")
             try:
                 from .monitoring import performance_monitor
                 performance_monitor.metrics.record_cache_miss("user_data")
@@ -143,7 +144,6 @@ class CacheManager:
                 pass
             return None
         except Exception as e:
-            print(f"❌ USER CACHE ERROR: Error retrieving user data: {e}")
             try:
                 from .monitoring import performance_monitor
                 performance_monitor.metrics.record_cache_error("user_data")
@@ -160,7 +160,10 @@ class CacheManager:
             ttl = timedelta(minutes=ttl_minutes)
             return self.client.set(f"user:{user_id}", json_data, ex=ttl)
         except Exception as e:
-            print(f"Error caching user data: {e}")
+            # Only log in debug mode
+            from flask import current_app
+            if current_app and current_app.debug:
+                print(f"Error caching user data: {e}")
             return False
     
     def _make_serializable(self, obj):
@@ -199,7 +202,10 @@ class CacheManager:
                 return json.loads(cached_data)
             return None
         except Exception as e:
-            print(f"Error retrieving user collection from cache: {e}")
+            # Only log in debug mode
+            from flask import current_app
+            if current_app and current_app.debug:
+                print(f"Error retrieving user collection from cache: {e}")
             return None
     
     def set_user_collection(self, user_id: str, collection_data: Dict, ttl_hours: int = 6) -> bool:
@@ -210,7 +216,10 @@ class CacheManager:
             ttl = timedelta(hours=ttl_hours)
             return self.client.set(f"user_collection:{user_id}", json_data, ex=ttl)
         except Exception as e:
-            print(f"Error caching user collection: {e}")
+            # Only log in debug mode
+            from flask import current_app
+            if current_app and current_app.debug:
+                print(f"Error caching user collection: {e}")
             return False
     
     def get_user_decks(self, user_id: str) -> Optional[List[Dict]]:
@@ -221,7 +230,10 @@ class CacheManager:
                 return json.loads(cached_data)
             return None
         except Exception as e:
-            print(f"Error retrieving user decks from cache: {e}")
+            # Only log in debug mode
+            from flask import current_app
+            if current_app and current_app.debug:
+                print(f"Error retrieving user decks from cache: {e}")
             return None
     
     def set_user_decks(self, user_id: str, decks_data: List[Dict], ttl_hours: int = 2) -> bool:
@@ -232,7 +244,10 @@ class CacheManager:
             ttl = timedelta(hours=ttl_hours)
             return self.client.set(f"user_decks:{user_id}", json_data, ex=ttl)
         except Exception as e:
-            print(f"Error caching user decks: {e}")
+            # Only log in debug mode
+            from flask import current_app
+            if current_app and current_app.debug:
+                print(f"Error caching user decks: {e}")
             return False
     
     def invalidate_user_cache(self, user_id: str) -> None:
@@ -245,17 +260,25 @@ class CacheManager:
             ]
             for key in keys_to_delete:
                 self.client.delete(key)
-            print(f"Invalidated cache for user {user_id}")
+            # Only log in debug mode
+            from flask import current_app
+            if current_app and current_app.debug:
+                print(f"Invalidated cache for user {user_id}")
         except Exception as e:
-            print(f"Error invalidating user cache: {e}")
+            if current_app and current_app.debug:
+                print(f"Error invalidating user cache: {e}")
     
     def invalidate_card_cache(self, cache_key: str = "global_cards") -> None:
         """Invalidate card collection cache."""
         try:
             self.client.delete(f"cards:{cache_key}")
-            print(f"Invalidated card cache: {cache_key}")
+            # Only log in debug mode
+            from flask import current_app
+            if current_app and current_app.debug:
+                print(f"Invalidated card cache: {cache_key}")
         except Exception as e:
-            print(f"Error invalidating card cache: {e}")
+            if current_app and current_app.debug:
+                print(f"Error invalidating card cache: {e}")
     
     def health_check(self) -> bool:
         """Check if Redis connection is healthy."""

@@ -50,6 +50,12 @@ class TestingConfig(Config):
     """Configuration for testing environment."""
     TESTING = True
     DEBUG = True
+    
+    # Override to provide defaults for testing
+    SECRET_KEY = os.environ.get("SECRET_KEY", "test-secret-key-for-testing")
+    REFRESH_SECRET_KEY = os.environ.get("REFRESH_SECRET_KEY", "test-refresh-key")
+    GCP_PROJECT_ID = os.environ.get("GCP_PROJECT_ID", "test-project")
+    FIREBASE_SECRET_NAME = os.environ.get("FIREBASE_SECRET_NAME", "test-secret")
 
 config = {
     "development": DevelopmentConfig,
