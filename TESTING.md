@@ -167,30 +167,36 @@ Validates presence of:
 
 ## CI/CD Integration
 
-### GitHub Actions Workflow
+### GitHub Actions Workflow (Dual Strategy)
 
-1. **Security Scanning**:
-   - Python dependency vulnerabilities (Safety)
-   - Code analysis for security issues (Bandit)
-   - Linting and code quality checks
+**Pull Requests → Fast Tests**:
+- Uses mocked data for speed (~2-3 seconds)
+- Provides quick feedback during review
+- Runs all unit, integration, security, and performance tests with mocks
 
-2. **Firebase Emulator Setup**:
-   - Automatically starts Firestore and Storage emulators
-   - Uses security rules for realistic testing
-   - No fake credentials or security vulnerabilities
+**Pushes to main/development → Full Test Suite**:
+- Starts Firebase emulators with real data
+- Seeds test data for comprehensive testing
+- Tests actual Firebase operations and data persistence
+- Slower but thorough validation before deployment
 
-3. **Comprehensive Test Suite**:
-   ```bash
-   firebase emulators:start --only firestore,storage &
-   python -m pytest tests/ -v --cov=app --cov-report=json
-   ```
+**Security Scanning** (Both scenarios):
+- Python dependency vulnerabilities (Safety)
+- Code analysis for security issues (Bandit)
+- Linting and code quality checks
 
-4. **Environment Variables**:
-   ```bash
-   FLASK_CONFIG=testing
-   FIRESTORE_EMULATOR_HOST=localhost:8080
-   FIREBASE_STORAGE_EMULATOR_HOST=localhost:9199
-   ```
+**Environment Variables**:
+```bash
+# Both test types
+FLASK_CONFIG=testing
+SECRET_KEY=test-secret-key-for-ci
+REFRESH_SECRET_KEY=test-refresh-key-for-ci
+
+# Full tests only
+FIRESTORE_EMULATOR_HOST=localhost:8080
+FIREBASE_STORAGE_EMULATOR_HOST=localhost:9199
+RUN_INTEGRATION_TESTS=1
+```
 
 ### Test Environment Security
 
@@ -207,13 +213,13 @@ Validates presence of:
 # Install test dependencies
 pip install -r requirements.txt
 
-# Start Firebase emulators (in separate terminal)
-firebase emulators:start --only firestore,storage
+# Quick tests (like PRs)
+python -m pytest tests/ -m "not real_data" -v
 
-# Run all tests
-python -m pytest tests/ -v
+# Full test suite (like pushes)
+./scripts/run_tests.sh full
 
-# Run specific test categories
+# Specific test categories
 python -m pytest tests/unit/ -v          # Unit tests only
 python -m pytest tests/security/ -v      # Security tests only
 python -m pytest tests/performance/ -v   # Performance tests only
@@ -224,10 +230,15 @@ python -m pytest tests/ --cov=app --cov-report=html
 
 ### CI/CD Environment
 
-Tests run automatically on:
-- **Push to main branch**: Full test suite + deployment
-- **Push to development branch**: Full test suite + test environment deployment
-- **Pull requests**: Full test suite only
+**Dual Test Strategy**:
+- **Pull Requests**: Fast tests (~2-3 seconds) with mocked data
+- **Push to main/development**: Full test suite (~20-30 seconds) with Firebase emulator
+- **Manual Triggers**: Can run specific test types via workflow dispatch
+
+**Test Flow**:
+```
+Feature Branch → PR (Fast Tests) → Review → Merge → Push (Full Tests) → Deploy
+```
 
 ### Test Markers
 

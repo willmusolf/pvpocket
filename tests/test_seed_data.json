@@ -1,0 +1,55 @@
+{
+  "cards": [
+    {
+      "id": "pikachu-1",
+      "name": "Pikachu",
+      "energy_type": "Lightning",
+      "hp": 60,
+      "set_name": "Genetic Apex",
+      "rarity": "Common",
+      "card_number": 1,
+      "abilities": [],
+      "attacks": [
+        {
+          "name": "Thunder Shock",
+          "damage": 30,
+          "energy_cost": ["Lightning", "Colorless"]
+        }
+      ]
+    },
+    {
+      "id": "charizard-1",
+      "name": "Charizard",
+      "energy_type": "Fire",
+      "hp": 180,
+      "set_name": "Genetic Apex", 
+      "rarity": "Rare",
+      "card_number": 6,
+      "abilities": [],
+      "attacks": [
+        {
+          "name": "Fire Blast",
+          "damage": 150,
+          "energy_cost": ["Fire", "Fire", "Fire", "Colorless"]
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "id": "test-user-1",
+      "email": "test@example.com",
+      "username": "testuser",
+      "profile_icon": "default.png"
+    }
+  ],
+  "decks": [
+    {
+      "id": "test-deck-1",
+      "name": "Test Deck",
+      "user_id": "test-user-1",
+      "card_ids": ["pikachu-1", "pikachu-1", "charizard-1"],
+      "is_public": true
+    }
+  ]
+}
