@@ -3,7 +3,7 @@ from Deck import Deck
 from .auth import is_logged_in, get_current_user_data, profanity_check
 import uuid
 from ..services import card_service, database_service, url_service
-from ..security import rate_limit_api, rate_limit_heavy
+from ..security import rate_limit_api, rate_limit_api_paginated, rate_limit_heavy
 from flask_login import (
     current_user as flask_login_current_user,
     login_required,
@@ -479,7 +479,7 @@ def get_all_cards():
 
 
 @decks_bp.route("/api/cards/paginated", methods=["GET"])
-@rate_limit_api()
+@rate_limit_api_paginated()
 def get_cards_paginated():
     """API endpoint to get cards with pagination and server-side filtering."""
     # Use get_full_card_collection to ensure all cards are available for search
@@ -817,10 +817,14 @@ def get_cards_paginated():
             }
         })
         
-        # Add cache headers for better performance
-        response.headers['Cache-Control'] = 'public, max-age=300'  # 5 minutes
+        # Add enhanced cache headers for better performance
+        response.headers['Cache-Control'] = 'public, max-age=600, s-maxage=1800'  # 10 minutes client, 30 minutes proxy
         cache_key = f"{page}-{limit}-{set_code_filter}-{energy_type_filter}-{card_type_filter}-{stage_type_filter}-{rarity_filter}-{name_filter}-{total_count}"
         response.headers['ETag'] = f'"{hash(cache_key)}"'
+        
+        # Add rate limiting information to help client-side throttling
+        response.headers['X-RateLimit-Limit'] = '1000'
+        response.headers['X-RateLimit-Window'] = '60'
         
         return response
 

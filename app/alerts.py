@@ -38,9 +38,9 @@ def send_critical_alert(error_message, error_type="CRITICAL ERROR", extra_info="
             request_info = "No request context"
             user_agent = "Unknown"
             
-        # Create alert message
+        # Create alert message (without emojis to avoid encoding issues)
         alert_body = f"""
-🚨 CRITICAL ERROR in Pokemon TCG Pocket Production 🚨
+CRITICAL ERROR in Pokemon TCG Pocket Production
 
 ERROR TYPE: {error_type}
 TIME: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}
@@ -56,15 +56,15 @@ ADDITIONAL INFO:
 {extra_info}
 
 QUICK LINKS:
-• View Logs: https://console.cloud.google.com/logs/query;query=resource.type%3D%22gae_app%22%0Aseverity%3E%3DERROR?project=pvpocket-dd286
-• Site Status: https://pvpocket.xyz/health
+- View Logs: https://console.cloud.google.com/logs/query;query=resource.type%3D%22gae_app%22%0Aseverity%3E%3DERROR?project=pvpocket-dd286
+- Site Status: https://pvpocket.xyz/health
 
 This is an automated alert - something is seriously broken and needs immediate attention.
         """
         
-        # Create email
-        msg = MIMEText(alert_body)
-        msg['Subject'] = f'🚨 CRITICAL: Pokemon TCG Pocket - {error_type}'
+        # Create email with proper UTF-8 encoding
+        msg = MIMEText(alert_body, 'plain', 'utf-8')
+        msg['Subject'] = f'CRITICAL: Pokemon TCG Pocket - {error_type}'
         msg['From'] = EMAIL_USER
         msg['To'] = ALERT_EMAIL
         
@@ -76,10 +76,10 @@ This is an automated alert - something is seriously broken and needs immediate a
             
         # Send SMS alert if configured (shorter message)
         if ALERT_SMS:
-            sms_body = f"🚨 CRITICAL ERROR: Pokemon TCG Pocket\n{error_type}\n{datetime.utcnow().strftime('%H:%M UTC')}\nCheck email for details"
+            sms_body = f"CRITICAL ERROR: Pokemon TCG Pocket\n{error_type}\n{datetime.utcnow().strftime('%H:%M UTC')}\nCheck email for details"
             
-            sms_msg = MIMEText(sms_body)
-            sms_msg['Subject'] = '🚨 POKEMON TCG ERROR'
+            sms_msg = MIMEText(sms_body, 'plain', 'utf-8')
+            sms_msg['Subject'] = 'POKEMON TCG ERROR'
             sms_msg['From'] = EMAIL_USER
             sms_msg['To'] = ALERT_SMS
             

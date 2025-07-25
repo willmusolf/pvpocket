@@ -244,6 +244,15 @@ def rate_limit_api():
     return decorator
 
 
+def rate_limit_api_paginated():
+    """Higher rate limit for paginated endpoints that users scroll through quickly."""
+    def decorator(f):
+        if security_manager.limiter:
+            return security_manager.limiter.limit("1000 per minute")(f)  # Temporarily very high to debug
+        return f
+    return decorator
+
+
 def rate_limit_heavy():
     """Rate limit for resource-intensive endpoints."""
     def decorator(f):

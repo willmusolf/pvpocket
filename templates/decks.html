@@ -2848,29 +2848,143 @@
         cardCollectionDiv.innerHTML = skeletonsHTML;
     }
 
-    // New paginated card loading function
+    // Request throttling and retry logic for rate limiting
+    const requestThrottler = {
+        queue: [],
+        isProcessing: false,
+        lastRequestTime: 0,
+        minInterval: 400, // More conservative 400ms between requests (2.5 requests/second)
+        maxRetries: 3,
+        baseDelay: 1000, // Slower recovery to avoid rapid retries
+        pendingRequests: new Set(), // Track pending requests to avoid duplicates
+        
+        async makeRequest(url, options = {}) {
+            return new Promise((resolve, reject) => {
+                // Check if this exact request is already pending
+                if (this.pendingRequests.has(url)) {
+                    reject(new Error('Duplicate request - already in progress'));
+                    return;
+                }
+                
+                this.pendingRequests.add(url);
+                this.queue.push({ url, options, resolve, reject, retries: 0 });
+                this.processQueue();
+            });
+        },
+        
+        async processQueue() {
+            if (this.isProcessing || this.queue.length === 0) return;
+            
+            this.isProcessing = true;
+            
+            while (this.queue.length > 0) {
+                const request = this.queue.shift();
+                const now = Date.now();
+                const timeSinceLastRequest = now - this.lastRequestTime;
+                
+                // Throttle requests to prevent hitting rate limits
+                if (timeSinceLastRequest < this.minInterval) {
+                    await new Promise(resolve => setTimeout(resolve, this.minInterval - timeSinceLastRequest));
+                }
+                
+                try {
+                    this.lastRequestTime = Date.now();
+                    const response = await fetch(request.url, request.options);
+                    
+                    // Read rate limit headers to adjust throttling
+                    const rateLimitLimit = response.headers.get('X-RateLimit-Limit');
+                    const rateLimitWindow = response.headers.get('X-RateLimit-Window');
+                    
+                    if (rateLimitLimit && rateLimitWindow) {
+                        // Adjust throttling based on server limits (conservative usage)
+                        const requestsPerSecond = parseInt(rateLimitLimit) / parseInt(rateLimitWindow);
+                        // Use only 60% of the rate limit capacity for safety
+                        this.minInterval = Math.max(1000 / (requestsPerSecond * 0.6), 300); // Minimum 300ms
+                    }
+                    
+                    if (response.status === 429) {
+                        // Handle rate limiting with exponential backoff
+                        if (request.retries < this.maxRetries) {
+                            const delay = this.baseDelay * Math.pow(2, request.retries);
+                            request.retries++;
+                            
+                            // Re-queue the request after delay
+                            setTimeout(() => {
+                                this.queue.unshift(request);
+                                this.processQueue();
+                            }, delay);
+                            continue;
+                        } else {
+                            request.reject(new Error(`Rate limit exceeded after ${this.maxRetries} retries`));
+                            continue;
+                        }
+                    }
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    this.pendingRequests.delete(request.url); // Clean up pending requests
+                    request.resolve(data);
+                    
+                } catch (error) {
+                    // For non-429 errors, retry once then fail
+                    if (request.retries === 0 && error.message.includes('HTTP error')) {
+                        request.retries++;
+                        setTimeout(() => {
+                            this.queue.unshift(request);
+                            this.processQueue();
+                        }, 1000);
+                        continue;
+                    }
+                    
+                    this.pendingRequests.delete(request.url); // Clean up pending requests
+                    request.reject(error);
+                }
+            }
+            
+            this.isProcessing = false;
+        }
+    };
+
+    // Enhanced paginated card loading function with 429 handling
     async function loadCardsPage(page = 1, append = false, isInitialLoad = false) {
-        if (isLoading) return;
+        if (isLoading) {
+            return;
+        }
+        
+        // Additional check to prevent multiple simultaneous requests for the same page
+        const requestKey = `${page}-${append}-${JSON.stringify(selectedFilters)}`;
+        if (window.lastRequestKey === requestKey) {
+            return;
+        }
+        window.lastRequestKey = requestKey;
         
         isLoading = true;
         const cardCollectionDiv = document.getElementById('card-collection');
+        
+        // Show user-friendly loading states
+        if (append) {
+            showInfiniteScrollLoading(true);
+        }
         
         try {
             if (!append) {
                 if (cardCollectionDiv) {
                     // Only show skeleton cards if not initial load (HTML already has them)
                     if (!isInitialLoad) {
-                        showCardSkeletons(12);
+                        showCardSkeletons(16); // Increased to better match new page size
                     }
                 }
                 loadedIds.clear();
                 filteredCards = [];
             }
 
-            // Build query parameters
+            // Build query parameters with reasonable page size
             const params = new URLSearchParams({
                 page: page.toString(),
-                limit: '24' // Load 24 cards per page for good performance
+                limit: '36' // Balanced page size for good performance
             });
 
             // Add filters to query
@@ -2924,13 +3038,8 @@
                 params.append('direction', currentSortDirection);
             }
 
-
-            const response = await fetch(`/api/cards/paginated?${params}`);
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-
-            const data = await response.json();
+            // Use throttled request to handle rate limiting
+            const data = await requestThrottler.makeRequest(`/api/cards/paginated?${params}`);
             
             if (data.success && data.cards) {
                 
@@ -2995,17 +3104,88 @@
             }
 
         } catch (error) {
-            if (!append && cardCollectionDiv) {
-                cardCollectionDiv.innerHTML = '';
+            // Enhanced error handling with user feedback
+            if (error.message.includes('Rate limit exceeded')) {
+                showRateLimitMessage();
+                // Don't disable infinite scroll - allow retry after delay
+                setTimeout(() => {
+                    if (hasMoreCards && !isLoading) {
+                        loadCardsPage(page, append, isInitialLoad);
+                    }
+                }, 3000);
+            } else if (error.message.includes('Duplicate request')) {
+                // Silently ignore duplicate requests - they're already being processed
+            } else {
+                if (!append && cardCollectionDiv) {
+                    cardCollectionDiv.innerHTML = '<div class="text-center p-3"><div class="alert alert-warning">Failed to load cards. <button class="btn btn-sm btn-primary" onclick="loadCardsPage(1, false, false)">Try Again</button></div></div>';
+                }
+                hasMoreCards = false;
             }
-            hasMoreCards = false;
         } finally {
             isLoading = false;
+            window.lastRequestKey = null; // Clear the request key to allow future requests
             hideSearchInputSpinner();
+            if (append) {
+                showInfiniteScrollLoading(false);
+            }
         }
     }
 
-    // Set up infinite scroll
+    // User feedback functions for better UX during rate limiting
+    function showRateLimitMessage() {
+        const cardCollectionDiv = document.getElementById('card-collection');
+        if (!cardCollectionDiv) return;
+        
+        const existingMessage = cardCollectionDiv.querySelector('.rate-limit-message');
+        if (existingMessage) return; // Don't show multiple messages
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'rate-limit-message text-center p-3';
+        messageDiv.innerHTML = `
+            <div class="alert alert-info mb-0">
+                <div class="d-flex align-items-center justify-content-center">
+                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span>Loading more cards... Please wait a moment</span>
+                </div>
+            </div>
+        `;
+        
+        cardCollectionDiv.appendChild(messageDiv);
+        
+        // Remove message after 5 seconds
+        setTimeout(() => {
+            if (messageDiv.parentNode) {
+                messageDiv.remove();
+            }
+        }, 5000);
+    }
+    
+    function showInfiniteScrollLoading(show) {
+        const cardCollectionDiv = document.getElementById('card-collection');
+        if (!cardCollectionDiv) return;
+        
+        let loadingDiv = cardCollectionDiv.querySelector('.infinite-scroll-loading');
+        
+        if (show && !loadingDiv) {
+            loadingDiv = document.createElement('div');
+            loadingDiv.className = 'infinite-scroll-loading text-center p-3';
+            loadingDiv.innerHTML = `
+                <div class="d-flex align-items-center justify-content-center">
+                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span>Loading more cards...</span>
+                </div>
+            `;
+            cardCollectionDiv.appendChild(loadingDiv);
+        } else if (!show && loadingDiv) {
+            loadingDiv.remove();
+        }
+    }
+
+    // Enhanced infinite scroll setup with smarter triggering
     function setupInfiniteScroll() {
         const cardCollectionDiv = document.getElementById('card-collection');
         if (!cardCollectionDiv) return;
@@ -3020,19 +3200,27 @@
             cardCollectionDiv.appendChild(sentinel);
         }
 
-        // Set up intersection observer for infinite scroll
+        // Set up intersection observer for infinite scroll with throttling
         if (window.scrollObserver) {
             window.scrollObserver.disconnect();
         }
 
+        // Add back some intersection observer throttling for stability
+        let lastTriggerTime = 0;
+        const throttleDelay = 500; // 500ms between triggers
+        
         window.scrollObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting && hasMoreCards && !isLoading) {
-                    loadCardsPage(currentPage + 1, true);
+                    const now = Date.now();
+                    if (now - lastTriggerTime > throttleDelay) {
+                        lastTriggerTime = now;
+                        loadCardsPage(currentPage + 1, true);
+                    }
                 }
             });
         }, {
-            rootMargin: '100px'
+            rootMargin: '200px' // More conservative preloading
         });
 
         window.scrollObserver.observe(sentinel);
