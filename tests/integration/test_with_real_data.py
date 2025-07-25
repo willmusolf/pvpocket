@@ -90,5 +90,5 @@ class TestRealDataIntegration:
         # This would require authenticated user
         # For now, just test that the endpoint exists
         response = client.get('/api/decks/test-deck-1')
-        # Will be 401 without auth, but that's expected
-        assert response.status_code in [200, 401, 403]
+        # Can be 302 (redirect to login), 401, or 403 without auth - all expected
+        assert response.status_code in [200, 302, 401, 403]

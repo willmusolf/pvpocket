@@ -110,7 +110,14 @@ def create_app(config_name="default"):
             project_id = app.config.get("GCP_PROJECT_ID")
             secret_name = app.config.get("FIREBASE_SECRET_NAME")
 
-            if project_id and secret_name:
+            # Check if running with Firebase emulator
+            if os.environ.get('FIRESTORE_EMULATOR_HOST') or os.environ.get('RUN_INTEGRATION_TESTS'):
+                # Use emulator configuration
+                firebase_admin.initialize_app(options={
+                    'projectId': project_id or 'demo-test-project',
+                    'storageBucket': bucket_name
+                })
+            elif project_id and secret_name:
                 client = secretmanager.SecretManagerServiceClient()
                 name = f"projects/{project_id}/secrets/{secret_name}/versions/latest"
                 response = client.access_secret_version(request={"name": name})
