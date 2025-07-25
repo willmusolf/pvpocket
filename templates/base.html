@@ -240,7 +240,6 @@
         }
         
     </style>
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6306891304675674" crossorigin="anonymous"></script>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -374,13 +373,13 @@
     document.addEventListener('DOMContentLoaded', function() {
         // --- Logic to display toast from session data (e.g., after redirect) ---
         {% if session.get('display_toast_once') %}
-            console.log("DEBUG base.html: 'display_toast_once' FOUND in session by Jinja."); // For your debugging
+            // DEBUG base.html: 'display_toast_once' FOUND in session by Jinja
             try {
                 const toastData = {{ session.pop('display_toast_once') | tojson | safe }};
-                console.log("DEBUG base.html: Toast data from session:", toastData); // For your debugging
+                // DEBUG base.html: Toast data from session
 
                 if (window.showGlobalToast && toastData && typeof toastData.message === 'string' && typeof toastData.type === 'string') {
-                    console.log("DEBUG base.html: Calling window.showGlobalToast with:", toastData.message, toastData.type); // Debug
+                    // DEBUG base.html: Calling window.showGlobalToast
                     window.showGlobalToast(toastData.message, toastData.type);
                 } else {
                     console.warn("DEBUG base.html: Toast data from session incomplete or showGlobalToast not ready.", toastData, typeof window.showGlobalToast);
@@ -389,7 +388,7 @@
                 console.error("DEBUG base.html: Error processing toast data from session:", e);
             }
         {% else %}
-            // console.log("DEBUG base.html: 'display_toast_once' NOT found in session by Jinja."); // Optional debug
+            // DEBUG base.html: 'display_toast_once' NOT found in session by Jinja
         {% endif %}
 
         // --- Your existing logout link confirmation logic ---

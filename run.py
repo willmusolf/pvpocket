@@ -5,7 +5,10 @@ load_dotenv()
 from app import create_app
 
 config_name = os.getenv("FLASK_CONFIG", os.getenv("FLASK_ENV", "default"))
-print(f"Starting app with configuration: {config_name}")
+
+# Only show startup config in development and in main process
+if config_name == "development" and os.environ.get('WERKZEUG_RUN_MAIN'):
+    print(f"Starting app with configuration: {config_name}")
 
 app = create_app(config_name)
 

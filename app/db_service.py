@@ -29,10 +29,24 @@ class FirestoreConnectionPool:
         self._pool = queue.Queue(maxsize=max_connections)
         self._lock = threading.Lock()
         self._created_connections = 0
-        print(f"✅ DB POOL: Initialized connection pool (max: {max_connections})")
+        self._logged_init = False
+        # DB Pool initialized (logging will be done when first accessed)
         
     def get_client(self) -> firestore.Client:
         """Get a Firestore client from the pool or create a new one."""
+        # Log initialization only once when first accessed
+        if not self._logged_init:
+            try:
+                from flask import current_app
+                if hasattr(current_app, 'debug') and current_app.debug:
+                    current_app.logger.debug(f"✅ DB POOL: Initialized connection pool (max: {self.max_connections})")
+                elif 'development' in str(current_app.config.get('FLASK_ENV', '')):
+                    current_app.logger.debug(f"✅ DB POOL: Initialized connection pool (max: {self.max_connections})")
+                self._logged_init = True
+            except RuntimeError:
+                # No Flask context available, skip logging
+                self._logged_init = True
+        
         try:
             # Try to get from pool (non-blocking)
             return self._pool.get_nowait()
@@ -44,7 +58,17 @@ class FirestoreConnectionPool:
                     return firestore.Client()
                 else:
                     # Wait for available connection
-                    return self._pool.get(timeout=5)
+                    try:
+                        return self._pool.get(timeout=5)
+                    except queue.Empty:
+                        # Database connection pool exhausted - critical error
+                        if os.environ.get('FLASK_ENV') == 'production':
+                            try:
+                                from .alerts import alert_database_failure
+                                alert_database_failure("Database connection pool exhausted - all connections in use")
+                            except:
+                                pass
+                        raise Exception("Database connection pool exhausted")
     
     def return_client(self, client: firestore.Client) -> None:
         """Return a client to the pool."""
@@ -85,7 +109,9 @@ def retry_on_error(max_retries: int = 3, base_delay: float = 1.0, max_delay: flo
                     last_exception = e
                     
                     if attempt == max_retries:
-                        print(f"Max retries ({max_retries}) exceeded for {func.__name__}: {e}")
+                        # Log retry exhaustion only in debug mode
+                        if hasattr(current_app, 'debug') and current_app.debug:
+                            print(f"Max retries ({max_retries}) exceeded for {func.__name__}: {e}")
                         raise e
                     
                     # Exponential backoff with jitter
@@ -93,12 +119,16 @@ def retry_on_error(max_retries: int = 3, base_delay: float = 1.0, max_delay: flo
                     jitter = random.uniform(0, delay * 0.1)
                     total_delay = delay + jitter
                     
-                    print(f"Retry {attempt + 1}/{max_retries} for {func.__name__} in {total_delay:.2f}s")
+                    # Log retry attempts only in debug mode
+                    if hasattr(current_app, 'debug') and current_app.debug:
+                        print(f"Retry {attempt + 1}/{max_retries} for {func.__name__} in {total_delay:.2f}s")
                     time.sleep(total_delay)
                     
                 except Exception as e:
                     # Don't retry on non-retryable errors
-                    print(f"Non-retryable error in {func.__name__}: {e}")
+                    # Log non-retryable errors only in debug mode
+                    if hasattr(current_app, 'debug') and current_app.debug:
+                        print(f"Non-retryable error in {func.__name__}: {e}")
                     raise e
             
             # This should never be reached, but just in case
@@ -119,7 +149,9 @@ class DatabaseService:
         try:
             return _connection_pool.get_client()
         except Exception as e:
-            print(f"Error getting pooled client, falling back to app config: {e}")
+            # Log connection pool errors only in debug mode
+            if hasattr(current_app, 'debug') and current_app.debug:
+                print(f"Error getting pooled client, falling back to app config: {e}")
             client = current_app.config.get("FIRESTORE_DB")
             if not client:
                 raise Exception("No Firestore client available")
@@ -235,7 +267,9 @@ class DatabaseService:
             doc_ref.set(updates, merge=merge)
             return True
         except Exception as e:
-            print(f"Error updating document {collection}/{document_id}: {e}")
+            # Log update errors only in debug mode
+            if hasattr(current_app, 'debug') and current_app.debug:
+                print(f"Error updating document {collection}/{document_id}: {e}")
             return False
         finally:
             DatabaseService.return_client(client)
@@ -250,7 +284,9 @@ class DatabaseService:
             doc_ref.delete()
             return True
         except Exception as e:
-            print(f"Error deleting document {collection}/{document_id}: {e}")
+            # Log delete errors only in debug mode
+            if hasattr(current_app, 'debug') and current_app.debug:
+                print(f"Error deleting document {collection}/{document_id}: {e}")
             return False
         finally:
             DatabaseService.return_client(client)
@@ -275,7 +311,9 @@ class DatabaseService:
             # Get Firestore client from app config as fallback
             db_client = current_app.config.get("FIRESTORE_DB")
             if not db_client:
-                print("Database health check failed: No Firestore client available")
+                # Log health check failures only in debug mode
+                if hasattr(current_app, 'debug') and current_app.debug:
+                    print("Database health check failed: No Firestore client available")
                 return False
             
             # Try a simple operation - just test the connection
@@ -283,7 +321,9 @@ class DatabaseService:
             list(users_collection.limit(1).stream())
             return True
         except Exception as e:
-            print(f"Database health check failed: {e}")
+            # Log health check errors only in debug mode
+            if hasattr(current_app, 'debug') and current_app.debug:
+                print(f"Database health check failed: {e}")
             return False
 
 

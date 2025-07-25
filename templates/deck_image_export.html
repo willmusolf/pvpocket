@@ -1340,11 +1340,11 @@
                 <div class="deck-types">
                     {% for deck_type in deck_types %}
                     {% set display_url = config.ENERGY_ICON_URLS.get(deck_type) %}
-                    <img src="{{ display_url }}" 
-                         alt="{{ deck_type }}" 
+                    <img src="{{ display_url|e }}" 
+                         alt="{{ deck_type|e }}" 
                          class="energy-badge"
-                         title="{{ deck_type }}"
-                         data-original-src="{{ display_url }}"
+                         title="{{ deck_type|e }}"
+                         data-original-src="{{ display_url|e }}"
                          crossorigin="anonymous">
                     {% endfor %}
                 </div>
@@ -1360,11 +1360,11 @@
                         <div class="card-slot">
                             {% set fallback_url = card.display_image_path or card.firebase_image_url %}
                             <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTEwIiBoZWlnaHQ9IjE1NCIgdmlld0JveD0iMCAwIDExMCAxNTQiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJhIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMCI+PHN0b3Agc3RvcC1jb2xvcj0iIzM0NDk1ZSIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzJjM2U1MCIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMTAiIGhlaWdodD0iMTU0IiBmaWxsPSJ1cmwoI2EpIiByeD0iNiIvPjx0ZXh0IHg9IjU1IiB5PSI3NyIgZmlsbD0iIzk1YTVhNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkxvYWRpbmcuLi48L3RleHQ+PC9zdmc+" 
-                                 alt="{{ card.name }}" 
+                                 alt="{{ card.name|e }}" 
                                  class="card-image"
-                                 title="{{ card.name }}"
-                                 data-fallback-src="{{ fallback_url }}"
-                                 data-original-src="{{ fallback_url }}"
+                                 title="{{ card.name|e }}"
+                                 data-fallback-src="{{ fallback_url|e }}"
+                                 data-original-src="{{ fallback_url|e }}"
                                  crossorigin="anonymous"
                                  onerror="handleImageError(this)"
                                  style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 3.5%;">
@@ -1389,12 +1389,12 @@
     <script>
         // Initialize with html2canvas directly (no dom-to-image CDN attempts)
         (function() {
-            console.log('Initializing html2canvas export system...');
+            // Initializing html2canvas export system
             
             // Check if html2canvas is available
             setTimeout(() => {
                 if (typeof html2canvas !== 'undefined') {
-                    console.log('html2canvas loaded successfully');
+                    // html2canvas loaded successfully
                     window.exportLibraryStatus = 'html2canvas';
                 } else {
                     console.error('html2canvas failed to load');
@@ -1464,11 +1464,11 @@
                 cancelBtn.style.display = 'none';
                 cancelBtn.style.visibility = 'hidden';
                 cancelBtn.textContent = '✖️ Cancel';
-                console.log('Cancel button should now be hidden');
+                // Cancel button should now be hidden
             }
             
             window.currentDownloadProcess = null;
-            console.log('UI reset complete');
+            // UI reset complete
         }
         
         // Quality settings function - defined early to avoid temporal dead zone
@@ -1558,18 +1558,18 @@
             
             function imageLoaded() {
                 loadedCount++;
-                console.log(`Images loaded: ${loadedCount}/${totalImages}`);
+                // Images loaded: ${loadedCount}/${totalImages}
                 
                 if (loadedCount === totalImages) {
                     allImagesLoaded = true;
-                    console.log('All images loaded! Enabling download button...');
+                    // All images loaded! Enabling download button
                     
                     const downloadBtn = document.getElementById('downloadBtn');
                     if (downloadBtn) {
                         downloadBtn.textContent = '📷 Download Image';
                         downloadBtn.disabled = false;
                         downloadBtn.focus();
-                        console.log('Download button enabled and focused');
+                        // Download button enabled and focused
                     }
                 }
             }
@@ -1750,7 +1750,7 @@
                     descriptionCheckbox.disabled = true;
                     descriptionCheckbox.checked = false;
                 }
-                console.log('Description toggle disabled - no description found');
+                // Description toggle disabled - no description found
             } else {
                 // Description exists - enable the toggle
                 if (descriptionToggle) {
@@ -1760,7 +1760,7 @@
                     descriptionCheckbox.disabled = false;
                     descriptionCheckbox.checked = false;
                 }
-                console.log('Description toggle enabled - description found');
+                // Description toggle enabled - description found
             }
         }
         
@@ -1785,7 +1785,7 @@
         window.cancelDownload = function cancelDownload() {
             if (window.currentDownloadProcess) {
                 window.currentDownloadProcess.cancelled = true;
-                console.log('Download cancelled by user');
+                // Download cancelled by user
             }
             
             // Show cancellation feedback
@@ -1808,7 +1808,7 @@
         }
         
         window.downloadWithFormatAndOptions = async function downloadWithFormatAndOptions(format, includeTitle, includeDescription, modalTheme) {
-            console.log('Starting download with format:', format, 'includeTitle:', includeTitle, 'includeDescription:', includeDescription, 'theme:', modalTheme);
+            // Starting download with format, includeTitle, includeDescription, theme
             
             // Hide modal and show cancel button
             hideDownloadOptions();
@@ -1827,7 +1827,7 @@
                 cancelBtn.style.visibility = 'visible';
                 cancelBtn.disabled = false;
                 cancelBtn.textContent = '✖️ Cancel';
-                console.log('Cancel button should now be visible');
+                // Cancel button should now be visible
             }
             
             // Create download process tracker
@@ -2225,7 +2225,7 @@
         await new Promise(resolve => setTimeout(resolve, 300));
 
         if (window.currentDownloadProcess?.cancelled) {
-             console.log('Download cancelled before capture.');
+             // Download cancelled before capture
              throw new Error('Download cancelled');
         }
 
@@ -2250,7 +2250,7 @@
             actualHeight -= 15; // Crop 50px from bottom for regular desktop
         }
         
-        console.log('Clone actual dimensions:', actualWidth, 'x', actualHeight);
+        // Clone actual dimensions: actualWidth x actualHeight
         
         // Wait for positioning
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -2300,7 +2300,7 @@
         document.getElementById('downloadBtn').textContent = '💾 Saving...';
 
         const dataUrl = canvas.toDataURL('image/png', 1.0);
-        const deckName = '{{ deck.name|replace(" ", "_")|replace(".", "") }}';
+        const deckName = {{ deck.name|replace(" ", "_")|replace(".", "")|replace("'", "")|replace('"', "")|replace("(", "")|replace(")", "")|tojson }};
 
         const a = document.createElement('a');
         a.href = dataUrl;
@@ -2413,7 +2413,7 @@
                 // Apply dynamic sizing for 2x10 layout immediately
                 // Skip dynamic sizing on mobile to prevent card jumping
                 if (!isMobileDevice()) {
-                    console.log('Applying manual 2x10 layout');
+                    // Applying manual 2x10 layout
                     applyDynamicSizing2x10();
                 }
             } else if (layoutType === '5x4') {
@@ -2708,13 +2708,7 @@
             const canFit2x10 = exportContainerWidth >= layout2x10Width * 0.85; // 85% threshold for better switching
             
             // Debug logging for troubleshooting
-            console.log('Auto layout check:', {
-                windowWidth: window.innerWidth,
-                exportContainerWidth,
-                layout2x10Width,
-                canFit2x10,
-                isLargeScreen
-            });
+            // Auto layout check completed
             
             if (canFit2x10 || isLargeScreen) { // Use 2x10 if it fits or on large screens
                 // Use 2x10 layout for desktop
@@ -2757,7 +2751,7 @@
         
         window.toggleTheme = function toggleTheme(theme) {
             try {
-                console.log('toggleTheme called with:', theme);
+                // toggleTheme called with theme
                 const body = document.body;
                 const buttons = document.querySelectorAll('#theme-dark, #theme-light');
                 
@@ -2770,7 +2764,7 @@
                     body.classList.remove('light-theme');
                     document.getElementById('theme-dark').classList.add('active');
                 }
-                console.log('Theme changed successfully to:', theme);
+                // Theme changed successfully
             } catch (error) {
                 console.error('Error in toggleTheme:', error);
             }
@@ -2778,7 +2772,7 @@
         
         window.toggleQuality = function toggleQuality(quality) {
             try {
-                console.log('toggleQuality called with:', quality);
+                // toggleQuality called with quality
                 const buttons = document.querySelectorAll('#quality-standard, #quality-high, #quality-ultra');
                 
                 if (buttons.length === 0) {
@@ -2799,7 +2793,7 @@
                 // Store quality setting for download function
                 window.selectedQuality = quality;
                 
-                console.log('Quality setting changed successfully to:', quality);
+                // Quality setting changed successfully
             } catch (error) {
                 console.error('Error in toggleQuality:', error);
             }
@@ -2807,7 +2801,7 @@
         
         window.toggleExportFormat = function toggleExportFormat(format) {
             try {
-                console.log('toggleExportFormat called with:', format);
+                // toggleExportFormat called with format
                 const buttons = document.querySelectorAll('#export-2x10, #export-5x4');
                 
                 if (buttons.length === 0) {
@@ -2828,7 +2822,7 @@
                 // Store export format setting for download function
                 window.selectedExportFormat = format;
                 
-                console.log('Export format setting changed successfully to:', format);
+                // Export format setting changed successfully
             } catch (error) {
                 console.error('Error in toggleExportFormat:', error);
             }
@@ -2839,20 +2833,20 @@
             const fallbackSrc = img.getAttribute('data-fallback-src');
             const originalSrc = img.getAttribute('data-original-src');
             
-            console.log('Image error for:', img.src);
-            console.log('Fallback src:', fallbackSrc);
-            console.log('Original src:', originalSrc);
+            // Image error for img.src
+            // Fallback src
+            // Original src
             
             if (img.src !== fallbackSrc && fallbackSrc) {
-                console.log('Trying fallback src');
+                // Trying fallback src
                 img.src = fallbackSrc;
             } else if (originalSrc && originalSrc !== img.src) {
                 // Try original source directly
-                console.log('Trying original src:', originalSrc);
+                // Trying original src
                 img.src = getImageUrl(originalSrc);
             } else {
                 // If all fails, use inline SVG placeholder
-                console.log('Using placeholder');
+                // Using placeholder
                 img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTEwIiBoZWlnaHQ9IjE1NCIgdmlld0JveD0iMCAwIDExMCAxNTQiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJhIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMCI+PHN0b3Agc3RvcC1jb2xvcj0iIzM0NDk1ZSIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzJjM2U1MCIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMTAiIGhlaWdodD0iMTU0IiBmaWxsPSJ1cmwoI2EpIiByeD0iNiIvPjx0ZXh0IHg9IjU1IiB5PSI3NyIgZmlsbD0iIzk1YTVhNiIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkNhcmQ8L3RleHQ+PC9zdmc+';
             }
         }
@@ -2861,31 +2855,31 @@
         async function loadAllImages() {
             // Prevent duplicate loading
             if (allImagesLoaded) {
-                console.log('Images already loaded, skipping duplicate load');
+                // Images already loaded, skipping duplicate load
                 return;
             }
             
-            console.log('Loading all images with high-res priority...');
+            // Loading all images with high-res priority
             const images = document.querySelectorAll('.card-image');
             const energyIcons = document.querySelectorAll('.energy-badge');
             
             const imagesToLoad = images.length + energyIcons.length;
-            console.log(`Found ${images.length} card images and ${energyIcons.length} energy icons`);
-            console.log(`Total images to load: ${imagesToLoad}`);
+            // Found card images and energy icons
+            // Total images to load
             
             const downloadBtn = document.getElementById('downloadBtn');
             downloadBtn.disabled = true;
             downloadBtn.textContent = '⏳ Loading Images...';
             
             // Load high-resolution images first (with fallback to standard)
-            console.log('Loading high-resolution images (with fallback to standard)...');
+            // Loading high-resolution images (with fallback to standard)
             await loadHighResolutionImages(images, energyIcons);
             
             // Enable download button only after all images are loaded with best quality
             downloadBtn.disabled = false;
             downloadBtn.textContent = '📷 Download Image';
             downloadBtn.focus();
-            console.log('All images loaded with best available quality - download enabled');
+            // All images loaded with best available quality - download enabled
             allImagesLoaded = true;
             
             // Apply layout after images are loaded immediately
@@ -2910,7 +2904,7 @@
                 const percentage = Math.round((loadedCount / totalImages) * 100);
                 const downloadBtn = document.getElementById('downloadBtn');
                 downloadBtn.textContent = `⏳ Loading Images... ${percentage}%`;
-                console.log(`High-res loading progress: ${loadedCount}/${totalImages} (${percentage}%)`);
+                // High-res loading progress
             }
             
             // Load high-resolution card images (with fallback to standard)
@@ -2947,11 +2941,7 @@
             return new Promise((resolve) => {
                 // Try high-res first
                 const highResSrc = getHighResUrl(originalSrc);
-                console.log('[EXPORT] loadBestAvailableImage:', {
-                    originalSrc: originalSrc,
-                    highResSrc: highResSrc,
-                    hasHighRes: !!highResSrc
-                });
+                // [EXPORT] loadBestAvailableImage completed
                 
                 if (!highResSrc) {
                     // No high-res available, use standard
@@ -3141,11 +3131,11 @@
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('/static/js/image-cache-sw.js')
                     .then(registration => {
-                        console.log('Image cache service worker registered:', registration);
+                        // Image cache service worker registered
                         
                         // Listen for service worker updates
                         registration.addEventListener('updatefound', () => {
-                            console.log('Service worker update found');
+                            // Service worker update found
                         });
                     })
                     .catch(error => {
@@ -3235,7 +3225,7 @@
                             }
                         }
                     } catch (e) {
-                        console.log('Could not detect parent theme, using default dark theme');
+                        // Could not detect parent theme, using default dark theme
                     }
                     
                     toggleTheme(parentTheme);

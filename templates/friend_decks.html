@@ -1113,7 +1113,7 @@
         window.friendDeckScrollObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting && hasMoreDecks && !isLoading) {
-                    console.log('Loading next page of friend decks...');
+                    // Loading next page of friend decks
                     
                     // Show loading spinner
                     const spinner = scrollSentinel.querySelector('.spinner-border');

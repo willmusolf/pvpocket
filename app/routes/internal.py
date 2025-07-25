@@ -5,6 +5,7 @@ These endpoints are used by Cloud Tasks and other internal services.
 
 from flask import Blueprint, request, jsonify, current_app
 import json
+import os
 from datetime import datetime
 from ..task_queue import task_queue
 
@@ -123,3 +124,45 @@ def monitoring_dashboard():
         
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@internal_bp.route("/test-alert", methods=["POST"])
+def test_alert():
+    """Test the production alert system. Only works in production."""
+    try:
+        # Only allow in production environment
+        if os.environ.get('FLASK_ENV') != 'production':
+            return jsonify({
+                "status": "skipped",
+                "message": "Test alerts only work in production environment"
+            }), 200
+            
+        # Verify auth token
+        auth_header = request.headers.get('Authorization')
+        expected_token = os.environ.get('TASK_AUTH_TOKEN')
+        
+        if not auth_header or not expected_token:
+            return jsonify({"error": "Missing authorization"}), 401
+            
+        if auth_header != f"Bearer {expected_token}":
+            return jsonify({"error": "Invalid authorization"}), 401
+        
+        # Send test alert
+        from ..alerts import send_critical_alert
+        send_critical_alert(
+            error_message="This is a test alert to verify the alerting system is working correctly.",
+            error_type="ALERT SYSTEM TEST",
+            extra_info="If you received this alert, the system is configured properly and will notify you of real production issues."
+        )
+        
+        return jsonify({
+            "status": "success",
+            "message": "Test alert sent! Check your email and SMS."
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Failed to send test alert: {e}")
+        return jsonify({
+            "status": "error",
+            "error": str(e)
+        }), 500

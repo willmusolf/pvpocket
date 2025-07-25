@@ -8,10 +8,8 @@ const HIGH_PRIORITY_CACHE_SIZE = 50; // Reserve space for high-priority images
 
 // Install event - set up the cache
 self.addEventListener('install', event => {
-    console.log('Image cache service worker installing...');
     event.waitUntil(
         caches.open(CACHE_NAME).then(cache => {
-            console.log('Image cache opened');
             return cache;
         })
     );
@@ -20,13 +18,11 @@ self.addEventListener('install', event => {
 
 // Activate event - clean up old caches
 self.addEventListener('activate', event => {
-    console.log('Image cache service worker activating...');
     event.waitUntil(
         caches.keys().then(cacheNames => {
             return Promise.all(
                 cacheNames.map(cacheName => {
                     if (cacheName !== CACHE_NAME) {
-                        console.log('Deleting old cache:', cacheName);
                         return caches.delete(cacheName);
                     }
                 })
@@ -58,14 +54,12 @@ async function handleImageRequest(request) {
         if (cachedDate) {
             const cacheAge = Date.now() - parseInt(cachedDate);
             if (cacheAge < CACHE_DURATION) {
-                console.log('Serving from service worker cache:', request.url);
-                
                 // Update access metadata for cache management
                 await updateAccessMetadata(cache, request, cachedResponse);
                 
                 return cachedResponse;
             } else {
-                console.log('Cached image expired, removing:', request.url);
+                // Cached image expired, removing
                 await cache.delete(request);
             }
         }
@@ -97,7 +91,6 @@ async function handleImageRequest(request) {
             
             // Cache the response
             await cache.put(request, cachedResponse);
-            console.log('Cached image:', request.url);
         }
         
         return networkResponse;
@@ -106,7 +99,6 @@ async function handleImageRequest(request) {
         
         // If network fails, try to return cached version even if expired
         if (cachedResponse) {
-            console.log('Network failed, serving expired cache:', request.url);
             return cachedResponse;
         }
         
@@ -161,12 +153,9 @@ async function manageCacheSize(cache) {
         
         await Promise.all(
             keysToDelete.map(key => {
-                console.log('Removing cached image:', key.url);
                 return cache.delete(key);
             })
         );
-        
-        console.log(`Cache managed: removed ${keysToDelete.length} entries, ${keys.length - keysToDelete.length} remaining`);
     }
 }
 
@@ -226,7 +215,7 @@ async function updateAccessMetadata(cache, request, cachedResponse) {
         // Update the cache with new metadata
         await cache.put(request, updatedResponse.clone());
     } catch (error) {
-        console.warn('Failed to update access metadata:', error);
+        // Failed to update access metadata (silent)
     }
 }
 
@@ -304,7 +293,6 @@ async function getCacheStats() {
             entries: entries.sort((a, b) => b.accessCount - a.accessCount) // Sort by most accessed
         };
     } catch (error) {
-        console.error('Error getting cache stats:', error);
         return { error: error.message };
     }
 }
@@ -318,10 +306,9 @@ async function clearImageCache() {
             keys.map(key => cache.delete(key))
         );
         
-        console.log('Image cache cleared');
+        // Image cache cleared
         return { success: true };
     } catch (error) {
-        console.error('Error clearing cache:', error);
         return { error: error.message };
     }
 }

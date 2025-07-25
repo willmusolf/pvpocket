@@ -10,6 +10,7 @@ from flask_talisman import Talisman
 import logging
 from functools import wraps
 import time
+import os
 from typing import Dict, Any, Optional
 
 
@@ -56,24 +57,26 @@ class SecurityManager:
             # Development CSP - more permissive
             csp = {
                 'default-src': "'self' 'unsafe-inline' 'unsafe-eval'",
-                'script-src': "'self' 'unsafe-inline' 'unsafe-eval' https://cdn.pvpocket.xyz https://cdnjs.cloudflare.com",
+                'script-src': "'self' 'unsafe-inline' 'unsafe-eval' https://cdn.pvpocket.xyz https://cdnjs.cloudflare.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://www.google.com https://www.gstatic.com",
                 'style-src': "'self' 'unsafe-inline' https://cdn.pvpocket.xyz https://fonts.googleapis.com https://cdnjs.cloudflare.com",
                 'img-src': "'self' data: https: blob: http:",
                 'font-src': "'self' https://fonts.gstatic.com https://cdn.pvpocket.xyz https://cdnjs.cloudflare.com",
-                'connect-src': "'self' https://api.github.com https://pvpocket.xyz ws: wss:",
+                'connect-src': "'self' https://api.github.com https://pvpocket.xyz ws: wss: https://ep1.adtrafficquality.google https://googleads.g.doubleclick.net https://pagead2.googlesyndication.com https://tpc.googlesyndication.com https://www.google.com https://www.gstatic.com https://adnxs.com https://adsystem.amazon.com",
+                'frame-src': "'self' https://googleads.g.doubleclick.net https://tpc.googlesyndication.com",
                 'frame-ancestors': "'none'",
                 'base-uri': "'self'",
                 'form-action': "'self'"
             }
         else:
-            # Production CSP - more restrictive
+            # Production CSP - secure but allows necessary external resources
             csp = {
                 'default-src': "'self'",
-                'script-src': "'self' 'unsafe-inline' https://cdn.pvpocket.xyz",
-                'style-src': "'self' 'unsafe-inline' https://cdn.pvpocket.xyz https://fonts.googleapis.com",
+                'script-src': "'self' 'unsafe-inline' 'unsafe-eval' https://cdn.pvpocket.xyz https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://www.google.com https://www.gstatic.com",
+                'style-src': "'self' 'unsafe-inline' https://cdn.pvpocket.xyz https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com",
                 'img-src': "'self' data: https: blob:",
-                'font-src': "'self' https://fonts.gstatic.com https://cdn.pvpocket.xyz",
-                'connect-src': "'self' https://api.github.com https://pvpocket.xyz",
+                'font-src': "'self' https://fonts.gstatic.com https://cdn.pvpocket.xyz https://cdn.jsdelivr.net https://cdnjs.cloudflare.com",
+                'connect-src': "'self' https://api.github.com https://pvpocket.xyz https://cdn.pvpocket.xyz https://ep1.adtrafficquality.google https://googleads.g.doubleclick.net https://pagead2.googlesyndication.com https://tpc.googlesyndication.com https://www.google.com https://www.gstatic.com https://adnxs.com https://adsystem.amazon.com",
+                'frame-src': "'self' https://googleads.g.doubleclick.net https://tpc.googlesyndication.com",
                 'frame-ancestors': "'none'",
                 'base-uri': "'self'",
                 'form-action': "'self'"
@@ -83,7 +86,9 @@ class SecurityManager:
         if app.config.get('FLASK_ENV') == 'development':
             # Skip Talisman in development to avoid CSS/JS blocking issues
             self.talisman = None
-            print("⚠️ SECURITY: Talisman disabled in development mode")
+            # Only log Talisman warning in main process
+            if os.environ.get('WERKZEUG_RUN_MAIN'):
+                print("⚠️ SECURITY: Talisman disabled in development mode")
         else:
             # Production - full security
             self.talisman = Talisman(
@@ -92,7 +97,8 @@ class SecurityManager:
                 strict_transport_security=True,
                 strict_transport_security_max_age=31536000,
                 content_security_policy=csp,
-                content_security_policy_nonce_in=['script-src', 'style-src'],
+                # Remove nonce for now to avoid inline style conflicts
+                content_security_policy_nonce_in=[],
                 feature_policy={
                     'geolocation': "'none'",
                     'camera': "'none'",
@@ -116,7 +122,9 @@ class SecurityManager:
                 response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
             return response
         
-        print("✅ SECURITY: Rate limiting and security headers configured")
+        # Only log security config in main process
+        if os.environ.get('WERKZEUG_RUN_MAIN'):
+            print("✅ SECURITY: Rate limiting and security headers configured")
     
     def _register_security_handlers(self):
         """Register security-related event handlers."""
