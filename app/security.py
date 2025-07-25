@@ -182,7 +182,7 @@ class SecurityManager:
                 
                 if not api_key or not expected_key or api_key != expected_key:
                     security_logger.warning(
-                        f"Invalid API token attempt from {get_remote_address()}"
+                        f"Invalid API auth attempt from {get_remote_address()}"
                     )
                     return jsonify({'error': 'Invalid or missing API key'}), 401
                 
@@ -199,7 +199,7 @@ class SecurityManager:
             
             if not refresh_key or not expected_key or refresh_key != expected_key:
                 security_logger.warning(
-                    f"Invalid refresh token attempt from {get_remote_address()}"
+                    f"Invalid refresh auth attempt from {get_remote_address()}"
                 )
                 return jsonify({'error': 'Invalid or missing refresh key'}), 401
             

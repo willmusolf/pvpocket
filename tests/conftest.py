@@ -20,20 +20,44 @@ def app():
     os.environ['GCP_PROJECT_ID'] = 'test-project'
     os.environ['FIREBASE_SECRET_NAME'] = 'test-secret'
     
+    # Configure Firebase emulator environment variables
+    os.environ['FIRESTORE_EMULATOR_HOST'] = 'localhost:8080'
+    os.environ['FIREBASE_STORAGE_EMULATOR_HOST'] = 'localhost:9199'
+    
     # Mock Firebase to avoid external dependencies
     with patch('firebase_admin.initialize_app'), \
          patch('firebase_admin.firestore.client') as mock_firestore, \
-         patch('firebase_admin.storage.bucket'):
+         patch('firebase_admin.storage.bucket'), \
+         patch('app.services.CardService.get_full_card_collection') as mock_card_service:
         
-        # Configure mock Firestore
+        # Configure mock Firestore with better defaults
         mock_db = Mock()
+        # Mock collection() method to return empty collections by default
+        mock_collection = Mock()
+        mock_collection.stream.return_value = []  # Empty collection
+        mock_db.collection.return_value = mock_collection
         mock_firestore.return_value = mock_db
+        
+        # Mock card service to provide test data
+        from Card import CardCollection, Card
+        test_collection = CardCollection()
+        test_card = Card(
+            id=1,
+            name="Test Card",
+            energy_type="Fire",
+            set_name="Test Set",
+            hp=100
+        )
+        test_collection.add_card(test_card)
+        mock_card_service.return_value = test_collection
         
         app = create_app('testing')
         app.config.update({
             'TESTING': True,
             'WTF_CSRF_ENABLED': False,
-            'FIRESTORE_DB': mock_db
+            'FIRESTORE_DB': mock_db,
+            'SECRET_KEY': 'test-secret-key-for-pytest',
+            'REFRESH_SECRET_KEY': 'test-refresh-key'
         })
         
         return app
