@@ -17,7 +17,7 @@ def get_secret(project_id: str, secret_name: str, version: str = "latest") -> st
     
     try:
         response = client.access_secret_version(request={"name": name})
-        return response.payload.data.decode("UTF-8")
+        return response.payload.data.decode("UTF-8").strip()
     except Exception as e:
         print(f"Error accessing secret {secret_name}: {e}")
         sys.exit(1)

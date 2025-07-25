@@ -19,6 +19,7 @@ from google.api_core.exceptions import (
 )
 import threading
 import queue
+import os
 
 
 class FirestoreConnectionPool:
@@ -112,6 +113,13 @@ def retry_on_error(max_retries: int = 3, base_delay: float = 1.0, max_delay: flo
                         # Log retry exhaustion only in debug mode
                         if hasattr(current_app, 'debug') and current_app.debug:
                             print(f"Max retries ({max_retries}) exceeded for {func.__name__}: {e}")
+                        # Alert on critical database failures after all retries exhausted
+                        if os.environ.get('FLASK_ENV') == 'production':
+                            try:
+                                from .alerts import alert_database_failure
+                                alert_database_failure(f"Database operation failed after {max_retries} retries: {func.__name__} - {type(e).__name__}: {str(e)}")
+                            except:
+                                pass
                         raise e
                     
                     # Exponential backoff with jitter

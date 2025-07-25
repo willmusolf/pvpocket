@@ -13,6 +13,7 @@ from urllib.parse import urlparse, urljoin
 from datetime import datetime, timezone  # For Firestore Timestamps
 import uuid
 import re
+import os
 
 from flask_login import (
     login_user,
@@ -184,6 +185,13 @@ def google_authorized(blueprint, token):
     db = current_app.config.get("FIRESTORE_DB")
     if not db:
         current_app.logger.error("[AUTH_FIRESTORE] CRITICAL: Firestore client not available!")
+        # Alert only in production for critical database failure during authentication
+        if os.environ.get('FLASK_ENV') == 'production':
+            try:
+                from ..alerts import alert_authentication_failure
+                alert_authentication_failure("Firestore client not available during Google OAuth login")
+            except:
+                pass
         session["display_toast_once"] = {
             "message": "Database service unavailable. Please try again later.",
             "type": "error",

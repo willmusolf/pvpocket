@@ -14,7 +14,7 @@ def get_auth_token():
         client = secretmanager.SecretManagerServiceClient()
         name = f"projects/pvpocket-dd286/secrets/task-auth-token/versions/latest"
         response = client.access_secret_version(request={"name": name})
-        return response.payload.data.decode("UTF-8")
+        return response.payload.data.decode("UTF-8").strip()
     except Exception as e:
         print(f"❌ Failed to get auth token: {e}")
         return None
@@ -28,6 +28,7 @@ def test_production_alerts():
     if not auth_token:
         print("❌ Cannot get auth token. Make sure you're authenticated with gcloud.")
         return
+    
     
     # Test alert endpoint
     url = "https://pvpocket.xyz/internal/test-alert"
@@ -43,8 +44,7 @@ def test_production_alerts():
         if response.status_code == 200:
             result = response.json()
             print(f"✅ {result['message']}")
-            print("📧 Check your email for the detailed alert")
-            print("📱 Check your phone for the SMS alert")
+            print("📧 Check your email for the alert!")
         else:
             print(f"❌ Test failed: {response.status_code}")
             print(f"Response: {response.text}")
