@@ -1113,7 +1113,7 @@
         window.friendDeckScrollObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting && hasMoreDecks && !isLoading) {
-                    console.log('Loading next page of friend decks...');
+                    // Loading next page of friend decks
                     
                     // Show loading spinner
                     const spinner = scrollSentinel.querySelector('.spinner-border');
@@ -1124,13 +1124,12 @@
                     loadDecksPage(currentPage + 1, true).then(() => {
                         // Hide loading spinner after load
                         spinner.style.display = 'none';
-                        text.textContent = hasMoreDecks ? 'Scroll for more decks' : 'All decks loaded';
                         
-                        // Hide the entire indicator if no more decks
+                        // Hide the entire indicator immediately if no more decks
                         if (!hasMoreDecks) {
-                            setTimeout(() => {
-                                scrollSentinel.style.display = 'none';
-                            }, 2000);
+                            scrollSentinel.style.display = 'none';
+                        } else {
+                            text.textContent = 'Scroll for more decks';
                         }
                     }).catch(() => {
                         // Hide spinner on error
@@ -1146,7 +1145,22 @@
         window.friendDeckScrollObserver.observe(scrollSentinel);
     }
 
+    function syncEnergyIconsWithFilters() {
+        // Ensure energy icon visual state matches the filter state
+        document.querySelectorAll('.filter-bar .energy-icon-wrapper').forEach(icon => {
+            const energyType = icon.dataset.type;
+            if (activeFilters.energyTypes.includes(energyType)) {
+                icon.classList.add('active');
+            } else {
+                icon.classList.remove('active');
+            }
+        });
+    }
+    
     function applyFilters() {
+        // Sync UI state before filtering to ensure consistency
+        syncEnergyIconsWithFilters();
+        
         const searchText = activeFilters.searchText.toLowerCase().trim();
         const selectedEnergies = activeFilters.energyTypes;
         let visibleCount = 0;
@@ -1232,92 +1246,39 @@
             debouncedApplyFilters();
         });
 
+        // Create a debounced version of applyFilters for energy filters (same as decks.html)
+        const debouncedEnergyFilter = debounce(() => {
+            applyFilters();
+        }, 300); // Match decks.html debounce timing
+        
         document.querySelectorAll('.filter-bar .energy-icon-wrapper').forEach(icon => {
-            let isProcessing = false;
-            let touchHandled = false;
             const energyType = icon.dataset.type;
             
-            // Handle energy filter toggle with proper debouncing
-            const handleEnergyToggle = (e, eventType = 'click') => {
+            // Use pointerdown for instant response (works for both touch and mouse)
+            icon.addEventListener('pointerdown', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 
-                // Prevent rapid successive interactions
-                if (isProcessing) {
-                    return;
-                }
-                
-                isProcessing = true;
                 const isCurrentlyActive = icon.classList.contains('active');
                 
-                // Determine the target state
-                let willBeActive = false;
                 if (isCurrentlyActive) {
-                    // Will be deactivated
+                    // Remove from filters and deactivate immediately
                     activeFilters.energyTypes = activeFilters.energyTypes.filter(e => e !== energyType);
-                    willBeActive = false;
+                    icon.classList.remove('active');
                 } else if (activeFilters.energyTypes.length < 3) {
-                    // Will be activated
+                    // Add to filters and activate immediately
                     activeFilters.energyTypes.push(energyType);
-                    willBeActive = true;
+                    icon.classList.add('active');
                 } else {
-                    // Cannot add - already have 3 filters
-                    isProcessing = false;
-                    return;
-                }
-                
-                // Add processing class for immediate feedback
-                icon.classList.add('processing');
-                
-                // Apply filters and update final state
-                setTimeout(() => {
-                    applyFilters();
-                    
-                    // Apply final visual state
-                    if (willBeActive) {
-                        icon.classList.add('active');
-                    } else {
-                        icon.classList.remove('active');
+                    // Cannot add more than 3 filters
+                    if (window.showGlobalToast) {
+                        window.showGlobalToast("You can only select up to 3 energy types", "default");
                     }
-                    
-                    // Clean up processing state
-                    icon.classList.remove('processing');
-                    isProcessing = false;
-                }, 100); // Small delay to show processing animation
-            };
-            
-            // Click handler for desktop/mouse interactions
-            icon.addEventListener('click', (e) => {
-                // Prevent click if touch was recently handled
-                if (touchHandled) {
-                    touchHandled = false;
                     return;
                 }
-                handleEnergyToggle(e, 'click');
-            });
-            
-            // Touch handlers for mobile devices
-            icon.addEventListener('touchstart', (e) => {
-                if (!isProcessing) {
-                    icon.style.transform = 'scale(0.95)';
-                }
-            });
-            
-            icon.addEventListener('touchend', (e) => {
-                icon.style.transform = '';
                 
-                if (!isProcessing) {
-                    touchHandled = true;
-                    handleEnergyToggle(e, 'touch');
-                    
-                    setTimeout(() => {
-                        touchHandled = false;
-                    }, 300);
-                }
-            });
-            
-            icon.addEventListener('touchcancel', (e) => {
-                icon.style.transform = '';
+                // Use debounced filter to batch rapid clicks
+                debouncedEnergyFilter();
             });
         });
     }

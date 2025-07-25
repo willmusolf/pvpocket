@@ -23,7 +23,9 @@ def initialize_firebase():
                 )
 
             if project_id and secret_name:
-                print("Initializing Firebase from Secret Manager...")
+                # Only log Firebase initialization in development
+                if os.environ.get('FLASK_DEBUG') == '1' or os.environ.get('FLASK_CONFIG') == 'development':
+                    print("Initializing Firebase from Secret Manager...")
                 client = secretmanager.SecretManagerServiceClient()
                 name = f"projects/{project_id}/secrets/{secret_name}/versions/latest"
                 response = client.access_secret_version(request={"name": name})
@@ -32,11 +34,16 @@ def initialize_firebase():
                 cred = credentials.Certificate(cred_dict)
                 firebase_admin.initialize_app(cred, {"storageBucket": bucket_name})
             else:
-                print("Initializing Firebase with Application Default Credentials...")
+                # Only log Firebase initialization in development
+                if os.environ.get('FLASK_DEBUG') == '1' or os.environ.get('FLASK_CONFIG') == 'development':
+                    print("Initializing Firebase with Application Default Credentials...")
                 firebase_admin.initialize_app(options={"storageBucket": bucket_name})
 
-            print("Firebase initialized successfully.")
+            # Only log success in development
+            if os.environ.get('FLASK_DEBUG') == '1' or os.environ.get('FLASK_CONFIG') == 'development':
+                print("Firebase initialized successfully.")
         except Exception as e:
+            # Always log critical Firebase errors
             print(f"CRITICAL ERROR: Failed to initialize Firebase Admin SDK: {e}")
             exit(1)
 
@@ -48,21 +55,31 @@ def trigger_cache_refresh():
     refresh_key = os.getenv("REFRESH_SECRET_KEY")
 
     if not base_url or not refresh_key:
-        print(
-            "ERROR: WEBSITE_URL or REFRESH_SECRET_KEY not set. Cannot trigger refresh."
-        )
+        # Only log in development
+        if os.environ.get('FLASK_DEBUG') == '1' or os.environ.get('FLASK_CONFIG') == 'development':
+            print(
+                "ERROR: WEBSITE_URL or REFRESH_SECRET_KEY not set. Cannot trigger refresh."
+            )
         return
 
     refresh_url = f"{base_url}/api/refresh-cards"
     headers = {"X-Refresh-Key": refresh_key}
-    print(f"Triggering cache refresh at {refresh_url}...")
+    # Only log cache refresh in development
+    if os.environ.get('FLASK_DEBUG') == '1' or os.environ.get('FLASK_CONFIG') == 'development':
+        print(f"Triggering cache refresh at {refresh_url}...")
     try:
         response = requests.post(refresh_url, headers=headers, timeout=60)
         if response.status_code == 200:
-            print(f"SUCCESS: Cache refresh triggered: {response.json()}")
+            # Only log success in development
+            if os.environ.get('FLASK_DEBUG') == '1' or os.environ.get('FLASK_CONFIG') == 'development':
+                print(f"SUCCESS: Cache refresh triggered: {response.json()}")
         else:
-            print(
-                f"ERROR: Cache refresh failed. Status: {response.status_code}, Text: {response.text}"
-            )
+            # Only log errors in development
+            if os.environ.get('FLASK_DEBUG') == '1' or os.environ.get('FLASK_CONFIG') == 'development':
+                print(
+                    f"ERROR: Cache refresh failed. Status: {response.status_code}, Text: {response.text}"
+                )
     except requests.exceptions.RequestException as e:
-        print(f"CRITICAL ERROR: Could not connect to refresh cache: {e}")
+        # Only log connection errors in development
+        if os.environ.get('FLASK_DEBUG') == '1' or os.environ.get('FLASK_CONFIG') == 'development':
+            print(f"CRITICAL ERROR: Could not connect to refresh cache: {e}")

@@ -3,34 +3,6 @@
  * This ensures all images load from the CDN for better performance and CORS compliance
  */
 
-console.log('Image Utils: Script loaded successfully');
-
-// Temporary debugging function to check what card data looks like
-window.debugCardData = function() {
-    console.log('=== CARD DATA DEBUG ===');
-    console.log('window.allCards exists:', !!window.allCards);
-    console.log('window.allCards length:', window.allCards ? window.allCards.length : 'N/A');
-    
-    // Try to find cards in different places
-    const cardElements = document.querySelectorAll('[data-src]');
-    console.log('Found elements with data-src:', cardElements.length);
-    
-    if (cardElements.length > 0) {
-        const firstElement = cardElements[0];
-        console.log('First element data-src:', firstElement.getAttribute('data-src'));
-        console.log('First element data-original-src:', firstElement.getAttribute('data-original-src'));
-    }
-    
-    if (window.allCards && window.allCards.length > 0) {
-        const sampleCard = window.allCards[0];
-        console.log('Sample card object:', sampleCard);
-        console.log('Sample card display_image_path:', sampleCard.display_image_path);
-        console.log('Sample card firebase_image_url:', sampleCard.firebase_image_url);
-        console.log('Sample card original_image_url:', sampleCard.original_image_url);
-    }
-    console.log('=== END DEBUG ===');
-};
-
 // Image URL helper - convert Firebase Storage URLs to CDN URLs
 function getImageUrl(originalUrl) {
     if (!originalUrl) return '';

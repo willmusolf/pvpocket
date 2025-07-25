@@ -24,6 +24,7 @@
         align-items: center;
         gap: 1rem;
         transition: all 0.2s ease-out;
+        padding-right: 2px; /* Add 2px right padding for even spacing */
     }
 
     .search-section {
@@ -54,7 +55,7 @@
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
-        justify-content: flex-start;
+        justify-content: center;
         padding: 0;
         overflow: visible;
     }
@@ -368,7 +369,7 @@
         }
         
         .filter-bar .energy-icons {
-            justify-content: flex-start; /* Align to start instead of center */
+            justify-content: center; /* Keep centered on mobile */
             gap: 4px; /* Reduce gap for tighter spacing */
         }
         
@@ -399,6 +400,29 @@
             width: 25px;
             height: 25px;
         }
+    }
+
+    /* Fix privacy filter dropdown positioning - align right on all screen sizes */
+    #privacyFilterDropdown + .dropdown-menu {
+        right: 0 !important;
+        left: auto !important;
+        transform: translate3d(0px, 40px, 0px) !important;
+        text-align: right !important;
+        min-width: auto !important;
+        width: auto !important;
+        max-width: 120px !important;
+    }
+    
+    /* Right-align dropdown items text */
+    #privacyFilterDropdown + .dropdown-menu .dropdown-item {
+        text-align: right !important;
+        direction: rtl;
+    }
+    
+    /* Active dropdown item styling - same as decks.html */
+    .dropdown-menu .dropdown-item.active {
+        background-color: #0d6efd;
+        color: #ffffff;
     }
 
     /* Media Queries for column count and sizing */
@@ -485,7 +509,7 @@
         opacity: 1;
     }
     
-    @media (hover: none) and (pointer: coarse) {
+    @media (hover: none) {
         /* Mobile touch optimizations */
         .filter-bar .energy-icon-wrapper {
             width: 29px !important;
@@ -514,17 +538,88 @@
             padding: 0.5rem 0.75rem;
         }
 
-        /* Remove hover effects on dropdown buttons */
+        /* Remove ALL effects on dropdown buttons including pressed/selected states */
         .deck-actions-dropdown .dropdown-toggle:hover,
-        .deck-actions-dropdown .dropdown-toggle:active {
+        .deck-actions-dropdown .dropdown-toggle:active,
+        .deck-actions-dropdown .dropdown-toggle:focus,
+        .deck-actions-dropdown .dropdown-toggle[aria-expanded="true"],
+        .deck-actions-dropdown .dropdown-toggle.show {
             background-color: transparent !important;
             color: var(--bs-secondary-color) !important;
+            transform: none !important;
+            box-shadow: none !important;
+            border-color: transparent !important;
         }
 
         /* Dark mode compatibility */
         [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle:hover,
-        [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle:active {
+        [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle:active,
+        [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle:focus,
+        [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle[aria-expanded="true"],
+        [data-theme="dark"] .deck-actions-dropdown .dropdown-toggle.show {
             color: var(--bs-gray-500) !important;
+            background-color: transparent !important;
+            transform: none !important;
+            box-shadow: none !important;
+            border-color: transparent !important;
+        }
+
+        /* Remove ALL effects on filter dropdown buttons including pressed/selected states */
+        .btn-outline-secondary.dropdown-toggle:hover,
+        .btn-outline-secondary.dropdown-toggle:active,
+        .btn-outline-secondary.dropdown-toggle:focus,
+        .btn-outline-secondary.dropdown-toggle[aria-expanded="true"],
+        .btn-outline-secondary.dropdown-toggle.show {
+            background-color: transparent !important;
+            border-color: var(--border-color) !important;
+            color: var(--text-color) !important;
+            outline: none !important;
+            box-shadow: none !important;
+            transform: none !important;
+        }
+
+        /* Dark mode compatibility for filter dropdowns (mobile only) */
+        [data-theme="dark"] .btn-outline-secondary.dropdown-toggle:hover,
+        [data-theme="dark"] .btn-outline-secondary.dropdown-toggle:active,
+        [data-theme="dark"] .btn-outline-secondary.dropdown-toggle:focus,
+        [data-theme="dark"] .btn-outline-secondary.dropdown-toggle[aria-expanded="true"],
+        [data-theme="dark"] .btn-outline-secondary.dropdown-toggle.show {
+            background-color: transparent !important;
+            border-color: var(--border-color) !important;
+            color: var(--text-color) !important;
+            outline: none !important;
+            box-shadow: none !important;
+            transform: none !important;
+        }
+
+        /* Remove all mobile click effects on dropdown buttons */
+        .btn-outline-secondary.dropdown-toggle {
+            -webkit-tap-highlight-color: transparent !important;
+            -webkit-touch-callout: none !important;
+            -webkit-user-select: none !important;
+            -moz-user-select: none !important;
+            -ms-user-select: none !important;
+            user-select: none !important;
+            transition: none !important;
+            transform: none !important;
+            animation: none !important;
+        }
+
+        /* Prevent any transform effects on mobile taps */
+        .btn-outline-secondary.dropdown-toggle:active,
+        .btn-outline-secondary.dropdown-toggle.active,
+        .btn-outline-secondary.dropdown-toggle:focus {
+            transform: none !important;
+            animation: none !important;
+            transition: none !important;
+            box-shadow: none !important;
+            outline: none !important;
+        }
+
+        /* Remove webkit button styling on mobile */
+        .btn-outline-secondary.dropdown-toggle::-moz-focus-inner {
+            border: 0 !important;
+            padding: 0 !important;
         }
         
         /* Better search input touch target */
@@ -538,6 +633,42 @@
         .dropdown-section .btn,
         .filter-bar .form-control {
             -webkit-tap-highlight-color: rgba(var(--bs-primary-rgb), 0.2);
+        }
+        
+        /* Remove ALL dropdown menu item hover effects on mobile */
+        .dropdown-menu .dropdown-item:hover,
+        .dropdown-menu .dropdown-item:focus,
+        .dropdown-menu .dropdown-item:active {
+            background-color: transparent !important;
+            color: inherit !important;
+            transform: none !important;
+        }
+        
+        [data-theme="dark"] .dropdown-menu .dropdown-item:hover,
+        [data-theme="dark"] .dropdown-menu .dropdown-item:focus,
+        [data-theme="dark"] .dropdown-menu .dropdown-item:active {
+            background-color: transparent !important;
+            color: inherit !important;
+            transform: none !important;
+        }
+        
+        /* Remove ALL effects from privacy filter dropdown button */
+        #privacyFilterDropdown {
+            -webkit-tap-highlight-color: transparent !important;
+        }
+        
+        #privacyFilterDropdown:hover,
+        #privacyFilterDropdown:active,
+        #privacyFilterDropdown:focus,
+        #privacyFilterDropdown[aria-expanded="true"],
+        #privacyFilterDropdown.show {
+            background-color: transparent !important;
+            border-color: var(--bs-secondary) !important;
+            color: var(--bs-secondary) !important;
+            box-shadow: none !important;
+            transform: none !important;
+            filter: none !important;
+            opacity: 1 !important;
         }
     }
 
@@ -653,7 +784,7 @@
 </style>
 
 <div class="collection-main-content">
-    <script id="page-data" type="application/json">{{ page_data | tojson | safe }}</script>
+    <script id="page-data" type="application/json">{{ page_data | tojson }}</script>
     <div class="row">
         <div class="col-12 mb-4">
             <div class="card">
@@ -678,7 +809,7 @@
                                         All Decks
                                     </button>
                                     <ul class="dropdown-menu">
-                                        <li><a class="dropdown-item" href="#" data-filter="all">All Decks</a></li>
+                                        <li><a class="dropdown-item active" href="#" data-filter="all">All Decks</a></li>
                                         <li><a class="dropdown-item" href="#" data-filter="public">Public Only</a></li>
                                         <li><a class="dropdown-item" href="#" data-filter="private">Private Only</a></li>
                                     </ul>
@@ -908,16 +1039,16 @@
     }
 
     async function loadDecksPage(page = 1, append = false, isInitialLoad = false) {
-        console.log(`📄 loadDecksPage called: page=${page}, append=${append}, isInitialLoad=${isInitialLoad}, isLoading=${isLoading}`);
+        // loadDecksPage called
         
         if (isLoading) {
-            console.log('⏸️ loadDecksPage: Already loading, returning');
+            // loadDecksPage: Already loading, returning
             return Promise.resolve();
         }
         
         isLoading = true;
         const decksContainer = document.getElementById('decks-container');
-        console.log(`📦 decksContainer found: ${!!decksContainer}`);
+        // decksContainer found
         
         if (!append) {
             // Only show skeleton cards for initial load, not for search/filter operations
@@ -1002,7 +1133,7 @@
                 if (hasMoreDecks) {
                     setupInfiniteScroll();
                 } else {
-                    // No more decks - clean up any existing sentinel
+                    // No more decks - clean up any existing sentinel immediately
                     const existingSentinel = document.getElementById('deck-scroll-sentinel');
                     if (existingSentinel) {
                         existingSentinel.remove();
@@ -1018,10 +1149,10 @@
                 // Initialize image lazy loading and filters
                 initializeImageLazyLoader();
                 if (!append) {
-                    console.log('🔧 Setting up filter listeners (fresh load)...');
+                    // Setting up filter listeners (fresh load)
                     setupFilterListeners();
                 } else {
-                    console.log('🔄 Appended more decks, NOT setting up filter listeners again');
+                    // Appended more decks, NOT setting up filter listeners again
                 }
                 
                 // Initialize tooltips for new elements
@@ -1117,7 +1248,7 @@
                             const currentText = currentScrollSentinel.querySelector('.load-more-text');
                             
                             if (!window.hasMoreDecks) {
-                                // No more decks - remove the entire sentinel and clean up observer
+                                // No more decks - remove the entire sentinel and clean up observer immediately
                                 currentScrollSentinel.remove();
                                 if (window.deckScrollObserver) {
                                     window.deckScrollObserver.disconnect();
@@ -1158,20 +1289,36 @@
         window.deckScrollObserver.observe(scrollSentinel);
     }
 
+    function syncEnergyIconsWithFilters() {
+        // Ensure energy icon visual state matches the filter state
+        document.querySelectorAll('.filter-bar .energy-icon-wrapper').forEach(icon => {
+            const energyType = icon.dataset.type;
+            if (activeFilters.energyTypes.includes(energyType)) {
+                icon.classList.add('active');
+            } else {
+                icon.classList.remove('active');
+            }
+        });
+    }
+    
     function triggerSearch() {
-        console.log('🔍 triggerSearch() called');
-        console.log('📊 Current filters:', {
+        // triggerSearch() called
+        // Current filters
+        console.log('Searching with filters:', {
             searchText: activeFilters.searchText,
             energyTypes: activeFilters.energyTypes,
             privacyFilter: activeFilters.privacyFilter
         });
+        
+        // Sync UI state before search to ensure consistency
+        syncEnergyIconsWithFilters();
         
         // Reset pagination for new search
         currentPage = 1;
         hasMoreDecks = true;
         
         // Load first page with current filters and return the promise
-        console.log('🔄 Calling loadDecksPage(1, false)...');
+        // Calling loadDecksPage(1, false)
         return loadDecksPage(1, false);
     }
 
@@ -1205,11 +1352,11 @@
     }
 
     function setupFilterListeners() {
-        console.log('🎛️ Setting up filter listeners');
+        // Setting up filter listeners
         
         // Check if listeners are already set up
         if (window.filterListenersSetup) {
-            console.log('⚠️ Filter listeners already setup, skipping...');
+            // Filter listeners already setup, skipping
             return;
         }
         
@@ -1249,6 +1396,14 @@
                     const dropdownButton = document.getElementById('privacyFilterDropdown');
                     dropdownButton.textContent = e.target.textContent;
                     
+                    // Remove active class from all items
+                    document.querySelectorAll('#privacyFilterDropdown + .dropdown-menu .dropdown-item').forEach(dropdownItem => {
+                        dropdownItem.classList.remove('active');
+                    });
+                    
+                    // Add active class to clicked item
+                    e.target.classList.add('active');
+                    
                     triggerSearch();
                 }
                 
@@ -1260,6 +1415,11 @@
             });
         });
 
+        // Create a debounced version of triggerSearch for energy filters (same as decks.html)
+        const debouncedEnergySearch = debounce(() => {
+            triggerSearch();
+        }, 300); // Match decks.html debounce timing
+        
         document.querySelectorAll('.filter-bar .energy-icon-wrapper').forEach(icon => {
             const energyType = icon.dataset.type;
             
@@ -1280,31 +1440,34 @@
                     icon.classList.add('active');
                 } else {
                     // Cannot add more than 3 filters
+                    if (window.showGlobalToast) {
+                        window.showGlobalToast("You can only select up to 3 energy types", "default");
+                    }
                     return;
                 }
                 
-                // Trigger search without any visual processing state
-                triggerSearch();
+                // Use debounced search to batch rapid clicks (matches decks.html pattern)
+                debouncedEnergySearch();
             });
         });
     }
 
     // Global debugging function to check filter state
     window.debugFilterState = function() {
-        console.log('=== FILTER DEBUG STATE ===');
-        console.log('filterListenersSetup:', window.filterListenersSetup);
-        console.log('activeFilters:', activeFilters);
+        // === FILTER DEBUG STATE ===
+        // filterListenersSetup status
+        // activeFilters status
         
         const energyIcons = document.querySelectorAll('.filter-bar .energy-icon-wrapper');
-        console.log(`Found ${energyIcons.length} energy icons in DOM`);
+        // Found energy icons in DOM
         
         energyIcons.forEach((icon, index) => {
             const type = icon.dataset.type;
             const isActive = icon.classList.contains('active');
             const isProcessing = icon.classList.contains('processing');
-            console.log(`  ${index + 1}. ${type}: active=${isActive}, processing=${isProcessing}`);
+            // Energy icon status
         });
-        console.log('=== END DEBUG ===');
+        // === END DEBUG ===
     };
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -1421,7 +1584,7 @@
         
         async function updateDeckPrivacy(deckId, deckName, description) {
             try {
-                const response = await fetch(`{{ url_for('friends.toggle_deck_privacy', deck_id='DECK_ID') }}`.replace('DECK_ID', deckId), {
+                const response = await fetch(`/api/decks/${deckId}/privacy`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({description: description})

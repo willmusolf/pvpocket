@@ -24,7 +24,7 @@ class ClientCache {
             this.storage.setItem(this.cachePrefix + key, JSON.stringify(item));
             return true;
         } catch (e) {
-            console.error('Cache set error:', e);
+            // Cache set error (silent in production)
             // Handle quota exceeded
             if (e.name === 'QuotaExceededError') {
                 this.cleanup();
@@ -56,7 +56,7 @@ class ClientCache {
 
             return parsed.value;
         } catch (e) {
-            console.error('Cache get error:', e);
+            // Cache get error (silent in production)
             return null;
         }
     }
@@ -70,12 +70,10 @@ class ClientCache {
         // Try cache first
         const cached = this.get(cacheKey);
         if (cached) {
-            console.log('✅ Client cache hit:', url);
             return cached;
         }
 
         // Fetch from server
-        console.log('⚠️ Client cache miss:', url);
         try {
             const response = await fetch(url, options);
             const data = await response.json();
@@ -87,7 +85,7 @@ class ClientCache {
             
             return data;
         } catch (error) {
-            console.error('Fetch error:', error);
+            // Fetch error (silent in production)
             throw error;
         }
     }
@@ -109,7 +107,7 @@ class ClientCache {
         });
         
         this.set('cards_chunk_count', chunks.length, 86400000);
-        console.log(`✅ Cached ${cards.length} cards in ${chunks.length} chunks`);
+        // Cached cards successfully
     }
 
     /**
@@ -126,7 +124,7 @@ class ClientCache {
             cards.push(...chunk);
         }
 
-        console.log(`✅ Retrieved ${cards.length} cards from client cache`);
+        // Retrieved cards from client cache
         return cards;
     }
 
@@ -153,7 +151,7 @@ class ClientCache {
             }
         });
 
-        console.log(`🧹 Cleaned up ${removed} expired cache items`);
+        // Cleaned up expired cache items
     }
 
     /**
@@ -166,7 +164,7 @@ class ClientCache {
                 this.storage.removeItem(key);
             }
         });
-        console.log('🗑️ Client cache cleared');
+        // Client cache cleared
     }
 
     /**

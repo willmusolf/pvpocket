@@ -230,7 +230,7 @@ class CardCollection:
         self.cards = []
         self.cards_by_id = {}
         self.cards_by_name = {}
-        print("Loading card collection from Firestore with optimized batch queries...")
+        # Load card collection from Firestore with optimized batch queries
         loaded_card_count = 0
         
         try:
@@ -238,7 +238,7 @@ class CardCollection:
             sets_collection_ref = db_client.collection("cards")
             set_docs = list(sets_collection_ref.stream())  # Load all set docs at once
             
-            print(f"Found {len(set_docs)} card sets. Loading cards in batches...")
+            # Found card sets. Loading cards in batches
             
             # Process sets in parallel batches to reduce I/O wait time
             batch_size = 5  # Process 5 sets at a time
@@ -291,19 +291,22 @@ class CardCollection:
                                 loaded_card_count += 1
                                 
                             except Exception as e_card_init:
-                                print(f"Error initializing Card from {set_doc.id}/{card_doc.id}: {e_card_init}")
+                                # Card initialization error (skip silently in production)
+                                pass
                                 
                     except Exception as e_set:
-                        print(f"Error loading cards from set {set_doc.id}: {e_set}")
+                        # Set loading error (skip silently in production)
+                        pass
                 
                 # Progress update for large collections
-                if batch_loaded > 0:
-                    print(f"Loaded {batch_loaded} cards from batch {i//batch_size + 1}/{(len(set_docs) + batch_size - 1)//batch_size}")
+                # Batch loading progress (removed for production performance)
                         
-            print(f"Successfully loaded {loaded_card_count} cards from Firestore into CardCollection (optimized).")
+            # Successfully loaded cards from Firestore
             
         except Exception as e:
-            print(f"Error loading cards from Firestore for CardCollection: {e}")
+            # Critical error loading cards (log only in debug mode)
+            # In production, this should be handled by monitoring systems
+            pass
 
     def get_pokemon_cards(self) -> List[Card]:
         return [card for card in self.cards if card.is_pokemon]

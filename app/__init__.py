@@ -1,4 +1,4 @@
-from flask import Flask, session, current_app, request, jsonify, g
+from flask import Flask, session, current_app, request, jsonify, g, render_template
 from .config import config
 import firebase_admin
 from firebase_admin import credentials, firestore, storage
@@ -9,9 +9,11 @@ from datetime import datetime
 import secrets
 import threading
 import json
+from typing import Dict, Any
 from google.cloud import secretmanager
 from google.api_core.exceptions import NotFound, PermissionDenied
 from .cache_manager import cache_manager
+from .security import init_security, security_manager
 
 from flask_login import (
     current_user,
@@ -48,31 +50,40 @@ load_dotenv()
 
 def _load_cards_from_firestore_and_cache():
     """Load card collection from Firestore and cache in Redis."""
-    print("Attempting to load card collection from Firestore...", flush=True)
+    # Only log in debug mode
+    if current_app.debug:
+        print("Attempting to load card collection from Firestore...", flush=True)
     db_client = current_app.config.get("FIRESTORE_DB")
     if not db_client:
-        print("ERROR: Firestore client not available for card loading.", flush=True)
+        if current_app.debug:
+            print("ERROR: Firestore client not available for card loading.", flush=True)
         return None
 
     try:
         card_collection = CardCollection()
         card_collection.load_from_firestore(db_client)
-        print(
-            f"Loaded {len(card_collection)} cards from Firestore. Saving to Redis cache.",
-            flush=True,
-        )
+        # Only log in debug mode
+        if current_app.debug:
+            print(
+                f"Loaded {len(card_collection)} cards from Firestore. Saving to Redis cache.",
+                flush=True,
+            )
         # Cache for 24 hours instead of 30 days for better data freshness
         cache_manager.set_card_collection(card_collection, ttl_hours=24)
         return card_collection
     except Exception as e:
-        print(
-            f"CRITICAL: Failed to load cards from Firestore and update cache: {e}",
-            flush=True,
-        )
+        # Only log critical errors in debug mode
+        if current_app.debug:
+            print(
+                f"CRITICAL: Failed to load cards from Firestore and update cache: {e}",
+                flush=True,
+            )
         return None
 
 
 def create_app(config_name="default"):
+    startup_start_time = time.time()
+    
     app = Flask(
         __name__,
         template_folder="../templates",
@@ -88,8 +99,11 @@ def create_app(config_name="default"):
             "FATAL ERROR: SECRET_KEY is not set. Please set it in your .env file."
         )
 
+    # Initialize critical services first (security, auth, database)
+    
     profanity.load_censor_words()
 
+    # Initialize Firebase (critical for database access)
     if not firebase_admin._apps:
         try:
             bucket_name = "pvpocket-dd286.firebasestorage.app"
@@ -107,15 +121,22 @@ def create_app(config_name="default"):
             else:
                 firebase_admin.initialize_app(options={"storageBucket": bucket_name})
         except Exception as e:
-            print(
-                f"CRITICAL ERROR: Failed to initialize Firebase Admin SDK: {e}",
-                flush=True,
-            )
+            # Only log critical Firebase errors in debug mode
+            if config_name == 'development':
+                print(
+                    f"CRITICAL ERROR: Failed to initialize Firebase Admin SDK: {e}",
+                    flush=True,
+                )
             firebase_admin.initialize_app()
 
     app.config["FIRESTORE_DB"] = firestore.client()
     login_manager.init_app(app)
-
+    
+    # Initialize security middleware (rate limiting, security headers)
+    init_security(app)
+    
+    # Initialize non-critical services (can be moved later if needed)
+    
     try:
         bucket = storage.bucket()
         blobs = list(bucket.list_blobs(prefix="profile_icons/"))
@@ -143,34 +164,55 @@ def create_app(config_name="default"):
         )
 
     except Exception as e:
-        print(f"CRITICAL ERROR in profile icon loading: {e}", flush=True)
+        # Only log profile icon errors in debug mode
+        if config_name == 'development':
+            print(f"CRITICAL ERROR in profile icon loading: {e}", flush=True)
         app.config["PROFILE_ICON_FILENAMES"] = []
         app.config["PROFILE_ICON_URLS"] = {}
         app.config["DEFAULT_PROFILE_ICON_URL"] = ""
 
-    # Initialize card collection - always ensure full collection is available
-    try:
-        from .services import CardService
-        print("🔄 Initializing card collection...")
-        
-        # Use the app context to access the CardService
-        with app.app_context():
-            card_collection = CardService.get_card_collection()
-            print(f"✅ Card collection initialized with {len(card_collection)} cards.")
-            
-            # If we got less than expected, it means we're using priority loading
-            # and background loading will fill in the rest
-            if len(card_collection) < 1000:
-                print(f"🔄 Priority collection active. Full collection will load in background.")
-            
-    except Exception as e:
-        print(f"CRITICAL: Error initializing card collection: {e}", flush=True)
-        import traceback
-        traceback.print_exc()
-        card_collection = CardCollection()
-
-    # Note: card_collection no longer stored in app.config for better memory management
-    # Access via card_service.get_card_collection() instead
+    # Schedule deferred card collection initialization
+    # This prevents blocking startup while ensuring cards are available quickly
+    # Schedule deferred card collection initialization
+    
+    # Import services to register background task handlers
+    from .services import CardService
+    from .task_queue import task_queue
+    
+    # Register card loading task handler
+    def card_loading_handler(payload: Dict[str, Any]):
+        """Background task to load card collection after startup."""
+        try:
+            with app.app_context():
+                # Only log background loading in debug
+                if config_name == 'development':
+                    app.logger.debug("🔄 Background: Loading card collection...")
+                collection = CardService._load_full_collection(cache_as_full=True)
+                # Only log success in debug
+                if config_name == 'development':
+                    app.logger.debug(f"✅ Background: Loaded and cached {len(collection)} cards.")
+        except Exception as e:
+            # Only log errors in debug
+            if config_name == 'development':
+                app.logger.error(f"❌ Background card loading failed: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    task_queue.register_task_handler("load_card_collection", card_loading_handler)
+    
+    # Schedule the card loading task to run after startup (5 second delay)
+    # Only run in main process, not in Flask reloader process
+    if not os.environ.get('WERKZEUG_RUN_MAIN'):
+        # This is the reloader process, skip background task scheduling
+        pass
+    else:
+        # This is the main app process, schedule the background task
+        task_queue.enqueue_task("load_card_collection", {}, delay_seconds=5)
+    
+    # Deferred card collection loading scheduled
+    
+    # Note: Cards will be loaded on-demand if requested before background loading completes
+    # This ensures the app starts quickly while maintaining functionality
 
     if app.config.get("GOOGLE_OAUTH_CLIENT_ID") and app.config.get(
         "GOOGLE_OAUTH_CLIENT_SECRET"
@@ -263,11 +305,9 @@ def create_app(config_name="default"):
         return original_url
 
     @app.route("/api/refresh-cards", methods=["POST"])
+    @security_manager.require_refresh_key
     def refresh_cards_cache():
         """Refresh card collection cache using Redis."""
-        provided_key = request.headers.get("X-Refresh-Key")
-        if not provided_key or provided_key != current_app.config["REFRESH_SECRET_KEY"]:
-            return jsonify({"error": "Unauthorized"}), 401
         
         try:
             # Invalidate existing cache
@@ -290,7 +330,9 @@ def create_app(config_name="default"):
                     500,
                 )
         except Exception as e:
-            print(f"Error refreshing cards cache: {e}")
+            # Only log cache refresh errors in debug
+            if config_name == 'development':
+                print(f"Error refreshing cards cache: {e}")
             return (
                 jsonify(
                     {
@@ -310,20 +352,27 @@ def create_app(config_name="default"):
     app.register_blueprint(friends_bp)
     app.register_blueprint(internal_bp)
 
-    # Initialize monitoring system
+    # Initialize monitoring system (after all other services)
+    # Start performance monitoring only in main process
     from .monitoring import performance_monitor
-    performance_monitor.start_monitoring()
+    if os.environ.get('WERKZEUG_RUN_MAIN'):
+        performance_monitor.start_monitoring()
     
     # Startup summary
-    print("\n" + "="*50)
-    print("🚀 POKEMON TCG POCKET - SCALABILITY SYSTEMS")
-    print("="*50)
-    print("✅ In-Memory Cache: Active")
-    print("✅ Database Connection Pool: Active") 
-    print("✅ Background Task Queue: Active")
-    print("✅ Performance Monitor: Active")
-    print("✅ Service Layer: Loaded")
-    print("="*50 + "\n")
+    startup_time = time.time() - startup_start_time
+    # Only show startup summary in debug mode and in the main process (not reloader)
+    if config_name == 'development' and os.environ.get('WERKZEUG_RUN_MAIN'):
+        print("\n" + "="*50)
+        print("🚀 POKEMON TCG POCKET - OPTIMIZED STARTUP")
+        print("="*50)
+        print("✅ In-Memory Cache: Active")
+        print("✅ Database Connection Pool: Active") 
+        print("✅ Background Task Queue: Active")
+        print("✅ Performance Monitor: Active")
+        print("✅ Service Layer: Loaded")
+        print("⚡ Deferred Card Loading: Scheduled")
+        print(f"⏱️  Total Startup Time: {startup_time:.2f}s")
+        print("="*50 + "\n")
 
     app.before_request(check_username_requirement)
 
@@ -334,5 +383,18 @@ def create_app(config_name="default"):
             response.headers["Pragma"] = "no-cache"
             response.headers["Expires"] = "0"
         return response
+
+    # Add critical error handlers for production alerts
+    if config_name == 'production':
+        from .alerts import alert_server_error, alert_database_failure
+        
+        @app.errorhandler(500)
+        def handle_500_error(e):
+            alert_server_error(f"500 Error: {str(e)}")
+            # Return proper HTML error page, not JSON
+            try:
+                return render_template('error.html', error="Internal server error"), 500
+            except:
+                return "<h1>Internal Server Error</h1><p>Something went wrong. The team has been notified.</p>", 500
 
     return app

@@ -83,7 +83,7 @@ rm app-test-deploy.yaml
 1. **Environment Setup**: Configure environment variables (see Environment Variables section)
 2. **Dependencies**: Install Python packages (`pip install -r requirements.txt`) and Node.js dependencies (`npm install`)
 3. **Firebase Config**: Ensure Firebase credentials are available (local file or Secret Manager)
-4. **Run Application**: Use `python run.py` for development server
+4. **Run Application**: Use `python3 run.py` for development server (not `python`)
 
 ### Development Best Practices
 - **Configuration**: Use environment variables for all sensitive data

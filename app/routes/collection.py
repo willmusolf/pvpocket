@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 import uuid
 from typing import Optional
 from Deck import Deck
-from ..services import card_service
+from ..services import card_service, database_service, url_service
 
 from firebase_admin import (
     firestore,
@@ -28,12 +28,8 @@ collection_bp = Blueprint("collection_bp", __name__)
 # --- HELPERS (adapted from your decks.py) ---
 MAX_DECKS_PER_USER = 200
 
-def get_db() -> firestore.client:
-    """Helper to get Firestore DB client from app config."""
-    db = current_app.config.get("FIRESTORE_DB")
-    if not db:
-        raise Exception("Firestore client not available. Check app initialization.")
-    return db
+# Use shared database service instead of local get_db() function
+get_db = database_service.get_db
 
 def _does_deck_name_exist_for_user_firestore(
     user_id: str,
@@ -281,54 +277,9 @@ def get_user_decks_api():
                         try:
                             card_obj = card_collection_obj.get_card_by_id(int(c_id_str))
                             if card_obj:
-                                # Get the correct base URL from the app's central config
-                                base_url = current_app.config['ASSET_BASE_URL']
-                                
-                                # Get the original image path
+                                # Process URL for CDN conversion on server side
                                 image_path = getattr(card_obj, "display_image_path", None)
-                                
-                                if image_path:
-                                    # If the image path is already a CDN URL, use it as-is
-                                    if image_path.startswith('https://cdn.pvpocket.xyz'):
-                                        display_image_url = image_path
-                                    # If it's already a Firebase URL and we're not using CDN, use it as-is 
-                                    elif (image_path.startswith('https://') and 
-                                          not base_url.startswith('https://cdn.pvpocket.xyz')):
-                                        display_image_url = image_path
-                                    # If it's a Firebase URL and we need to convert to CDN
-                                    elif (image_path.startswith('https://') and 
-                                          base_url.startswith('https://cdn.pvpocket.xyz')):
-                                        # Extract relative path from Firebase URLs
-                                        relative_path = None
-                                        if 'firebasestorage.googleapis.com' in image_path and '/o/' in image_path:
-                                            # Extract the path after /o/
-                                            path_part = image_path.split('/o/', 1)[1].split('?')[0]
-                                            # URL decode the path
-                                            from urllib.parse import unquote
-                                            relative_path = unquote(path_part)
-                                        elif 'storage.googleapis.com' in image_path:
-                                            # Extract path from Google Cloud Storage URLs
-                                            if 'pvpocket-dd286.firebasestorage.app/' in image_path:
-                                                relative_path = image_path.split('pvpocket-dd286.firebasestorage.app/', 1)[1]
-                                        
-                                        if relative_path:
-                                            display_image_url = f"{base_url}/{relative_path}"
-                                        else:
-                                            display_image_url = image_path
-                                    # If it's a relative path, build the URL normally
-                                    else:
-                                        if base_url.startswith('https://cdn.pvpocket.xyz'):
-                                            # For CDN, the path is direct and clean
-                                            clean_path = image_path.lstrip('/')
-                                            display_image_url = f"{base_url}/{clean_path}"
-                                        else: 
-                                            # For local development (Firebase), the path needs URL encoding and a suffix
-                                            from urllib.parse import quote
-                                            clean_path = image_path.lstrip('/')
-                                            encoded_path = quote(clean_path, safe='')
-                                            display_image_url = f"{base_url}/{encoded_path}?alt=media"
-                                else:
-                                    display_image_url = image_path
+                                display_image_url = url_service.process_firebase_to_cdn_url(image_path)
                                     
                                 resolved_cover_cards.append(
                                     {

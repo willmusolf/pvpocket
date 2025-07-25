@@ -184,7 +184,9 @@ def test_scalability():
         from ..cache_manager import cache_manager
         from ..db_service import db_service
         
-        print("🧪 TESTING SCALABILITY SYSTEMS")
+        # Only log scalability tests in development
+        if current_app.debug:
+            current_app.logger.debug("🧪 TESTING SCALABILITY SYSTEMS")
         
         results = {
             "cache_status": "❌ Failed",
@@ -196,26 +198,32 @@ def test_scalability():
         # Test cache
         if cache_manager.health_check():
             results["cache_status"] = "✅ Healthy"
-            print("✅ Cache system is working")
+            if current_app.debug:
+                current_app.logger.debug("✅ Cache system is working")
         
         # Test database
         if db_service.health_check():
             results["db_status"] = "✅ Healthy"
-            print("✅ Database system is working")
+            if current_app.debug:
+                current_app.logger.debug("✅ Database system is working")
         
         # Test card service
         try:
             collection = card_service.get_card_collection()
             results["card_service_status"] = "✅ Working"
             results["total_cards"] = len(collection)
-            print(f"✅ Card service loaded {len(collection)} cards")
+            if current_app.debug:
+                current_app.logger.debug(f"✅ Card service loaded {len(collection)} cards")
         except Exception as e:
-            print(f"❌ Card service error: {e}")
+            if current_app.debug:
+                current_app.logger.debug(f"❌ Card service error: {e}")
         
-        print("🧪 SCALABILITY TEST COMPLETE")
+        if current_app.debug:
+            current_app.logger.debug("🧪 SCALABILITY TEST COMPLETE")
         return jsonify(results)
         
     except Exception as e:
-        print(f"❌ TEST ERROR: {e}")
+        if current_app.debug:
+            current_app.logger.debug(f"❌ TEST ERROR: {e}")
         return jsonify({"error": str(e)}), 500
 

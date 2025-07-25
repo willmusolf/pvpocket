@@ -1,13 +1,9 @@
 from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify, current_app, session
-import os
 from Deck import Deck
-import random
-import time
 from .auth import is_logged_in, get_current_user_data, profanity_check
 import uuid
-from ..services import card_service
-
-from flask import Blueprint, jsonify, current_app, request, session  # Existing imports
+from ..services import card_service, database_service, url_service
+from ..security import rate_limit_api, rate_limit_api_paginated, rate_limit_heavy
 from flask_login import (
     current_user as flask_login_current_user,
     login_required,
@@ -21,18 +17,28 @@ import re
 
 decks_bp = Blueprint('decks', __name__)
 
+# Master set release order - used for consistent sorting across the application
+# NOTE: When adding new sets, update this order in ALL locations:
+# 1. This file (3 places: rarity sort, type sort, set sort)
+# 2. templates/decks.html (frontend sorting)
+# 3. app/services.py (PRIORITY_SETS for loading)
+SET_RELEASE_ORDER = {
+    "Eevee Grove": 1,           # Most recent
+    "Extradimensional Crisis": 2,
+    "Celestial Guardians": 3,
+    "Shining Revelry": 4,
+    "Triumphant Light": 5,
+    "Space-Time Smackdown": 6,
+    "Mythical Island": 7,
+    "Genetic Apex": 8,           # Oldest set
+    "Promo-A": 9,               # Special set - ALWAYS appears last regardless of sort direction
+}
+
 MAX_DECKS_PER_USER = 200
 
 
-def get_db() -> firestore.client:
-    """Helper to get Firestore DB client from app config."""
-    db = current_app.config.get("FIRESTORE_DB")
-    if not db:
-        current_app.logger.critical(
-            "Firestore client (FIRESTORE_DB) not available in app config."
-        )
-        raise Exception("Firestore client not available. Check app initialization.")
-    return db
+# Use shared database service instead of local get_db() function
+get_db = database_service.get_db
 
 
 def parse_search_keywords(search_text: str) -> Dict[str, any]:
@@ -88,6 +94,7 @@ def parse_search_keywords(search_text: str) -> Dict[str, any]:
         'rarities': [],
         'set_code': None,
         'exclude_ex': False,
+        'is_shiny_search': False,
         'remaining_text': ''
     }
     
@@ -134,6 +141,9 @@ def parse_search_keywords(search_text: str) -> Dict[str, any]:
         # Check rarity keywords
         elif term in rarity_keywords:
             result['rarities'].extend(rarity_keywords[term])
+            # Mark if this was specifically a "shiny" search for special handling
+            if term == 'shiny':
+                result['is_shiny_search'] = True
             keyword_matched = True
             
         # Check set keywords
@@ -289,6 +299,7 @@ def list_decks():
 
 
 @decks_bp.route("/api/cards", methods=["GET"])
+@rate_limit_api()
 def get_all_cards():
     """API endpoint to get all cards from the pre-loaded CardCollection with optional filtering."""
     # Use get_full_card_collection to ensure all cards are available for search
@@ -395,10 +406,19 @@ def get_all_cards():
 
         # Apply keyword-based rarity filter
         if parsed_keywords['rarities']:
-            filtered_card_objects = [
-                card for card in filtered_card_objects
-                if card.rarity in parsed_keywords['rarities']
-            ]
+            if parsed_keywords.get('is_shiny_search', False):
+                # Special handling for "shiny" searches: include regular shiny cards plus specific Promo-A cards
+                filtered_card_objects = [
+                    card for card in filtered_card_objects
+                    if (card.rarity in parsed_keywords['rarities']) or  
+                       (hasattr(card, 'card_number_str') and card.card_number_str in ['50', '51'] and 
+                        getattr(card, 'set_name', None) == 'Promo-A')
+                ]
+            else:
+                filtered_card_objects = [
+                    card for card in filtered_card_objects
+                    if card.rarity in parsed_keywords['rarities']
+                ]
 
         # Apply keyword-based set filter
         if parsed_keywords['set_code']:
@@ -436,22 +456,10 @@ def get_all_cards():
                 card_obj.to_dict()
             )  # Card.to_dict() should return all necessary fields
             
-            # Addition:
-            # Define the old storage domain and the new CDN domain
-            OLD_STORAGE_BASE_URL = 'https://storage.googleapis.com/pvpocket-dd286.firebasestorage.app'
-            CDN_BASE_URL = 'https://cdn.pvpocket.xyz'
-
-            # Get the original full URL from the card object
-            original_url = card_obj.display_image_path
-
-            # Correctly transform the URL by replacing the domain
-            if original_url and original_url.startswith(OLD_STORAGE_BASE_URL):
-                card_dict['display_image_path'] = original_url.replace(OLD_STORAGE_BASE_URL, CDN_BASE_URL)
-            else:
-                # If the URL is already in the new CDN format or is a relative path, pass it through.
-                # This makes the code robust for the future.
-                card_dict['display_image_path'] = original_url
+            # Process URL for CDN conversion on server side
+            card_dict['display_image_path'] = url_service.process_firebase_to_cdn_url(card_obj.display_image_path)
                 
+            # Generate high-res path from CDN URL
             if card_dict['display_image_path']:
                 card_dict['high_res_image_path'] = card_dict['display_image_path'].replace('/cards/', '/high_res_cards/')
                 
@@ -471,6 +479,7 @@ def get_all_cards():
 
 
 @decks_bp.route("/api/cards/paginated", methods=["GET"])
+@rate_limit_api_paginated()
 def get_cards_paginated():
     """API endpoint to get cards with pagination and server-side filtering."""
     # Use get_full_card_collection to ensure all cards are available for search
@@ -598,10 +607,30 @@ def get_cards_paginated():
 
         # Apply keyword-based rarity filter (takes precedence over URL parameter)
         if parsed_keywords['rarities']:
-            filtered_card_objects = [
-                card for card in filtered_card_objects
-                if card.rarity in parsed_keywords['rarities']
-            ]
+            if parsed_keywords.get('is_shiny_search', False):
+                current_app.logger.info(f"DEBUG: Shiny search detected in paginated endpoint, looking for Promo-A cards with IDs 50, 51")
+                # Special handling for "shiny" searches: include regular shiny cards plus specific Promo-A cards
+                promo_cards_found = []
+                for card in filtered_card_objects:
+                    if hasattr(card, 'card_number_str') and card.card_number_str in ['50', '51'] and getattr(card, 'set_name', None) == 'Promo-A':
+                        promo_cards_found.append(f"CardNum:{card.card_number_str}, Name:{card.name}, Set:{card.set_name}")
+                
+                if promo_cards_found:
+                    current_app.logger.info(f"DEBUG: Found Promo-A cards in paginated: {promo_cards_found}")
+                else:
+                    current_app.logger.info(f"DEBUG: No Promo-A cards with IDs 50,51 found in paginated")
+                
+                filtered_card_objects = [
+                    card for card in filtered_card_objects
+                    if (card.rarity in parsed_keywords['rarities']) or  
+                       (hasattr(card, 'card_number_str') and card.card_number_str in ['50', '51'] and 
+                        getattr(card, 'set_name', None) == 'Promo-A')
+                ]
+            else:
+                filtered_card_objects = [
+                    card for card in filtered_card_objects
+                    if card.rarity in parsed_keywords['rarities']
+                ]
         elif rarity_filter and rarity_filter != "All":
             filtered_card_objects = [
                 card for card in filtered_card_objects
@@ -659,15 +688,11 @@ def get_cards_paginated():
                 
                 # Secondary sort: Most recent set (using same logic as set sorting)
                 set_name = card.set_name if card.set_name else ""
-                set_release_order = {
-                    "Eevee Grove": 1,
-                    "Extradimensional Crisis": 2, 
-                    "Celestial Guardians": 3,
-                    "Mythical Island": 4,
-                    "Genetic Apex": 5,
-                    "Promo-A": 6,
-                }
-                set_priority = set_release_order.get(set_name, 999)
+                set_priority = SET_RELEASE_ORDER.get(set_name, 999)
+                
+                # Promo-A should ALWAYS be at the bottom regardless of sort direction
+                if set_name == "Promo-A":
+                    set_priority = 999  # Make Promo-A always come last
                 
                 return (rarity_priority, set_priority)
             
@@ -703,27 +728,12 @@ def get_cards_paginated():
                     stage_priority = 99
                 
                 # Add set-based secondary sorting (same logic as set sorting)
-                # Define set release order (same as in main set sorting)
-                set_release_order = {
-                    "Eevee Grove": 1,           # Most recent
-                    "Extradimensional Crisis": 2,
-                    "Celestial Guardians": 3,
-                    "Shining Revelry": 4,
-                    "Triumphant Light": 5,
-                    "Space-Time Smackdown": 6,
-                    "Mythical Island": 7,
-                    "Genetic Apex": 8,
-                    "Promo-A": 9,  # Special set - last in ascending, first in descending
-                }
-                set_priority = set_release_order.get(card.set_name, 999)
+                set_priority = SET_RELEASE_ORDER.get(card.set_name, 999)
                 
                 # Handle direction for set sorting (same logic as main set sort)
-                if direction == "desc":
-                    if card.set_name == "Promo-A":
-                        set_priority = 0  # Make Promo-A come first in descending
-                elif direction == "asc":
-                    if card.set_name == "Promo-A":
-                        set_priority = 999  # Make Promo-A come last in ascending
+                # Promo-A should ALWAYS be at the bottom regardless of sort direction
+                if card.set_name == "Promo-A":
+                    set_priority = 999  # Make Promo-A always come last
                 
                 return (type_priority, stage_priority, set_priority, 0)
             
@@ -736,34 +746,24 @@ def get_cards_paginated():
             def set_sort_key(card):
                 set_name = card.set_name if card.set_name else ""
                 
-                # Define set release order (most recent first, lower number = more recent)
-                # Order matches the dropdown: Eevee Grove → Extradimensional Crisis → Celestial Guardians → etc.
-                set_release_order = {
-                    "Eevee Grove": 1,           # Most recent
-                    "Extradimensional Crisis": 2,
-                    "Celestial Guardians": 3,
-                    "Shining Revelry": 4,
-                    "Triumphant Light": 5,
-                    "Space-Time Smackdown": 6,
-                    "Mythical Island": 7,
-                    "Genetic Apex": 8,
-                    "Promo-A": 9,  # Special set - last in ascending, first in descending
-                }
-                
                 # Get set priority (lower number = more recent)
-                set_priority = set_release_order.get(set_name, 999)  # Unknown sets go to the end
+                set_priority = SET_RELEASE_ORDER.get(set_name, 999)  # Unknown sets go to the end
                 
                 # Handle direction for set sorting
                 if direction == "desc":
+                    # For descending: we want oldest set first (Genetic Apex), then newer sets
+                    # So we invert the priorities: highest number becomes 1, etc.
+                    if set_name != "Promo-A" and set_name in SET_RELEASE_ORDER:
+                        max_priority = max(v for k, v in SET_RELEASE_ORDER.items() if k != "Promo-A")
+                        set_priority = (max_priority + 1) - set_priority  # Auto-invert based on current max
+                    # Promo-A should ALWAYS be at the bottom regardless of sort direction
                     if set_name == "Promo-A":
-                        set_priority = 0  # Make Promo-A come first in descending
-                    # For other sets, keep original order (Eevee Grove=1 first, then Extradimensional Crisis=2, etc.)
-                elif direction == "asc":
-                    # For ascending (default), we want newest first: Eevee Grove → ... → Genetic Apex
-                    # Keep original priorities: Eevee Grove=1, Extradimensional Crisis=2, ..., Genetic Apex=8
-                    # Promo-A comes last
+                        set_priority = 999  # Make Promo-A always come last
+                else:
+                    # For ascending: keep normal order (Eevee Grove first)
+                    # Promo-A should ALWAYS be at the bottom regardless of sort direction
                     if set_name == "Promo-A":
-                        set_priority = 999  # Make Promo-A come last in ascending
+                        set_priority = 999  # Make Promo-A always come last
                 
                 # Use card_number (integer) if available, otherwise try to extract from card_number_str
                 card_num = card.card_number if card.card_number is not None else 0
@@ -788,20 +788,14 @@ def get_cards_paginated():
         paginated_cards = filtered_card_objects[offset:offset + limit]
 
         # Convert Card objects to dictionaries for JSON response
-        OLD_STORAGE_BASE_URL = 'https://storage.googleapis.com/pvpocket-dd286.firebasestorage.app'
-        CDN_BASE_URL = 'https://cdn.pvpocket.xyz'
-
         card_dicts = []
         for card_obj in paginated_cards:
             card_dict = card_obj.to_dict()
             
-            # Transform image URLs to use CDN
-            original_url = card_obj.display_image_path
-            if original_url and original_url.startswith(OLD_STORAGE_BASE_URL):
-                card_dict['display_image_path'] = original_url.replace(OLD_STORAGE_BASE_URL, CDN_BASE_URL)
-            else:
-                card_dict['display_image_path'] = original_url
+            # Process URL for CDN conversion on server side
+            card_dict['display_image_path'] = url_service.process_firebase_to_cdn_url(card_obj.display_image_path)
                 
+            # Generate high-res path from CDN URL
             if card_dict['display_image_path']:
                 card_dict['high_res_image_path'] = card_dict['display_image_path'].replace('/cards/', '/high_res_cards/')
                 
@@ -823,10 +817,14 @@ def get_cards_paginated():
             }
         })
         
-        # Add cache headers for better performance
-        response.headers['Cache-Control'] = 'public, max-age=300'  # 5 minutes
+        # Add enhanced cache headers for better performance
+        response.headers['Cache-Control'] = 'public, max-age=600, s-maxage=1800'  # 10 minutes client, 30 minutes proxy
         cache_key = f"{page}-{limit}-{set_code_filter}-{energy_type_filter}-{card_type_filter}-{stage_type_filter}-{rarity_filter}-{name_filter}-{total_count}"
         response.headers['ETag'] = f'"{hash(cache_key)}"'
+        
+        # Add rate limiting information to help client-side throttling
+        response.headers['X-RateLimit-Limit'] = '1000'
+        response.headers['X-RateLimit-Window'] = '60'
         
         return response
 
@@ -926,6 +924,7 @@ def get_deck(deck_id: str):  # Changed 'filename' to 'deck_id'
 
 
 @decks_bp.route("/api/decks", methods=["POST"])
+@rate_limit_heavy()
 @login_required  # Require login to create a deck
 def create_deck():
     current_fs_user = flask_login_current_user

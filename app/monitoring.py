@@ -10,6 +10,8 @@ from datetime import datetime, timedelta
 from collections import defaultdict, deque
 import statistics
 import json
+import os
+from flask import current_app
 
 
 class PerformanceMetrics:
@@ -239,7 +241,9 @@ class PerformanceMonitor:
             daemon=True
         )
         self._monitoring_thread.start()
-        print("✅ MONITOR: Performance monitoring started")
+        # Only log monitor start in main process
+        if os.environ.get('WERKZEUG_RUN_MAIN'):
+            print("✅ MONITOR: Performance monitoring started")
     
     def stop_monitoring(self):
         """Stop monitoring thread."""
@@ -257,7 +261,20 @@ class PerformanceMonitor:
                 
                 # Log alerts (in production, send to alerting system)
                 for alert in alerts:
-                    print(f"ALERT: {alert}")
+                    severity = alert.get('severity', 'info')
+                    message = alert.get('message', 'Unknown alert')
+                    alert_type = alert.get('type', 'general')
+                    
+                    try:
+                        if severity == 'critical':
+                            current_app.logger.error(f"🚨 ALERT [{alert_type.upper()}]: {message}")
+                        elif severity == 'warning':
+                            current_app.logger.warning(f"⚠️ ALERT [{alert_type.upper()}]: {message}")
+                        else:
+                            current_app.logger.info(f"ℹ️ ALERT [{alert_type.upper()}]: {message}")
+                    except RuntimeError:
+                        # No Flask context available, use print as fallback
+                        print(f"ALERT [{severity.upper()}] [{alert_type.upper()}]: {message}")
                 
                 # Reset periodic metrics
                 self.metrics.reset_periodic_metrics()
