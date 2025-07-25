@@ -784,7 +784,7 @@
 </style>
 
 <div class="collection-main-content">
-    <script id="page-data" type="application/json">{{ page_data | tojson | safe }}</script>
+    <script id="page-data" type="application/json">{{ page_data | tojson }}</script>
     <div class="row">
         <div class="col-12 mb-4">
             <div class="card">
@@ -1039,16 +1039,16 @@
     }
 
     async function loadDecksPage(page = 1, append = false, isInitialLoad = false) {
-        console.log(`📄 loadDecksPage called: page=${page}, append=${append}, isInitialLoad=${isInitialLoad}, isLoading=${isLoading}`);
+        // loadDecksPage called
         
         if (isLoading) {
-            console.log('⏸️ loadDecksPage: Already loading, returning');
+            // loadDecksPage: Already loading, returning
             return Promise.resolve();
         }
         
         isLoading = true;
         const decksContainer = document.getElementById('decks-container');
-        console.log(`📦 decksContainer found: ${!!decksContainer}`);
+        // decksContainer found
         
         if (!append) {
             // Only show skeleton cards for initial load, not for search/filter operations
@@ -1149,10 +1149,10 @@
                 // Initialize image lazy loading and filters
                 initializeImageLazyLoader();
                 if (!append) {
-                    console.log('🔧 Setting up filter listeners (fresh load)...');
+                    // Setting up filter listeners (fresh load)
                     setupFilterListeners();
                 } else {
-                    console.log('🔄 Appended more decks, NOT setting up filter listeners again');
+                    // Appended more decks, NOT setting up filter listeners again
                 }
                 
                 // Initialize tooltips for new elements
@@ -1302,8 +1302,9 @@
     }
     
     function triggerSearch() {
-        console.log('🔍 triggerSearch() called');
-        console.log('📊 Current filters:', {
+        // triggerSearch() called
+        // Current filters
+        console.log('Searching with filters:', {
             searchText: activeFilters.searchText,
             energyTypes: activeFilters.energyTypes,
             privacyFilter: activeFilters.privacyFilter
@@ -1317,7 +1318,7 @@
         hasMoreDecks = true;
         
         // Load first page with current filters and return the promise
-        console.log('🔄 Calling loadDecksPage(1, false)...');
+        // Calling loadDecksPage(1, false)
         return loadDecksPage(1, false);
     }
 
@@ -1351,11 +1352,11 @@
     }
 
     function setupFilterListeners() {
-        console.log('🎛️ Setting up filter listeners');
+        // Setting up filter listeners
         
         // Check if listeners are already set up
         if (window.filterListenersSetup) {
-            console.log('⚠️ Filter listeners already setup, skipping...');
+            // Filter listeners already setup, skipping
             return;
         }
         
@@ -1453,20 +1454,20 @@
 
     // Global debugging function to check filter state
     window.debugFilterState = function() {
-        console.log('=== FILTER DEBUG STATE ===');
-        console.log('filterListenersSetup:', window.filterListenersSetup);
-        console.log('activeFilters:', activeFilters);
+        // === FILTER DEBUG STATE ===
+        // filterListenersSetup status
+        // activeFilters status
         
         const energyIcons = document.querySelectorAll('.filter-bar .energy-icon-wrapper');
-        console.log(`Found ${energyIcons.length} energy icons in DOM`);
+        // Found energy icons in DOM
         
         energyIcons.forEach((icon, index) => {
             const type = icon.dataset.type;
             const isActive = icon.classList.contains('active');
             const isProcessing = icon.classList.contains('processing');
-            console.log(`  ${index + 1}. ${type}: active=${isActive}, processing=${isProcessing}`);
+            // Energy icon status
         });
-        console.log('=== END DEBUG ===');
+        // === END DEBUG ===
     };
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -1583,7 +1584,7 @@
         
         async function updateDeckPrivacy(deckId, deckName, description) {
             try {
-                const response = await fetch(`{{ url_for('friends.toggle_deck_privacy', deck_id='DECK_ID') }}`.replace('DECK_ID', deckId), {
+                const response = await fetch(`/api/decks/${deckId}/privacy`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({description: description})

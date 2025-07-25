@@ -1685,7 +1685,7 @@
         try {
             sessionStorage.removeItem('autoSavedDeck');
             localStorage.removeItem('autoSavedDeck_persistent');
-            console.log('Cleared auto-saved deck data');
+            // Cleared auto-saved deck data
         } catch (error) {
             console.warn('Failed to clear auto-saved data:', error);
         }
@@ -1730,7 +1730,7 @@
                 const parsed = JSON.parse(persistentData);
                 if (parsed.timestamp && (Date.now() - parsed.timestamp) > maxAge) {
                     localStorage.removeItem('autoSavedDeck_persistent');
-                    console.log('Cleaned up expired auto-save data');
+                    // Cleaned up expired auto-save data
                 }
             }
         } catch (error) {
@@ -1755,13 +1755,7 @@
                 sessionStorage.setItem('autoSavedDeck', JSON.stringify(deckData));
                 localStorage.setItem('autoSavedDeck_persistent', JSON.stringify(deckData));
                 
-                console.log('Mobile auto-save triggered:', {
-                    deckName: deckData.name,
-                    cardCount: deckData.cards.length,
-                    energyTypes: selectedDeckEnergies,
-                    coverCards: coverCardIds,
-                    timestamp: new Date(deckData.timestamp).toLocaleString()
-                });
+                // Mobile auto-save triggered
             } catch (error) {
                 console.warn('Failed to trigger mobile auto-save:', error);
             }
@@ -3189,13 +3183,13 @@
                                                 icon.style.transform = 'scale(1.15)';
                                             }
                                         });
-                                        console.log('Mobile deck restoration complete - energy types:', selectedDeckEnergies);
+                                        // Mobile deck restoration complete
                                     }, 250);
                                 });
                             }
                             
                             // Log successful restoration for debugging
-                            console.log(`Restored ${restoredCount} cards from ${storageSource} storage`);
+                            // Restored cards from storage
                             
                             return true; // Successfully restored
                         }
@@ -3235,18 +3229,18 @@
             
             // Ensure energy icons are properly displayed on mobile after everything is loaded
             if (window.matchMedia("(hover: none)").matches && selectedDeckEnergies.length > 0) {
-                console.log('Applying mobile energy fix for energies:', selectedDeckEnergies);
+                // Applying mobile energy fix for energies
                 
                 // Wait for images to load and DOM to settle
                 setTimeout(() => {
                     const energyIcons = document.querySelectorAll('.energy-selection-bar .energy-icon-wrapper.deck-energy');
-                    console.log('Found energy icons:', energyIcons.length);
+                    // Found energy icons
                     
                     energyIcons.forEach(icon => {
                         const energyType = icon.getAttribute('data-type');
                         if (selectedDeckEnergies.includes(energyType)) {
                             icon.classList.add('active');
-                            console.log(`Manually activated ${energyType} icon on mobile`);
+                            // Manually activated energy icon on mobile
                         }
                     });
                     
@@ -3341,11 +3335,7 @@
         // Update all deck energy icons - use more specific selector
         const energyIcons = document.querySelectorAll('.energy-selection-bar .energy-icon-wrapper[data-type]');
         
-        console.log('updateDeckEnergyIconsVisualState called:', {
-            foundIcons: energyIcons.length,
-            selectedEnergies: selectedDeckEnergies,
-            isMobile: window.matchMedia("(hover: none)").matches
-        });
+        // updateDeckEnergyIconsVisualState called
         
         energyIcons.forEach(icon => {
             const energyType = icon.getAttribute('data-type');
@@ -3358,12 +3348,12 @@
                     icon.classList.add('active');
                 }
                 if (!wasActive) {
-                    console.log(`Added active class to ${energyType} icon`);
+                    // Added active class to energy icon
                 }
             } else {
                 icon.classList.remove('active');
                 if (wasActive) {
-                    console.log(`Removed active class from ${energyType} icon`);
+                    // Removed active class from energy icon
                 }
             }
         });
@@ -3605,7 +3595,7 @@
         };
         
         const rarityKeywords = {
-            'shiny': '✵✵',  // Map to the UI display value
+            'shiny': 'SPECIAL_SHINY',  // Special marker to prevent filter bar updates
             'crown': 'Crown Rare'
         };
         
@@ -3755,7 +3745,7 @@
             selectedFilters.stageType = 'All';
             typedFilters.delete('stageType');
         }
-        if (typedFilters.has('rarity') && !keywords.rarity) {
+        if (typedFilters.has('rarity') && (!keywords.rarity || keywords.rarity === 'SPECIAL_SHINY')) {
             selectedFilters.rarity = 'All';
             typedFilters.delete('rarity');
         }
@@ -3830,7 +3820,7 @@
         }
         
         // Update rarity dropdown
-        if (keywords.rarity) {
+        if (keywords.rarity && keywords.rarity !== 'SPECIAL_SHINY') {
             selectedFilters.rarity = keywords.rarity;
             typedFilters.add('rarity'); // Mark as typed
             const button = document.getElementById('rarityDropdown');

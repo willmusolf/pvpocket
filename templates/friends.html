@@ -579,7 +579,7 @@
             window.friendsScrollObserver = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     if (entry.isIntersecting && hasMoreFriends && !isLoadingFriends) {
-                        console.log('Loading next page of friends...');
+                        // Loading next page of friends
                         
                         // Show loading spinner
                         const spinner = scrollSentinel.querySelector('.spinner-border');

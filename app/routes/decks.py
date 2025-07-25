@@ -94,6 +94,7 @@ def parse_search_keywords(search_text: str) -> Dict[str, any]:
         'rarities': [],
         'set_code': None,
         'exclude_ex': False,
+        'is_shiny_search': False,
         'remaining_text': ''
     }
     
@@ -140,6 +141,9 @@ def parse_search_keywords(search_text: str) -> Dict[str, any]:
         # Check rarity keywords
         elif term in rarity_keywords:
             result['rarities'].extend(rarity_keywords[term])
+            # Mark if this was specifically a "shiny" search for special handling
+            if term == 'shiny':
+                result['is_shiny_search'] = True
             keyword_matched = True
             
         # Check set keywords
@@ -402,10 +406,19 @@ def get_all_cards():
 
         # Apply keyword-based rarity filter
         if parsed_keywords['rarities']:
-            filtered_card_objects = [
-                card for card in filtered_card_objects
-                if card.rarity in parsed_keywords['rarities']
-            ]
+            if parsed_keywords.get('is_shiny_search', False):
+                # Special handling for "shiny" searches: include regular shiny cards plus specific Promo-A cards
+                filtered_card_objects = [
+                    card for card in filtered_card_objects
+                    if (card.rarity in parsed_keywords['rarities']) or  
+                       (hasattr(card, 'card_number_str') and card.card_number_str in ['50', '51'] and 
+                        getattr(card, 'set_name', None) == 'Promo-A')
+                ]
+            else:
+                filtered_card_objects = [
+                    card for card in filtered_card_objects
+                    if card.rarity in parsed_keywords['rarities']
+                ]
 
         # Apply keyword-based set filter
         if parsed_keywords['set_code']:
@@ -594,10 +607,30 @@ def get_cards_paginated():
 
         # Apply keyword-based rarity filter (takes precedence over URL parameter)
         if parsed_keywords['rarities']:
-            filtered_card_objects = [
-                card for card in filtered_card_objects
-                if card.rarity in parsed_keywords['rarities']
-            ]
+            if parsed_keywords.get('is_shiny_search', False):
+                current_app.logger.info(f"DEBUG: Shiny search detected in paginated endpoint, looking for Promo-A cards with IDs 50, 51")
+                # Special handling for "shiny" searches: include regular shiny cards plus specific Promo-A cards
+                promo_cards_found = []
+                for card in filtered_card_objects:
+                    if hasattr(card, 'card_number_str') and card.card_number_str in ['50', '51'] and getattr(card, 'set_name', None) == 'Promo-A':
+                        promo_cards_found.append(f"CardNum:{card.card_number_str}, Name:{card.name}, Set:{card.set_name}")
+                
+                if promo_cards_found:
+                    current_app.logger.info(f"DEBUG: Found Promo-A cards in paginated: {promo_cards_found}")
+                else:
+                    current_app.logger.info(f"DEBUG: No Promo-A cards with IDs 50,51 found in paginated")
+                
+                filtered_card_objects = [
+                    card for card in filtered_card_objects
+                    if (card.rarity in parsed_keywords['rarities']) or  
+                       (hasattr(card, 'card_number_str') and card.card_number_str in ['50', '51'] and 
+                        getattr(card, 'set_name', None) == 'Promo-A')
+                ]
+            else:
+                filtered_card_objects = [
+                    card for card in filtered_card_objects
+                    if card.rarity in parsed_keywords['rarities']
+                ]
         elif rarity_filter and rarity_filter != "All":
             filtered_card_objects = [
                 card for card in filtered_card_objects

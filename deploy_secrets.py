@@ -32,7 +32,12 @@ def set_deployment_secrets(project_id: str, environment: str = "production"):
         "REFRESH_SECRET_KEY": "refresh-secret-key", 
         "GOOGLE_OAUTH_CLIENT_ID": "google-oauth-client-id",
         "GOOGLE_OAUTH_CLIENT_SECRET": "google-oauth-client-secret",
-        "TASK_AUTH_TOKEN": "task-auth-token"
+        "TASK_AUTH_TOKEN": "task-auth-token",
+        # Alert system configuration
+        "ALERT_EMAIL_USER": "alert-email-user",
+        "ALERT_EMAIL_PASS": "alert-email-pass",
+        "ALERT_EMAIL_TO": "alert-email-to",
+        "ALERT_SMS_TO": "alert-sms-to"
     }
     
     print(f"Retrieving secrets from project: {project_id}")
@@ -101,14 +106,19 @@ env_variables:
   MONITORING_ENABLED: 'true'    # Enable performance monitoring
 """
     
-    # Write temporary app.yaml for deployment
-    filename = f"app-{environment}-deploy.yaml"
+    # Write to appropriate yaml file
+    if environment == "production":
+        filename = "app.yaml"
+        print(f"Updated {filename} with secrets from Secret Manager")
+        print(f"Deploy with: gcloud app deploy {filename}")
+    else:
+        filename = f"app-{environment}.yaml"  
+        print(f"Created {filename} with secrets from Secret Manager")
+        print(f"Deploy with: gcloud app deploy {filename}")
+        print(f"Remember to delete {filename} after deployment!")
+    
     with open(filename, "w") as f:
         f.write(app_yaml_content)
-    
-    print(f"Created {filename} with secrets from Secret Manager")
-    print(f"Deploy with: gcloud app deploy {filename}")
-    print(f"Remember to delete {filename} after deployment!")
 
 
 if __name__ == "__main__":

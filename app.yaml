@@ -23,6 +23,9 @@ env_variables:
   FLASK_ENV: 'production'
   GCP_PROJECT_ID: "pvpocket-dd286"
   FIREBASE_SECRET_NAME: "firebase-admin-sdk-json"
+  # All secrets are loaded dynamically via deploy_secrets.py from Google Secret Manager
+  # Do not add SECRET_KEY, REFRESH_SECRET_KEY, GOOGLE_OAUTH_CLIENT_ID, 
+  # GOOGLE_OAUTH_CLIENT_SECRET, TASK_AUTH_TOKEN, ALERT_EMAIL_* here
   
   # Scalability Configuration
   USE_FIRESTORE_CACHE: 'false'  # Set to 'true' to use Firestore as cache backend

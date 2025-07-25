@@ -56,7 +56,6 @@ class CardService:
         full_collection = cache_manager.get_card_collection(cache_key="global_cards")
         
         if full_collection and len(full_collection.cards) > 1000:  # Full collection threshold
-            print(f"✅ Returning cached full collection with {len(full_collection)} cards.")
             return full_collection
         
         # If no full collection, check if we have a priority collection cached
@@ -64,27 +63,21 @@ class CardService:
         
         # If we have priority collection but no background loading started, start it
         if priority_collection and len(priority_collection.cards) > 0:
-            print(f"✅ Found cached priority collection with {len(priority_collection)} cards.")
             # Check if full collection loading is already in progress
             if not CardService._is_background_loading_active():
-                print("🔄 Starting background loading of full collection...")
                 CardService._background_load_remaining_sets()
             return priority_collection
         
         # No cached collections available - try loading priority collection first for better startup performance
-        print("⚠️ No cached collections found. Loading priority collection for faster startup...")
         priority_collection = CardService._get_priority_card_collection()
         
         if priority_collection and len(priority_collection.cards) > 0:
-            print(f"✅ Loaded priority collection with {len(priority_collection)} cards.")
             # Start background loading of remaining sets
             if not CardService._is_background_loading_active():
-                print("🔄 Starting background loading of remaining sets...")
                 CardService._background_load_remaining_sets()
             return priority_collection
         
         # Fallback to full collection if priority loading fails
-        print("⚠️ Priority loading failed. Loading full collection as fallback.")
         return CardService._load_full_collection()
     
     @staticmethod
@@ -94,39 +87,38 @@ class CardService:
         priority_collection = cache_manager.get_card_collection(cache_key="global_cards_priority")
         
         if priority_collection:
-            print(f"Using cached priority collection with {len(priority_collection)} cards.")
             return priority_collection
         
         # Load priority sets from Firestore
         db_client = current_app.config.get("FIRESTORE_DB")
         if not db_client:
-            print("ERROR: Firestore client not available for priority card loading.")
+            # Only log critical errors
+            if current_app and current_app.debug:
+                print("ERROR: Firestore client not available for priority card loading.")
             return None
         
         try:
             priority_sets = CardService.get_dynamic_priority_sets()
-            print(f"🔄 Loading priority card sets: {priority_sets}")
             collection = CardCollection()
             
             total_loaded = 0
             for set_name in priority_sets:
                 loaded_count = CardService._load_cards_from_set(db_client, collection, set_name)
                 total_loaded += loaded_count
-                print(f"   ✅ Set '{set_name}': {loaded_count} cards loaded")
             
             if total_loaded > 0:
                 # Cache priority collection with shorter TTL
                 cache_manager.set_card_collection(collection, cache_key="global_cards_priority", ttl_hours=12)
-                print(f"✅ Successfully loaded and cached {len(collection)} priority cards from {len(priority_sets)} sets.")
                 return collection
             else:
-                print(f"⚠️ No cards loaded from priority sets. Check set names: {priority_sets}")
                 return None
                 
         except Exception as e:
-            print(f"❌ Error loading priority card collection: {e}")
-            import traceback
-            traceback.print_exc()
+            # Only log critical errors in debug mode
+            if current_app and current_app.debug:
+                print(f"❌ Error loading priority card collection: {e}")
+                import traceback
+                traceback.print_exc()
             return None
     
     @staticmethod
@@ -187,21 +179,31 @@ class CardService:
                         loaded_count += 1
                         
                     except Exception as e_card_init:
-                        print(f"Error initializing Card from {set_doc.id}/{card_doc.id}: {e_card_init}")
+                        # Card initialization error (debug only)
+                        if current_app and current_app.debug:
+                            print(f"Error initializing Card from {set_doc.id}/{card_doc.id}: {e_card_init}")
                 
                 # Progress update for this set document
                 if set_loaded_count > 0:
-                    print(f"Found {set_loaded_count} cards from set '{set_name}' in document {set_doc.id}")
+                    # Debug info for card loading
+                    if current_app and current_app.debug:
+                        print(f"Found {set_loaded_count} cards from set '{set_name}' in document {set_doc.id}")
             
             if not set_found:
-                print(f"WARNING: No cards found for set '{set_name}' - may need to update PRIORITY_SETS")
+                # Warning only in debug mode
+                if current_app and current_app.debug:
+                    print(f"WARNING: No cards found for set '{set_name}' - may need to update PRIORITY_SETS")
             else:
-                print(f"Successfully loaded {loaded_count} cards from set '{set_name}'")
+                # Success message only in debug mode
+                if current_app and current_app.debug:
+                    print(f"Successfully loaded {loaded_count} cards from set '{set_name}'")
             
             return loaded_count
             
         except Exception as e:
-            print(f"Error loading cards from set '{set_name}': {e}")
+            # Error logging only in debug mode
+            if current_app and current_app.debug:
+                print(f"Error loading cards from set '{set_name}': {e}")
             return 0
     
     @staticmethod
@@ -214,15 +216,19 @@ class CardService:
         def load_remaining():
             try:
                 CardService._set_background_loading_active(True)
-                print("Starting background load of remaining card sets...")
-                # Import current_app here to avoid circular imports
-                from flask import current_app
+                # Background loading status only in debug
+                if current_app and current_app.debug:
+                    current_app.logger.debug("Starting background load of remaining card sets...")
                 
                 with current_app.app_context():
                     CardService._load_full_collection(cache_as_full=True)
-                    print("Background loading of remaining sets completed.")
+                    # Completion status only in debug
+                    if current_app and current_app.debug:
+                        current_app.logger.debug("Background loading of remaining sets completed.")
             except Exception as e:
-                print(f"Error in background loading: {e}")
+                # Background loading errors only in debug
+                if current_app and current_app.debug:
+                    current_app.logger.error(f"Error in background loading: {e}")
                 import traceback
                 traceback.print_exc()
             finally:
@@ -237,22 +243,30 @@ class CardService:
         """Load the complete card collection from Firestore."""
         db_client = current_app.config.get("FIRESTORE_DB")
         if not db_client:
-            print("ERROR: Firestore client not available for card loading.")
+            # Critical error logging
+            if current_app and current_app.debug:
+                print("ERROR: Firestore client not available for card loading.")
             return CardCollection()
         
         try:
-            print("Loading complete card collection from Firestore...")
+            # Loading status only in debug
+            if current_app and current_app.debug:
+                current_app.logger.debug("Loading complete card collection from Firestore...")
             collection = CardCollection()
             collection.load_from_firestore(db_client)
             
             if cache_as_full:
                 # Cache as full collection
                 cache_manager.set_card_collection(collection, ttl_hours=24)
-                print(f"Loaded and cached {len(collection)} cards (full collection).")
+                # Success message only in debug
+                if current_app and current_app.debug:
+                    current_app.logger.debug(f"Loaded and cached {len(collection)} cards (full collection).")
             
             return collection
         except Exception as e:
-            print(f"Error loading full card collection: {e}")
+            # Error logging only in debug
+            if current_app and current_app.debug:
+                print(f"Error loading full card collection: {e}")
             return CardCollection()
     
     @staticmethod
@@ -264,7 +278,9 @@ class CardService:
         # If card not found in current collection and we're using priority loading,
         # try loading full collection immediately
         if not card and len(collection.cards) < 1000:
-            print(f"Card {card_id} not found in priority collection. Loading full collection...")
+            # Debug info for collection fallback
+            if current_app and current_app.debug:
+                print(f"Card {card_id} not found in priority collection. Loading full collection...")
             full_collection = CardService._load_full_collection(cache_as_full=True)
             card = full_collection.get_card_by_id(card_id)
         
@@ -294,7 +310,9 @@ class CardService:
             return full_collection
         
         # Load full collection immediately
-        print("🔄 API request requires full collection. Loading immediately...")
+        # API loading message only in debug
+        if current_app and current_app.debug:
+            print("🔄 API request requires full collection. Loading immediately...")
         full_collection = CardService._load_full_collection(cache_as_full=True)
         return full_collection
     
@@ -327,7 +345,9 @@ class CardService:
             
             return True
         except Exception as e:
-            print(f"Error refreshing card collection: {e}")
+            # Error logging only in debug
+            if current_app and current_app.debug:
+                print(f"Error refreshing card collection: {e}")
             return False
 
 
@@ -353,7 +373,9 @@ class UserService:
                 return collection_data
             
         except Exception as e:
-            print(f"Error loading user collection for {user_id}: {e}")
+            # Error logging only in debug
+            if current_app and current_app.debug:
+                print(f"Error loading user collection for {user_id}: {e}")
         
         return None
     
@@ -375,7 +397,9 @@ class UserService:
             return decks_data
             
         except Exception as e:
-            print(f"Error loading user decks for {user_id}: {e}")
+            # Error logging only in debug
+            if current_app and current_app.debug:
+                print(f"Error loading user decks for {user_id}: {e}")
             return []
     
     @staticmethod
@@ -390,7 +414,6 @@ class DatabaseService:
     @staticmethod
     def get_db():
         """Helper to get Firestore DB client from app config."""
-        from flask import current_app
         db = current_app.config.get("FIRESTORE_DB")
         if not db:
             current_app.logger.critical(
@@ -456,17 +479,23 @@ class MetricsService:
     def track_cache_hit(cache_type: str) -> None:
         """Track cache hits for monitoring."""
         # This could be expanded to send metrics to monitoring systems
-        print(f"Cache hit: {cache_type}")
+        # Cache metrics only in debug
+        if current_app and current_app.debug:
+            print(f"Cache hit: {cache_type}")
     
     @staticmethod
     def track_cache_miss(cache_type: str) -> None:
         """Track cache misses for monitoring."""
-        print(f"Cache miss: {cache_type}")
+        # Cache metrics only in debug
+        if current_app and current_app.debug:
+            print(f"Cache miss: {cache_type}")
     
     @staticmethod
     def track_db_query(query_type: str, duration_ms: int) -> None:
         """Track database query performance."""
-        print(f"DB query {query_type}: {duration_ms}ms")
+        # DB performance metrics only in debug
+        if current_app and current_app.debug:
+            print(f"DB query {query_type}: {duration_ms}ms")
 
 
 # Convenience instances
