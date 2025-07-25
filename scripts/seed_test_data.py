@@ -18,30 +18,54 @@ def seed_emulator():
     os.environ['FIRESTORE_EMULATOR_HOST'] = 'localhost:8080'
     os.environ['FIREBASE_STORAGE_EMULATOR_HOST'] = 'localhost:9199'
     
-    # Create a minimal service account JSON for emulator
-    # The emulator doesn't validate credentials, just needs a file to exist
-    service_account_info = {
-        "type": "service_account",
-        "project_id": "demo-test-project",
-        "private_key_id": "fake-key-id",
-        "private_key": "-----BEGIN PRIVATE KEY-----\nfake-private-key\n-----END PRIVATE KEY-----\n",
-        "client_email": "test@demo-test-project.iam.gserviceaccount.com",
-        "client_id": "123456789012345678901",
-        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-        "token_uri": "https://accounts.google.com/o/oauth2/token"
-    }
+    # For emulator, skip authentication entirely by setting this environment variable
+    os.environ['FIREBASE_AUTH_EMULATOR_HOST'] = 'localhost:9099'  
+    # This tells Firebase Admin SDK to skip authentication for emulator
+    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = ''
+    os.environ['GCLOUD_PROJECT'] = 'demo-test-project'
     
-    # Write to temporary file and set GOOGLE_APPLICATION_CREDENTIALS
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
-        json.dump(service_account_info, f)
-        temp_cred_file = f.name
-    
-    # Set the environment variable for Application Default Credentials
-    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = temp_cred_file
+    temp_cred_file = None  # Initialize for cleanup
     
     try:
-        # Initialize Firebase Admin SDK for emulator
+        # Initialize Firebase Admin SDK for emulator without credentials 
         if not firebase_admin._apps:
+            # Use mock credentials - create a valid RSA key for emulator
+            from cryptography.hazmat.primitives import serialization
+            from cryptography.hazmat.primitives.asymmetric import rsa
+            from cryptography.hazmat.backends import default_backend
+            
+            # Generate a temporary RSA key for the emulator
+            private_key = rsa.generate_private_key(
+                public_exponent=65537,
+                key_size=2048,
+                backend=default_backend()
+            )
+            
+            pem_private = private_key.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.PKCS8,
+                encryption_algorithm=serialization.NoEncryption()
+            )
+            
+            service_account_info = {
+                "type": "service_account",
+                "project_id": "demo-test-project",
+                "private_key_id": "fake-key-id",
+                "private_key": pem_private.decode('utf-8'),
+                "client_email": "test@demo-test-project.iam.gserviceaccount.com",
+                "client_id": "123456789012345678901",
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://accounts.google.com/o/oauth2/token"
+            }
+            
+            # Write to temporary file
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+                json.dump(service_account_info, f)
+                temp_cred_file = f.name
+            
+            # Use the temporary credentials
+            os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = temp_cred_file
+            
             firebase_admin.initialize_app(options={
                 'projectId': 'demo-test-project',
             })
@@ -104,10 +128,11 @@ def seed_emulator():
         raise
     finally:
         # Clean up temporary credentials file
-        try:
-            os.unlink(temp_cred_file)
-        except:
-            pass
+        if temp_cred_file and os.path.exists(temp_cred_file):
+            try:
+                os.unlink(temp_cred_file)
+            except:
+                pass
 
 
 if __name__ == "__main__":
