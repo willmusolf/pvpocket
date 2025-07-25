@@ -22,7 +22,7 @@ class TestCacheManager:
         user_id = "test-user-123"
         
         # Set user data
-        success = cache_manager.set_user_data(user_id, mock_user_data, ttl_hours=1)
+        success = cache_manager.set_user_data(user_id, mock_user_data, ttl_minutes=60)
         assert success is True
         
         # Get user data
@@ -35,8 +35,8 @@ class TestCacheManager:
         """Test that user data expires correctly."""
         user_id = "test-user-123"
         
-        # Set with very short TTL (1 second)
-        cache_manager.set_user_data(user_id, mock_user_data, ttl_hours=1/3600)
+        # Set with very short TTL (1 minute for testing)
+        cache_manager.set_user_data(user_id, mock_user_data, ttl_minutes=1)
         
         # Should exist immediately
         assert cache_manager.get_user_data(user_id) is not None

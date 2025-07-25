@@ -70,7 +70,11 @@ class TestAuthenticationSecurity:
         ]
         
         for endpoint in protected_endpoints:
-            response = client.get(endpoint)
+            if endpoint == '/api/refresh-cards':
+                # This endpoint expects POST, not GET
+                response = client.post(endpoint)
+            else:
+                response = client.get(endpoint)
             # Should redirect to login or return 401/403
             assert response.status_code in [302, 401, 403], \
                 f"Endpoint {endpoint} not properly protected"

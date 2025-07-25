@@ -45,8 +45,11 @@ class TestCardAPI:
         assert response.status_code == 200
         
         data = json.loads(response.data)
-        assert isinstance(data, list)
-        assert len(data) == len(mock_card_data)
+        assert isinstance(data, dict)
+        assert 'cards' in data
+        assert 'success' in data
+        assert data['success'] is True
+        assert len(data['cards']) == len(mock_card_data)
     
     @patch('app.services.CardService.get_full_card_collection')
     def test_cards_paginated_endpoint(self, mock_collection, client, mock_card_data):
@@ -65,9 +68,12 @@ class TestCardAPI:
         
         data = json.loads(response.data)
         assert 'cards' in data
+        assert 'success' in data
+        assert 'pagination' in data
+        assert data['success'] is True
         assert len(data['cards']) <= 1
-        assert 'total' in data
-        assert 'page' in data
+        assert 'total_count' in data['pagination']
+        assert 'current_page' in data['pagination']
 
 
 @pytest.mark.integration

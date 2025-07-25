@@ -32,11 +32,21 @@ class SecurityManager:
         """Initialize security components with Flask app."""
         self.app = app
         
-        # Initialize rate limiter
+        # Initialize rate limiter with different limits based on environment
+        if app.config.get('TESTING'):
+            # Very lenient limits for testing
+            default_limits = ["10000 per day", "5000 per hour", "1000 per minute"]
+        elif app.config.get('FLASK_ENV') == 'development':
+            # More lenient limits for development
+            default_limits = ["1000 per day", "200 per hour", "50 per minute"]
+        else:
+            # Production limits
+            default_limits = ["200 per day", "50 per hour", "10 per minute"]
+            
         self.limiter = Limiter(
             app=app,
             key_func=get_remote_address,
-            default_limits=["200 per day", "50 per hour", "10 per minute"],
+            default_limits=default_limits,
             storage_uri="memory://",  # Use in-memory storage for simplicity
             strategy="fixed-window"
         )
@@ -93,6 +103,18 @@ class SecurityManager:
         
         # Register security event handlers
         self._register_security_handlers()
+        
+        # Add basic security headers for all environments
+        @app.after_request
+        def add_security_headers(response):
+            """Add basic security headers."""
+            response.headers['X-XSS-Protection'] = '1; mode=block'
+            # Only add other headers if Talisman isn't handling them
+            if not self.talisman:  # Development/test mode
+                response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+                response.headers['X-Content-Type-Options'] = 'nosniff'
+                response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+            return response
         
         print("✅ SECURITY: Rate limiting and security headers configured")
     
@@ -160,7 +182,7 @@ class SecurityManager:
                 
                 if not api_key or not expected_key or api_key != expected_key:
                     security_logger.warning(
-                        f"Invalid API key attempt from {get_remote_address()}"
+                        f"Invalid API token attempt from {get_remote_address()}"
                     )
                     return jsonify({'error': 'Invalid or missing API key'}), 401
                 
@@ -177,7 +199,7 @@ class SecurityManager:
             
             if not refresh_key or not expected_key or refresh_key != expected_key:
                 security_logger.warning(
-                    f"Invalid refresh key attempt from {get_remote_address()}"
+                    f"Invalid refresh token attempt from {get_remote_address()}"
                 )
                 return jsonify({'error': 'Invalid or missing refresh key'}), 401
             
