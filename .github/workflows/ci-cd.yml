@@ -4,8 +4,20 @@ on:
   push:
     branches: [ main, development ]
   pull_request:
-    branches: [ main ]
-  workflow_dispatch:  # Allow manual triggers
+    branches: [ main, development ]
+  workflow_dispatch:  # Manual triggers
+    inputs:
+      test_type:
+        description: 'Test type to run'
+        required: true
+        default: 'fast'
+        type: choice
+        options:
+          - fast
+          - full
+          - unit
+          - security
+          - performance
 
 env:
   GCP_PROJECT_ID: pvpocket-dd286
@@ -124,7 +136,71 @@ jobs:
         # Create empty indexes file
         echo '{"indexes": [], "fieldOverrides": []}' > firestore.indexes.json
     
-    - name: Run comprehensive test suite
+    - name: Determine test strategy
+      id: test_strategy
+      run: |
+        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          echo "🎮 Manual trigger - Running ${{ github.event.inputs.test_type }} tests"
+          echo "test_type=${{ github.event.inputs.test_type }}" >> $GITHUB_OUTPUT
+          echo "description=Manually triggered ${{ github.event.inputs.test_type }} tests" >> $GITHUB_OUTPUT
+        elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          echo "🚀 Pull Request detected - Running FAST tests (mocked data)"
+          echo "test_type=fast" >> $GITHUB_OUTPUT
+          echo "description=Fast tests with mocked data for quick PR feedback" >> $GITHUB_OUTPUT
+        elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+          echo "🔍 Push to MAIN branch - Running FULL tests (including integration)"
+          echo "test_type=full" >> $GITHUB_OUTPUT  
+          echo "description=Comprehensive test suite with Firebase emulator for production readiness" >> $GITHUB_OUTPUT
+        elif [[ "${{ github.ref }}" == "refs/heads/development" ]]; then
+          echo "⚡ Push to DEVELOPMENT branch - Running FAST tests (mocked data)"
+          echo "test_type=fast" >> $GITHUB_OUTPUT
+          echo "description=Fast tests for development branch - quick validation" >> $GITHUB_OUTPUT
+        else
+          echo "❓ Unknown trigger - Defaulting to FAST tests"
+          echo "test_type=fast" >> $GITHUB_OUTPUT
+          echo "description=Default fast tests for unknown trigger" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Install test dependencies
+      run: |
+        pip install pytest pytest-cov pytest-mock
+        
+    - name: Run fast tests
+      if: steps.test_strategy.outputs.test_type == 'fast'
+      env:
+        FLASK_CONFIG: testing
+        SECRET_KEY: test-secret-key-for-ci
+        REFRESH_SECRET_KEY: test-refresh-key-for-ci
+        GCP_PROJECT_ID: demo-test-project
+        FIREBASE_SECRET_NAME: test-secret
+      run: |
+        echo "🚀 ${{ steps.test_strategy.outputs.description }}"
+        echo "⚡ Running mocked tests for fast feedback..."
+        
+        # Run fast tests (no real Firebase data)
+        python -m pytest tests/ -m "not real_data" -v --tb=short --cov=app --cov-report=json
+        
+        echo "✅ Fast tests completed successfully!"
+        
+    - name: Run specific test category
+      if: contains(fromJSON('["unit", "security", "performance"]'), steps.test_strategy.outputs.test_type)
+      env:
+        FLASK_CONFIG: testing
+        SECRET_KEY: test-secret-key-for-ci
+        REFRESH_SECRET_KEY: test-refresh-key-for-ci
+        GCP_PROJECT_ID: demo-test-project
+        FIREBASE_SECRET_NAME: test-secret
+      run: |
+        echo "🎯 ${{ steps.test_strategy.outputs.description }}"
+        echo "Running ${{ steps.test_strategy.outputs.test_type }} tests only..."
+        
+        # Run specific test category
+        python -m pytest tests/ -m "${{ steps.test_strategy.outputs.test_type }}" -v --tb=short
+        
+        echo "✅ ${{ steps.test_strategy.outputs.test_type }} tests completed successfully!"
+        
+    - name: Run full test suite (Push)
+      if: steps.test_strategy.outputs.test_type == 'full'
       env:
         FLASK_CONFIG: testing
         SECRET_KEY: test-secret-key-for-ci
@@ -133,22 +209,34 @@ jobs:
         FIREBASE_SECRET_NAME: test-secret
         FIRESTORE_EMULATOR_HOST: localhost:8080
         FIREBASE_STORAGE_EMULATOR_HOST: localhost:9199
+        RUN_INTEGRATION_TESTS: 1
       run: |
+        echo "🔍 ${{ steps.test_strategy.outputs.description }}"
+        echo "🔥 Starting Firebase emulators and running comprehensive tests..."
+        
         # Start Firebase emulators in background
         firebase emulators:start --only firestore,storage --project demo-test-project &
         EMULATOR_PID=$!
         
         # Wait for emulators to start
-        sleep 10
+        sleep 15
         
-        # Install test dependencies
-        pip install pytest pytest-cov pytest-mock
+        # Install Firebase Admin SDK for seeding
+        pip install firebase-admin || echo "Firebase Admin SDK already installed"
+        
+        # Seed test data for integration tests
+        if [ -f "scripts/seed_test_data.py" ]; then
+          echo "🌱 Seeding Firebase emulator with test data..."
+          python scripts/seed_test_data.py || echo "⚠️ Seeding skipped (optional)"
+        fi
         
         # Run comprehensive test suite
-        python -m pytest tests/ -v --cov=app --cov-report=json
+        python -m pytest tests/ -v --tb=short --cov=app --cov-report=json
         
         # Stop emulators
         kill $EMULATOR_PID || true
+        
+        echo "✅ Full test suite completed successfully!"
         
     - name: Upload test artifacts
       uses: actions/upload-artifact@v4
