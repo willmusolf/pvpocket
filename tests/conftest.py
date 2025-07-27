@@ -137,6 +137,36 @@ def real_firebase_app():
     os.environ['FIRESTORE_EMULATOR_HOST'] = 'localhost:8080'
     os.environ['FIREBASE_STORAGE_EMULATOR_HOST'] = 'localhost:9199'
     
+    # Check if emulator is running before attempting to connect
+    import socket
+    def is_emulator_running(host, port):
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(1)
+            result = sock.connect_ex((host, port))
+            sock.close()
+            return result == 0
+        except:
+            return False
+    
+    if not is_emulator_running('localhost', 8080):
+        pytest.skip("Firebase emulator not running on localhost:8080")
+        return None
+    
+    # Initialize Firebase Admin SDK for emulator use
+    import firebase_admin
+    from firebase_admin import credentials, firestore
+    
+    # Clear any existing Firebase apps first
+    try:
+        firebase_admin.delete_app(firebase_admin.get_app())
+    except ValueError:
+        pass  # No app to delete
+    
+    # Initialize Firebase Admin SDK for emulator use without credentials
+    # The emulator doesn't require real authentication
+    firebase_admin.initialize_app(options={'projectId': 'demo-test-project'})
+    
     # Create app with real Firebase connection (no mocking)
     app = create_app('testing')
     app.config.update({
