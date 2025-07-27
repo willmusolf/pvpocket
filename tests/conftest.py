@@ -153,19 +153,8 @@ def real_firebase_app():
         pytest.skip("Firebase emulator not running on localhost:8080")
         return None
     
-    # Initialize Firebase Admin SDK for emulator use
-    import firebase_admin
-    from firebase_admin import credentials, firestore
-    
-    # Clear any existing Firebase apps first
-    try:
-        firebase_admin.delete_app(firebase_admin.get_app())
-    except ValueError:
-        pass  # No app to delete
-    
-    # Initialize Firebase Admin SDK for emulator use without credentials
-    # The emulator doesn't require real authentication
-    firebase_admin.initialize_app(options={'projectId': 'demo-test-project'})
+    # Don't initialize Firebase here - let create_app handle it
+    # The app initialization already has logic to detect and use emulators
     
     # Create app with real Firebase connection (no mocking)
     app = create_app('testing')
