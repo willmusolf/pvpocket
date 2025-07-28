@@ -136,6 +136,7 @@ def real_firebase_app():
     # Configure Firebase emulator environment variables
     os.environ['FIRESTORE_EMULATOR_HOST'] = 'localhost:8080'
     os.environ['FIREBASE_STORAGE_EMULATOR_HOST'] = 'localhost:9199'
+    os.environ['GCLOUD_PROJECT'] = 'demo-test-project'
     
     # Check if emulator is running before attempting to connect
     import socket
