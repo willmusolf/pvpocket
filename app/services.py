@@ -52,6 +52,10 @@ class CardService:
     @staticmethod
     def get_card_collection() -> CardCollection:
         """Get card collection with graceful fallback for startup optimization."""
+        # Skip loading in development if USE_MINIMAL_DATA is set
+        if current_app.config.get("USE_MINIMAL_DATA"):
+            return CardCollection()  # Return empty collection for development
+        
         # Always try full collection from cache first
         full_collection = cache_manager.get_card_collection(cache_key="global_cards")
         
@@ -107,8 +111,8 @@ class CardService:
                 total_loaded += loaded_count
             
             if total_loaded > 0:
-                # Cache priority collection with shorter TTL
-                cache_manager.set_card_collection(collection, cache_key="global_cards_priority", ttl_hours=12)
+                # Cache priority collection with extended TTL for cost savings
+                cache_manager.set_card_collection(collection, cache_key="global_cards_priority", ttl_hours=48)
                 return collection
             else:
                 return None
@@ -256,8 +260,8 @@ class CardService:
             collection.load_from_firestore(db_client)
             
             if cache_as_full:
-                # Cache as full collection
-                cache_manager.set_card_collection(collection, ttl_hours=24)
+                # Cache as full collection with extended TTL for cost savings
+                cache_manager.set_card_collection(collection, ttl_hours=72)
                 # Success message only in debug
                 if current_app and current_app.debug:
                     current_app.logger.debug(f"Loaded and cached {len(collection)} cards (full collection).")
@@ -335,13 +339,13 @@ class CardService:
             for set_name in priority_sets:
                 CardService._load_cards_from_set(db_client, priority_collection, set_name)
             
-            # Cache priority collection
-            cache_manager.set_card_collection(priority_collection, cache_key="global_cards_priority", ttl_hours=12)
+            # Cache priority collection with extended TTL
+            cache_manager.set_card_collection(priority_collection, cache_key="global_cards_priority", ttl_hours=48)
             
-            # Load and cache full collection
+            # Load and cache full collection with extended TTL
             full_collection = CardCollection()
             full_collection.load_from_firestore(db_client)
-            cache_manager.set_card_collection(full_collection, ttl_hours=24)
+            cache_manager.set_card_collection(full_collection, ttl_hours=72)
             
             return True
         except Exception as e:
@@ -368,8 +372,8 @@ class UserService:
             if user_data:
                 collection_data = user_data.get("collection", {})
                 
-                # Cache for 6 hours
-                cache_manager.set_user_collection(user_id, collection_data, ttl_hours=6)
+                # Cache for 24 hours to reduce Firestore reads
+                cache_manager.set_user_collection(user_id, collection_data, ttl_hours=24)
                 return collection_data
             
         except Exception as e:
@@ -392,8 +396,8 @@ class UserService:
             filters = [("user_id", "==", user_id)]
             decks_data = db_service.query_collection("decks", filters=filters)
             
-            # Cache for 2 hours
-            cache_manager.set_user_decks(user_id, decks_data, ttl_hours=2)
+            # Cache for 6 hours to reduce Firestore reads
+            cache_manager.set_user_decks(user_id, decks_data, ttl_hours=6)
             return decks_data
             
         except Exception as e:
