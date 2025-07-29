@@ -113,6 +113,8 @@ def create_app(config_name="default"):
             # Check if running with Firebase emulator
             if os.environ.get('FIRESTORE_EMULATOR_HOST') or os.environ.get('RUN_INTEGRATION_TESTS'):
                 # Use emulator configuration
+                print("🔥 FIREBASE: Using Firebase Emulator (FREE - no production costs!)")
+                print(f"🔗 Emulator Host: {os.environ.get('FIRESTORE_EMULATOR_HOST', 'localhost:8080')}")
                 firebase_admin.initialize_app(options={
                     'projectId': project_id or 'demo-test-project',
                     'storageBucket': bucket_name
@@ -124,8 +126,11 @@ def create_app(config_name="default"):
                 secret_payload = response.payload.data.decode("UTF-8")
                 cred_dict = json.loads(secret_payload)
                 cred = credentials.Certificate(cred_dict)
+                print("🔥 FIREBASE: Using Production Firestore (REAL COSTS)")
+                print(f"📊 Project: {project_id}")
                 firebase_admin.initialize_app(cred, {"storageBucket": bucket_name})
             else:
+                print("🔥 FIREBASE: Using Default Configuration (REAL COSTS)")
                 firebase_admin.initialize_app(options={"storageBucket": bucket_name})
         except Exception as e:
             # Only log critical Firebase errors in debug mode
@@ -209,11 +214,26 @@ def create_app(config_name="default"):
     
     # Schedule the card loading task to run after startup (5 second delay)
     # Only run in main process, not in Flask reloader process
+    # Skip card loading in development or minimal data mode
     if not os.environ.get('WERKZEUG_RUN_MAIN'):
         # This is the reloader process, skip background task scheduling
         pass
+    elif app.config.get('USE_MINIMAL_DATA'):
+        # Development/minimal mode - skip expensive card loading
+        print("💰 CARD LOADING: MINIMAL DATA (saves Firestore costs)")
+        print("📊 Cards loaded: ~0 (empty collection)")
+        if config_name == 'development':
+            app.logger.debug("⚡ Deferred card loading: SKIPPED (minimal data mode)")
+    elif app.config.get('LAZY_LOAD_CARDS'):
+        # Production lazy loading - only load cards when actually requested
+        print("💰 CARD LOADING: LAZY (only loads on first user request)")
+        print("📊 Cards loaded: 0 (will load ~1300 when user visits)")
+        if config_name == 'production':
+            print("⚡ Deferred card loading: LAZY (will load on first user request)")
     else:
-        # This is the main app process, schedule the background task
+        # This is the main app process and not minimal mode, schedule the background task
+        print("💰 CARD LOADING: FULL (loads all cards immediately)")
+        print("📊 Cards loaded: ~1300 (full collection)")
         task_queue.enqueue_task("load_card_collection", {}, delay_seconds=5)
     
     # Deferred card collection loading scheduled
@@ -310,6 +330,42 @@ def create_app(config_name="default"):
         
         # For any other URLs, return as-is (fallback)
         return original_url
+
+    @app.route("/metrics", methods=["GET"])
+    def metrics():
+        """Get basic performance metrics."""
+        try:
+            from .monitoring import performance_monitor
+            from .cache_manager import cache_manager
+            
+            # Determine Firebase mode
+            firebase_mode = "Unknown"
+            if os.environ.get('FIRESTORE_EMULATOR_HOST'):
+                firebase_mode = "Emulator (FREE)"
+            elif app.config.get('USE_MINIMAL_DATA'):
+                firebase_mode = "Production + Minimal Data (CHEAP)"
+            elif app.config.get('LAZY_LOAD_CARDS'):
+                firebase_mode = "Production + Lazy Loading (SMART)"
+            else:
+                firebase_mode = "Production + Full Loading (EXPENSIVE)"
+            
+            metrics_data = {
+                "firebase_mode": firebase_mode,
+                "app_config": config_name,
+                "cache_hit_rate": f"{performance_monitor.metrics.get_cache_hit_rate():.1f}%",
+                "cache_healthy": cache_manager.health_check(),
+                "firestore_usage": performance_monitor.metrics.get_firestore_usage_stats(),
+                "cost_optimizations": {
+                    "using_emulator": bool(os.environ.get('FIRESTORE_EMULATOR_HOST')),
+                    "minimal_data": app.config.get('USE_MINIMAL_DATA', False),
+                    "lazy_loading": app.config.get('LAZY_LOAD_CARDS', False)
+                },
+                "timestamp": datetime.utcnow().isoformat()
+            }
+            
+            return jsonify(metrics_data), 200
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
 
     @app.route("/api/refresh-cards", methods=["POST"])
     @security_manager.require_refresh_key

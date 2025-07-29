@@ -41,11 +41,15 @@ class ProductionConfig(Config):
     """Configuration for production environment."""
     DEBUG = False
     ASSET_BASE_URL = 'https://cdn.pvpocket.xyz'
+    # Only load cards when actually needed (lazy loading)
+    LAZY_LOAD_CARDS = True
 
 
 class StagingConfig(ProductionConfig):
     """Configuration for staging environment."""
-    pass
+    # Use minimal data in staging/test to save costs
+    USE_MINIMAL_DATA = True
+    DEBUG = True  # Enable debug logging for test environment
 
 
 class TestingConfig(Config):
