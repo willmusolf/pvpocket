@@ -9,6 +9,7 @@ handlers:
   secure: always
 
 env_variables:
+  FLASK_CONFIG: 'staging'
   FLASK_ENV: 'staging'
   GCP_PROJECT_ID: "pvpocket-dd286"
   FIREBASE_SECRET_NAME: "firebase-admin-sdk-json"
