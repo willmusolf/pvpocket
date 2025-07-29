@@ -90,8 +90,8 @@ class FirestoreConnectionPool:
                 break
 
 
-# Global connection pool instance
-_connection_pool = FirestoreConnectionPool(max_connections=15)
+# Global connection pool instance - reduced for cost optimization
+_connection_pool = FirestoreConnectionPool(max_connections=10)
 
 
 def retry_on_error(max_retries: int = 3, base_delay: float = 1.0, max_delay: float = 60.0):
@@ -178,6 +178,14 @@ class DatabaseService:
         try:
             doc_ref = client.collection(collection).document(document_id)
             doc = doc_ref.get()
+            
+            # Track Firestore read operation
+            try:
+                from .monitoring import performance_monitor
+                performance_monitor.metrics.record_firestore_read(collection, 1)
+            except:
+                pass
+            
             if doc.exists:
                 return doc.to_dict()
             return None
@@ -197,8 +205,8 @@ class DatabaseService:
             doc_refs = [client.collection(collection).document(doc_id) for doc_id in document_ids]
             
             results = []
-            # Process in chunks of 500 (Firestore limit)
-            chunk_size = 500
+            # Process in smaller chunks to optimize costs
+            chunk_size = 100
             for i in range(0, len(doc_refs), chunk_size):
                 chunk = doc_refs[i:i + chunk_size]
                 docs = client.get_all(chunk)
@@ -208,6 +216,13 @@ class DatabaseService:
                         doc_data = doc.to_dict()
                         doc_data['id'] = doc.id
                         results.append(doc_data)
+                
+                # Track Firestore batch read operations
+                try:
+                    from .monitoring import performance_monitor
+                    performance_monitor.metrics.record_firestore_batch_read(collection, len(chunk))
+                except:
+                    pass
             
             return results
         finally:
@@ -236,10 +251,20 @@ class DatabaseService:
                 query = query.limit(limit)
             
             results = []
+            docs_read = 0
             for doc in query.stream():
                 doc_data = doc.to_dict()
                 doc_data['id'] = doc.id
                 results.append(doc_data)
+                docs_read += 1
+            
+            # Track Firestore read operations
+            if docs_read > 0:
+                try:
+                    from .monitoring import performance_monitor
+                    performance_monitor.metrics.record_firestore_read(collection, docs_read)
+                except:
+                    pass
             
             return results
         finally:
@@ -257,10 +282,19 @@ class DatabaseService:
             if document_id:
                 doc_ref = collection_ref.document(document_id)
                 doc_ref.set(document_data)
-                return document_id
+                result_id = document_id
             else:
                 doc_ref = collection_ref.add(document_data)
-                return doc_ref[1].id
+                result_id = doc_ref[1].id
+            
+            # Track Firestore write operation
+            try:
+                from .monitoring import performance_monitor
+                performance_monitor.metrics.record_firestore_write(collection, 1)
+            except:
+                pass
+            
+            return result_id
         finally:
             DatabaseService.return_client(client)
     
@@ -290,6 +324,14 @@ class DatabaseService:
         try:
             doc_ref = client.collection(collection).document(document_id)
             doc_ref.delete()
+            
+            # Track Firestore delete operation
+            try:
+                from .monitoring import performance_monitor
+                performance_monitor.metrics.record_firestore_delete(collection, 1)
+            except:
+                pass
+            
             return True
         except Exception as e:
             # Log delete errors only in debug mode

@@ -43,6 +43,15 @@ git push
 - **Cloud deployment**: Uses `deploy_secrets.py` script to fetch from Secret Manager
 - **GitHub Actions**: Secrets stored in repository settings
 
+### Firebase Cost Optimizations (Jan 2025)
+- **Extended Cache TTLs**: Card collection (72h), user data (2h), user collections (24h), decks (6h)
+- **Client-Side Filtering**: Deck searches filter locally after initial load, reducing Firestore reads by 50%+
+- **Connection Pool Optimization**: Reduced from 15 to 10 concurrent connections
+- **Batch Size Reduction**: Limited to 100 documents per batch (from 500)
+- **Composite Indexes**: Added for common query patterns (owner_id + updated_at, etc.)
+- **Usage Monitoring**: Track Firestore operations at `/internal/firestore-usage`
+- **Cost Alerts**: Automatic warnings when approaching daily limits or high costs
+
 ### How to Deploy
 ```bash
 # Deploy to production

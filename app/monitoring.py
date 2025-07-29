@@ -33,6 +33,18 @@ class PerformanceMetrics:
         self.active_users = set()
         self.endpoint_calls = defaultdict(int)
         
+        # Firestore usage tracking for cost monitoring
+        self.firestore_operations = {
+            "reads": defaultdict(int),
+            "writes": defaultdict(int),
+            "deletes": defaultdict(int),
+            "batch_reads": defaultdict(int),
+            "total_reads_today": 0,
+            "total_writes_today": 0,
+            "total_deletes_today": 0,
+            "last_reset": datetime.now()
+        }
+        
         # System health
         self.last_health_check = None
         self.health_status = {}
@@ -72,6 +84,73 @@ class PerformanceMetrics:
         """Record an active user."""
         with self._lock:
             self.active_users.add(user_id)
+    
+    def record_firestore_read(self, collection: str, count: int = 1):
+        """Record Firestore read operations."""
+        with self._lock:
+            # Check if we need to reset daily counters
+            self._check_daily_reset()
+            self.firestore_operations["reads"][collection] += count
+            self.firestore_operations["total_reads_today"] += count
+    
+    def record_firestore_write(self, collection: str, count: int = 1):
+        """Record Firestore write operations."""
+        with self._lock:
+            self._check_daily_reset()
+            self.firestore_operations["writes"][collection] += count
+            self.firestore_operations["total_writes_today"] += count
+    
+    def record_firestore_delete(self, collection: str, count: int = 1):
+        """Record Firestore delete operations."""
+        with self._lock:
+            self._check_daily_reset()
+            self.firestore_operations["deletes"][collection] += count
+            self.firestore_operations["total_deletes_today"] += count
+    
+    def record_firestore_batch_read(self, collection: str, count: int):
+        """Record Firestore batch read operations."""
+        with self._lock:
+            self._check_daily_reset()
+            self.firestore_operations["batch_reads"][collection] += count
+            self.firestore_operations["total_reads_today"] += count
+    
+    def _check_daily_reset(self):
+        """Reset daily counters if it's a new day."""
+        now = datetime.now()
+        last_reset = self.firestore_operations["last_reset"]
+        
+        if now.date() > last_reset.date():
+            # Reset daily counters
+            self.firestore_operations["total_reads_today"] = 0
+            self.firestore_operations["total_writes_today"] = 0
+            self.firestore_operations["total_deletes_today"] = 0
+            self.firestore_operations["last_reset"] = now
+    
+    def get_firestore_usage_stats(self) -> Dict[str, Any]:
+        """Get Firestore usage statistics."""
+        with self._lock:
+            self._check_daily_reset()
+            return {
+                "daily_reads": self.firestore_operations["total_reads_today"],
+                "daily_writes": self.firestore_operations["total_writes_today"],
+                "daily_deletes": self.firestore_operations["total_deletes_today"],
+                "reads_by_collection": dict(self.firestore_operations["reads"]),
+                "writes_by_collection": dict(self.firestore_operations["writes"]),
+                "estimated_daily_cost": self._estimate_firestore_cost()
+            }
+    
+    def _estimate_firestore_cost(self) -> float:
+        """Estimate daily Firestore cost based on usage."""
+        # Firestore pricing (approximate):
+        # $0.06 per 100,000 document reads
+        # $0.18 per 100,000 document writes
+        # $0.02 per 100,000 document deletes
+        
+        reads_cost = (self.firestore_operations["total_reads_today"] / 100000) * 0.06
+        writes_cost = (self.firestore_operations["total_writes_today"] / 100000) * 0.18
+        deletes_cost = (self.firestore_operations["total_deletes_today"] / 100000) * 0.02
+        
+        return round(reads_cost + writes_cost + deletes_cost, 4)
     
     def get_cache_hit_rate(self) -> float:
         """Calculate cache hit rate."""

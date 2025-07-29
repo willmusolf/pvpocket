@@ -8,6 +8,7 @@ import json
 import os
 from datetime import datetime
 from ..task_queue import task_queue
+from ..monitoring import performance_monitor
 
 
 internal_bp = Blueprint("internal", __name__, url_prefix="/internal")
@@ -166,5 +167,46 @@ def test_alert():
             "status": "error",
             "error": str(e)
         }), 500
+
+
+@internal_bp.route("/firestore-usage", methods=["GET"])
+def firestore_usage():
+    """Get Firestore usage statistics for cost monitoring."""
+    try:
+        # Basic auth check - in production, use proper authentication
+        auth_header = request.headers.get('Authorization')
+        expected_token = os.environ.get('TASK_AUTH_TOKEN', 'dev-token')
+        
+        if current_app.config.get("FLASK_ENV") != "development":
+            if not auth_header or auth_header != f"Bearer {expected_token}":
+                return jsonify({"error": "Unauthorized"}), 401
+        
+        # Get Firestore usage statistics
+        usage_stats = performance_monitor.metrics.get_firestore_usage_stats()
+        
+        # Add warnings if approaching limits
+        warnings = []
+        daily_reads = usage_stats.get("daily_reads", 0)
+        daily_writes = usage_stats.get("daily_writes", 0)
+        
+        # Warn if approaching free tier limits (50K reads/day, 20K writes/day)
+        if daily_reads > 40000:
+            warnings.append(f"Approaching daily read limit: {daily_reads}/50,000")
+        if daily_writes > 15000:
+            warnings.append(f"Approaching daily write limit: {daily_writes}/20,000")
+        
+        # Warn if estimated cost is high
+        estimated_cost = usage_stats.get("estimated_daily_cost", 0)
+        if estimated_cost > 5.0:
+            warnings.append(f"High daily cost detected: ${estimated_cost:.2f}")
+        
+        usage_stats["warnings"] = warnings
+        usage_stats["timestamp"] = datetime.utcnow().isoformat()
+        
+        return jsonify(usage_stats), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error getting Firestore usage stats: {e}")
+        return jsonify({"error": str(e)}), 500
 
 

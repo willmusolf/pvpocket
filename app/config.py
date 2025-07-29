@@ -33,6 +33,8 @@ class Config:
 class DevelopmentConfig(Config):
     """Configuration for development environment."""
     DEBUG = True
+    # Use minimal data in development to save Firestore costs
+    USE_MINIMAL_DATA = True
 
 
 class ProductionConfig(Config):
