@@ -16,8 +16,8 @@ class TestRealDataIntegration:
     
     @pytest.fixture(scope="class", autouse=True)
     def seed_firebase_data(self, app):
-        """Seed Firebase emulator with test data."""
-        # Only seed if we're in integration test mode
+        """Verify Firebase emulator has test data (seeded by CI workflow)."""
+        # Only run if we're in integration test mode
         if not os.environ.get('RUN_INTEGRATION_TESTS'):
             pytest.skip("Skipping real data tests - set RUN_INTEGRATION_TESTS=1")
             
@@ -30,37 +30,15 @@ class TestRealDataIntegration:
         except:
             pytest.skip("Firebase emulator not reachable")
             
-        # Load seed data
-        seed_file = Path(__file__).parent.parent / 'test_seed_data.json'
-        with open(seed_file) as f:
-            seed_data = json.load(f)
-            
-        # Seed Firestore with test data
+        # Test data should already be seeded by CI workflow
+        # Just verify we can access the database
         db = app.config.get('FIRESTORE_DB')
-        if db:
-            # Add cards
-            for card in seed_data['cards']:
-                db.collection('cards').document(card['id']).set(card)
-                
-            # Add users
-            for user in seed_data['users']:
-                db.collection('users').document(user['id']).set(user)
-                
-            # Add decks
-            for deck in seed_data['decks']:
-                db.collection('decks').document(deck['id']).set(deck)
-                
+        if not db:
+            pytest.skip("Firestore database not configured")
+            
         yield
         
-        # Cleanup after tests
-        if db:
-            # Delete test data
-            for card in seed_data['cards']:
-                db.collection('cards').document(card['id']).delete()
-            for user in seed_data['users']:
-                db.collection('users').document(user['id']).delete()
-            for deck in seed_data['decks']:
-                db.collection('decks').document(deck['id']).delete()
+        # No cleanup needed - emulator is ephemeral in CI
     
     def test_real_cards_api(self, client):
         """Test /api/cards with real Firebase data."""
@@ -69,7 +47,7 @@ class TestRealDataIntegration:
         
         data = json.loads(response.data)
         assert 'cards' in data
-        assert len(data['cards']) >= 2  # We seeded 2 cards
+        assert len(data['cards']) >= 10  # We seeded 10 cards
         
         # Check specific cards exist
         card_names = [card['name'] for card in data['cards']]
@@ -82,8 +60,8 @@ class TestRealDataIntegration:
         assert response.status_code == 200
         
         data = json.loads(response.data)
-        assert data['pagination']['total_count'] >= 2
-        assert len(data['cards']) >= 2
+        assert data['pagination']['total_count'] >= 10
+        assert len(data['cards']) >= 10
     
     def test_real_deck_operations(self, client):
         """Test deck operations with real data."""
