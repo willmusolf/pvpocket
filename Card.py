@@ -31,6 +31,7 @@ class Card:
         flavor_text: Optional[str] = None,
         abilities: Optional[List[Dict[str, str]]] = None,
         original_image_url: Optional[str] = None,
+        set_release_order: Optional[int] = None,  # New field for automatic set priority
     ):
         """Initialize a Card object with provided attributes."""
         self.id = id
@@ -68,6 +69,7 @@ class Card:
 
         self.original_image_url = original_image_url
         self.firebase_image_url = firebase_image_url
+        self.set_release_order = set_release_order
 
     @property
     def display_image_path(self) -> Optional[str]:
@@ -160,6 +162,7 @@ class Card:
             "pack": self.pack,
             "flavor_text": self.flavor_text,
             "abilities": self.abilities,
+            "set_release_order": self.set_release_order,
         }
 
     def __str__(self) -> str:
@@ -310,6 +313,10 @@ class CardCollection:
                 # Load cards for this batch of sets
                 for set_doc in batch_sets:
                     try:
+                        # Get set data including release_order
+                        set_data = set_doc.to_dict() or {}
+                        set_release_order = set_data.get("release_order", None)
+                        
                         # Use list() to execute the query once instead of streaming
                         cards_subcollection_ref = set_doc.reference.collection("set_cards")
                         card_docs = list(cards_subcollection_ref.stream())
@@ -345,6 +352,7 @@ class CardCollection:
                                     original_image_url=card_data.get("original_image_url"),
                                     flavor_text=card_data.get("flavor_text"),
                                     abilities=card_data.get("abilities", []),
+                                    set_release_order=set_release_order,
                                 )
                                 self.add_card(card)
                                 batch_loaded += 1
