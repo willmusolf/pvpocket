@@ -65,6 +65,30 @@ gcloud app deploy app-test-deploy.yaml
 rm app-test-deploy.yaml
 ```
 
+### Firebase Emulator Strategy
+
+#### Local Development
+- **Purpose**: Free local development with full production data mirror
+- **Auto-start**: `python3 run.py` starts emulator and syncs if needed
+- **Data sync**: Syncs ALL collections from production on first run
+- **Persistence**: Data saved in `emulator_data/` directory
+- **Isolation**: Local changes don't affect production
+- **Collections synced**: cards (~1327), users (all), decks (all), internal_config, etc.
+
+#### GitHub Actions Tests
+- **Test data**: Uses `scripts/create_test_data.py` for consistent test data
+- **Content**: 10 test cards, 3 test users, 3 test decks
+- **Isolation**: Each test run gets fresh emulator instance
+- **All test types**: Fast, full, unit, security, performance tests use emulator
+
+#### Environment Summary
+| Environment | Firebase Mode | Data Content | Cost |
+|-------------|--------------|--------------|------|
+| Local Dev | Emulator | Full production mirror | FREE |
+| GitHub CI | Emulator | Test data (10 cards) | FREE |
+| Staging | Real Firestore | Production data | MINIMAL |
+| Production | Real Firestore | Production data | OPTIMIZED |
+
 ## Git Workflow & CI/CD
 
 ### Branch Strategy

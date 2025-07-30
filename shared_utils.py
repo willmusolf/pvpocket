@@ -105,9 +105,13 @@ def create_initial_emulator_data():
     try:
         # Connect to emulator using the same project ID as the main app
         main_project_id = os.environ.get('GCP_PROJECT_ID', 'pvpocket-dd286')
+        bucket_name = os.environ.get('FIREBASE_STORAGE_BUCKET', f'{main_project_id}.appspot.com')
         emulator_app = firebase_admin.initialize_app(
             name='emulator_check_app',
-            options={'projectId': main_project_id}
+            options={
+                'projectId': main_project_id,
+                'storageBucket': bucket_name
+            }
         )
         
         # Set emulator environment
@@ -218,8 +222,33 @@ def create_initial_emulator_data():
             firebase_admin.delete_app(firebase_admin.get_app('emulator_check_app'))
 
 
+def documents_are_different(emulator_data, production_data):
+    """Compare two document data dictionaries to see if they're different."""
+    if emulator_data is None and production_data is None:
+        return False
+    if emulator_data is None or production_data is None:
+        return True
+    
+    # Remove timestamp fields that always differ
+    def clean_data(data):
+        if not data:
+            return {}
+        cleaned = data.copy()
+        # Remove fields that naturally differ between environments
+        timestamp_fields = ['created_at', 'updated_at', 'last_login', 'timestamp']
+        for field in timestamp_fields:
+            if field in cleaned:
+                cleaned.pop(field)
+        return cleaned
+    
+    clean_emulator = clean_data(emulator_data)
+    clean_production = clean_data(production_data)
+    
+    return clean_emulator != clean_production
+
+
 def sync_to_local_emulator():
-    """Sync production Firestore data to local emulator for development."""
+    """Smart sync: Only update differences between production and emulator."""
     # Only attempt sync if we're in development/scraping context
     if not (os.environ.get('FLASK_DEBUG') == '1' or 
             os.environ.get('FLASK_CONFIG') == 'development' or
@@ -230,105 +259,197 @@ def sync_to_local_emulator():
         print("🔍 Local emulator not running - skipping sync")
         return
     
-    print("🔄 Syncing production data to local emulator...")
+    print("🔄 Smart sync: Comparing emulator vs production...")
+    
+    # Store original emulator setting
+    original_emulator_host = os.environ.get('FIRESTORE_EMULATOR_HOST')
+    prod_app = None
+    emulator_app = None
     
     try:
-        # Temporarily clear emulator environment to connect to production
-        original_emulator_host = os.environ.get('FIRESTORE_EMULATOR_HOST')
+        # Clear emulator setting temporarily for production connection
         if 'FIRESTORE_EMULATOR_HOST' in os.environ:
             del os.environ['FIRESTORE_EMULATOR_HOST']
         
-        # Get production Firestore client (should connect to real Firestore)
-        prod_db = firestore.client()
+        # Initialize dedicated production app
+        main_project_id = os.environ.get('GCP_PROJECT_ID', 'pvpocket-dd286')
+        print("🔧 Initializing dedicated production Firebase connection...")
         
-        # Connect to emulator
-        emulator_app = None
+        # Initialize Firebase if not already done (for production access)
+        if not firebase_admin._apps:
+            initialize_firebase()
+            prod_app = firebase_admin.get_app()
+        else:
+            # Create a separate app for production
+            try:
+                prod_app = firebase_admin.initialize_app(
+                    name='production_sync_app',
+                    options={'projectId': main_project_id}
+                )
+            except ValueError:
+                # App already exists, get it
+                prod_app = firebase_admin.get_app('production_sync_app')
+        
+        # Get production Firestore client (should connect to real Firestore)
+        prod_db = firestore.client(app=prod_app)
+        
+        # Create separate app for emulator connection
         try:
-            # Create separate app for emulator connection using same project ID
-            main_project_id = os.environ.get('GCP_PROJECT_ID', 'pvpocket-dd286')
+            bucket_name = os.environ.get('FIREBASE_STORAGE_BUCKET', f'{main_project_id}.appspot.com')
             emulator_app = firebase_admin.initialize_app(
                 name='emulator_app',
-                options={'projectId': main_project_id}
+                options={
+                    'projectId': main_project_id,
+                    'storageBucket': bucket_name
+                }
             )
+        except ValueError:
+            # App already exists, get it
+            emulator_app = firebase_admin.get_app('emulator_app')
+        
+        # Set emulator environment for this connection
+        os.environ['FIRESTORE_EMULATOR_HOST'] = 'localhost:8080'
+        emulator_db = firestore.client(app=emulator_app)
+        
+        # Get all collections dynamically
+        print("🔍 Discovering collections...")
+        prod_collections = list(prod_db.collections())
+        print(f"📁 Found {len(prod_collections)} collections in production")
+        
+        if len(prod_collections) == 0:
+            print("⚠️  No collections found in production - check Firebase connection")
+            return
+        
+        total_added = 0
+        total_updated = 0
+        total_unchanged = 0
+        total_removed = 0
+        
+        # Sync each collection
+        for collection in prod_collections:
+            collection_id = collection.id
+            print(f"\n📁 Checking '{collection_id}' collection...")
             
-            # Set emulator environment for this connection
-            old_host = os.environ.get('FIRESTORE_EMULATOR_HOST')
-            os.environ['FIRESTORE_EMULATOR_HOST'] = 'localhost:8080'
+            # Get all production documents
+            prod_docs = {doc.id: doc for doc in collection.stream()}
             
-            emulator_db = firestore.client(app=emulator_app)
+            # Get all emulator documents
+            emulator_collection = emulator_db.collection(collection_id)
+            emulator_docs = {doc.id: doc for doc in emulator_collection.stream()}
             
-            # Sync cards collection (most important for development)
-            print("📋 Syncing cards collection...")
-            cards_ref = prod_db.collection('cards')
+            added = 0
+            updated = 0
+            unchanged = 0
+            removed = 0
             
-            # Get all card set documents from production
-            set_docs = list(cards_ref.stream())
-            print(f"🔍 Found {len(set_docs)} card sets in production")
-            
-            if not set_docs:
-                print("❌ No card sets found in production database!")
-                return
-            
-            total_synced = 0
-            for set_doc in set_docs:
-                set_data = set_doc.to_dict()
-                set_id = set_doc.id
+            # Check each production document
+            for doc_id, prod_doc in prod_docs.items():
+                prod_data = prod_doc.to_dict()
+                emulator_doc = emulator_docs.get(doc_id)
+                emulator_data = emulator_doc.to_dict() if emulator_doc else None
                 
-                # Copy set document to emulator
-                emulator_cards_ref = emulator_db.collection('cards').document(set_id)
-                emulator_cards_ref.set(set_data)
-                
-                # Copy all cards in this set's subcollection
-                cards_subcollection = set_doc.reference.collection('set_cards')
-                card_docs = list(cards_subcollection.stream())
-                card_count = 0
-                
-                for card_doc in card_docs:
-                    card_data = card_doc.to_dict()
-                    card_id = card_doc.id
+                if documents_are_different(emulator_data, prod_data):
+                    # Document is different - update it
+                    emulator_doc_ref = emulator_collection.document(doc_id)
+                    emulator_doc_ref.set(prod_data)
                     
-                    # Copy card to emulator
-                    emulator_card_ref = emulator_cards_ref.collection('set_cards').document(card_id)
-                    emulator_card_ref.set(card_data)
-                    card_count += 1
-                
-                total_synced += card_count
-                if card_count > 0:
-                    print(f"  ✅ {set_id}: {card_count} cards")
+                    if emulator_data is None:
+                        added += 1
+                    else:
+                        updated += 1
+                    
+                    # Handle subcollections
+                    subcollections = list(prod_doc.reference.collections())
+                    for subcollection in subcollections:
+                        subcoll_id = subcollection.id
+                        
+                        # Get production subcollection docs
+                        prod_subdocs = {subdoc.id: subdoc for subdoc in subcollection.stream()}
+                        
+                        # Get emulator subcollection docs
+                        emulator_subcoll = emulator_doc_ref.collection(subcoll_id)
+                        emulator_subdocs = {subdoc.id: subdoc for subdoc in emulator_subcoll.stream()}
+                        
+                        # Sync subcollection
+                        for subdoc_id, prod_subdoc in prod_subdocs.items():
+                            prod_subdata = prod_subdoc.to_dict()
+                            emulator_subdoc = emulator_subdocs.get(subdoc_id)
+                            emulator_subdata = emulator_subdoc.to_dict() if emulator_subdoc else None
+                            
+                            if documents_are_different(emulator_subdata, prod_subdata):
+                                emulator_subdoc_ref = emulator_subcoll.document(subdoc_id)
+                                emulator_subdoc_ref.set(prod_subdata)
+                        
+                        # Remove subcollection docs that no longer exist in production
+                        for subdoc_id in emulator_subdocs:
+                            if subdoc_id not in prod_subdocs:
+                                emulator_subcoll.document(subdoc_id).delete()
                 else:
-                    print(f"  ⚠️  {set_id}: 0 cards")
+                    unchanged += 1
             
-            print(f"📊 Total cards synced: {total_synced}")
+            # Remove documents that no longer exist in production
+            for doc_id in emulator_docs:
+                if doc_id not in prod_docs:
+                    emulator_collection.document(doc_id).delete()
+                    removed += 1
             
-            # Sync internal_config collection (for app configuration)
-            print("⚙️  Syncing internal configuration...")
-            config_ref = prod_db.collection('internal_config')
-            for config_doc in config_ref.stream():
-                config_data = config_doc.to_dict()
-                config_id = config_doc.id
-                
-                emulator_config_ref = emulator_db.collection('internal_config').document(config_id)
-                emulator_config_ref.set(config_data)
-                print(f"  ✅ Config: {config_id}")
+            # Report results for this collection
+            changes = []
+            if added > 0:
+                changes.append(f"{added} added")
+            if updated > 0:
+                changes.append(f"{updated} updated")
+            if removed > 0:
+                changes.append(f"{removed} removed")
+            if unchanged > 0:
+                changes.append(f"{unchanged} unchanged")
             
-            print("✅ Emulator sync completed successfully!")
+            if changes:
+                print(f"  ✅ {', '.join(changes)}")
+            else:
+                print(f"  ✅ No changes needed")
             
-        finally:
-            # Restore original emulator host setting for emulator connection
-            if old_host:
-                os.environ['FIRESTORE_EMULATOR_HOST'] = old_host
-            elif 'FIRESTORE_EMULATOR_HOST' in os.environ:
-                del os.environ['FIRESTORE_EMULATOR_HOST']
+            total_added += added
+            total_updated += updated
+            total_unchanged += unchanged
+            total_removed += removed
+        
+        # Final summary
+        print(f"\n📊 Smart Sync Complete:")
+        if total_added > 0:
+            print(f"  • {total_added} documents added")
+        if total_updated > 0:
+            print(f"  • {total_updated} documents updated")
+        if total_removed > 0:
+            print(f"  • {total_removed} documents removed")
+        print(f"  • {total_unchanged} documents unchanged")
+        
+        total_changes = total_added + total_updated + total_removed
+        if total_changes == 0:
+            print("✅ Emulator already matches production!")
+        else:
+            print(f"✅ Applied {total_changes} changes, emulator now matches production!")
             
-            # Clean up emulator app
-            if emulator_app:
+    except Exception as e:
+        print(f"❌ Error during smart sync: {e}")
+        import traceback
+        traceback.print_exc()
+        # Don't fail the main scraping job if emulator sync fails
+        
+    finally:
+        # Clean up apps and restore environment
+        if emulator_app and emulator_app.name == 'emulator_app':
+            try:
                 firebase_admin.delete_app(emulator_app)
-                
+            except:
+                pass
+        
+        if prod_app and prod_app.name == 'production_sync_app':
+            try:
+                firebase_admin.delete_app(prod_app)
+            except:
+                pass
+        
         # Restore emulator environment for main app
         if original_emulator_host:
             os.environ['FIRESTORE_EMULATOR_HOST'] = original_emulator_host
-                
-    except Exception as e:
-        print(f"❌ Error syncing to emulator: {e}")
-        # Don't fail the main scraping job if emulator sync fails
-        pass

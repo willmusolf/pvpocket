@@ -92,88 +92,63 @@ def start_emulator_if_needed():
         print("   Using production Firestore instead")
         return False
 
-# Auto-start emulator for local development
-emulator_started = start_emulator_if_needed()
-
-# Sync production data to emulator if emulator is running
-if emulator_started and os.environ.get('FIRESTORE_EMULATOR_HOST'):
+def sync_emulator_data():
+    """Sync all production data to emulator."""
+    print("\n🔄 Checking emulator data...")
+    
     try:
-        from shared_utils import sync_to_local_emulator, is_emulator_running
-        # Check if emulator already has data
         import firebase_admin
         from firebase_admin import firestore
         
-        # Initialize Firebase for production connection
-        from shared_utils import initialize_firebase
-        initialize_firebase()
+        # Create a simple app for emulator check
+        if not firebase_admin._apps:
+            main_project_id = os.environ.get('GCP_PROJECT_ID', 'pvpocket-dd286')
+            bucket_name = os.environ.get('FIREBASE_STORAGE_BUCKET', f'{main_project_id}.appspot.com')
+            emulator_app = firebase_admin.initialize_app(
+                options={
+                    'projectId': main_project_id,
+                    'storageBucket': bucket_name
+                }
+            )
+        else:
+            emulator_app = firebase_admin.get_app()
         
-        # Check if emulator has cards
-        main_project_id = os.environ.get('GCP_PROJECT_ID', 'pvpocket-dd286')
-        emulator_app = firebase_admin.initialize_app(
-            name='emulator_data_check',
-            options={'projectId': main_project_id}
-        )
-        
-        old_host = os.environ.get('FIRESTORE_EMULATOR_HOST')
+        # Connect to emulator
         os.environ['FIRESTORE_EMULATOR_HOST'] = 'localhost:8080'
+        emulator_db = firestore.client()
         
-        try:
-            emulator_db = firestore.client(app=emulator_app)
-            cards_ref = emulator_db.collection('cards')
-            
-            # Count total cards in emulator
-            total_cards = 0
-            for set_doc in cards_ref.stream():
-                cards_subcollection = set_doc.reference.collection('set_cards')
-                set_cards = list(cards_subcollection.stream())
-                total_cards += len(set_cards)
-            
-            if total_cards < 100:  # If less than 100 cards, sync from production
-                print(f"📥 Emulator has only {total_cards} cards - syncing full production data...")
-                print("   This may take a moment for 1300+ cards...")
-                
-                # Ensure environment variables are set for sync
-                os.environ['FLASK_CONFIG'] = 'development'
-                os.environ['FLASK_DEBUG'] = '1'
-                
-                sync_to_local_emulator()
-                
-                # Wait for sync to settle and verify
-                import time
-                print("⏳ Waiting for emulator data to settle...")
-                time.sleep(3)
-                
-                # Verify the sync worked
-                final_count = 0
-                for set_doc in cards_ref.stream():
-                    cards_subcollection = set_doc.reference.collection('set_cards')
-                    set_cards = list(cards_subcollection.stream())
-                    final_count += len(set_cards)
-                
-                print(f"✅ Sync complete! {final_count} cards now available locally!")
-            else:
-                print(f"📊 Emulator already has {total_cards} cards - skipping sync")
-                
-        finally:
-            # Restore emulator host
-            if old_host:
-                os.environ['FIRESTORE_EMULATOR_HOST'] = old_host
-            elif 'FIRESTORE_EMULATOR_HOST' in os.environ:
-                del os.environ['FIRESTORE_EMULATOR_HOST']
-            
-            # Clean up temporary app
-            if 'emulator_data_check' in firebase_admin._apps:
-                firebase_admin.delete_app(firebase_admin.get_app('emulator_data_check'))
+        # Quick check if we have data
+        cards_ref = emulator_db.collection('cards')
+        card_count = len(list(cards_ref.limit(1).stream()))
         
+        if card_count == 0:
+            print("📥 Emulator is empty - syncing all production data...")
+            print("   This may take a few minutes for the first sync...")
+        else:
+            print("🔄 Smart sync: Checking for changes...")
+        
+        # Always run smart sync (it only updates what's different)
+        from shared_utils import sync_to_local_emulator
+        sync_to_local_emulator()
+        
+        if card_count == 0:
+            print("✅ Initial sync complete! All production data now available locally.")
+        else:
+            print("✅ Smart sync complete!")
+            
     except Exception as e:
-        print(f"⚠️  Could not sync production data: {e}")
-        print("   Falling back to sample data...")
-        try:
-            from shared_utils import create_initial_emulator_data
-            create_initial_emulator_data()
-        except Exception as e2:
-            print(f"⚠️  Could not create sample data either: {e2}")
+        print(f"⚠️  Sync check failed: {e}")
+        print("   Continuing with existing emulator data...")
 
+# Auto-start emulator for local development
+emulator_started = start_emulator_if_needed()
+
+# Sync production data to emulator if needed
+if emulator_started and os.environ.get('FIRESTORE_EMULATOR_HOST'):
+    if os.environ.get('SKIP_EMULATOR_SYNC') != '1':
+        sync_emulator_data()
+
+# Now import and create the Flask app
 from app import create_app
 
 config_name = os.getenv("FLASK_CONFIG", os.getenv("FLASK_ENV", "default"))
@@ -182,34 +157,23 @@ config_name = os.getenv("FLASK_CONFIG", os.getenv("FLASK_ENV", "default"))
 if config_name == "development" and os.environ.get('WERKZEUG_RUN_MAIN'):
     using_emulator = bool(os.environ.get('FIRESTORE_EMULATOR_HOST'))
     
-    print("🎮 Pokemon TCG Pocket - Development Mode")
+    print("\n🎮 Pokemon TCG Pocket - Development Mode")
     print("=" * 50)
     
     if using_emulator:
-        print("📊 Card Loading: FULL (~1300 cards)")
-        print("💾 Data Source: Firebase Emulator (FREE)")
-        print("✅ Perfect for testing decks/exports")
-        print("🔄 Auto-syncs when new cards drop")
+        print("📊 Data Source: Firebase Emulator (FREE)")
+        print("✅ All production data synced locally")
+        print("🔄 Run 'rm -rf emulator_data' then restart to force fresh sync")
     else:
-        print("📊 Card Loading: MINIMAL (3 sample cards)")
-        print("💾 Data Source: Production Firestore (COSTS MONEY)")
-        print("⚠️  Install Firebase CLI for free full cards:")
+        print("📊 Data Source: Production Firestore (COSTS MONEY)")
+        print("⚠️  Install Firebase CLI for free emulator:")
         print("   npm install -g firebase-tools")
     
-    print("=" * 50)
+    print("=" * 50 + "\n")
 
 app = create_app(config_name)
 
 if __name__ == "__main__":
-    # Ensure emulator environment is set for Flask reloader
-    if os.environ.get('FIRESTORE_EMULATOR_HOST'):
-        import subprocess
-        import sys
-        
-        # Pass environment to subprocess
-        env = os.environ.copy()
-        env['FIRESTORE_EMULATOR_HOST'] = 'localhost:8080'
-        
     app.run(
         debug=app.config.get("DEBUG", True),
         host="0.0.0.0",

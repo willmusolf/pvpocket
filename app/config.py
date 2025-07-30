@@ -33,8 +33,9 @@ class Config:
 class DevelopmentConfig(Config):
     """Configuration for development environment."""
     DEBUG = True
-    # Use full data if emulator is available, otherwise minimal data
-    USE_MINIMAL_DATA = not bool(os.environ.get("FIRESTORE_EMULATOR_HOST"))
+    # Always use full data in development - emulator provides 1327 cards for free
+    # If no emulator is available, the app will fall back to production Firestore
+    USE_MINIMAL_DATA = False
 
 
 class ProductionConfig(Config):

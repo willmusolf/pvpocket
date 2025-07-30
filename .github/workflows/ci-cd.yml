@@ -173,12 +173,33 @@ jobs:
         REFRESH_SECRET_KEY: test-refresh-key-for-ci
         GCP_PROJECT_ID: demo-test-project
         FIREBASE_SECRET_NAME: test-secret
+        FIRESTORE_EMULATOR_HOST: localhost:8080
+        FIREBASE_STORAGE_EMULATOR_HOST: localhost:9199
+        RUN_INTEGRATION_TESTS: 1
       run: |
         echo "🚀 ${{ steps.test_strategy.outputs.description }}"
-        echo "⚡ Running mocked tests for fast feedback..."
+        echo "🔥 Starting Firebase emulators for fast tests..."
         
-        # Run fast tests (no real Firebase data)
-        python -m pytest tests/ -m "not real_data" -v --tb=short --cov=app --cov-report=json
+        # Start Firebase emulators in background
+        firebase emulators:start --only firestore,storage --project demo-test-project &
+        EMULATOR_PID=$!
+        
+        # Wait for emulators to start
+        echo "⏳ Waiting for Firebase emulators to be ready..."
+        for i in {1..30}; do
+          if curl -s http://localhost:8080 > /dev/null 2>&1; then
+            echo "✅ Firestore emulator is ready!"
+            break
+          fi
+          echo "Waiting for emulators... ($i/30)"
+          sleep 2
+        done
+        
+        # Run fast tests with emulator
+        python -m pytest tests/ -m "not slow" -v --tb=short --cov=app --cov-report=json
+        
+        # Stop emulators
+        kill $EMULATOR_PID || true
         
         echo "✅ Fast tests completed successfully!"
         
@@ -190,12 +211,33 @@ jobs:
         REFRESH_SECRET_KEY: test-refresh-key-for-ci
         GCP_PROJECT_ID: demo-test-project
         FIREBASE_SECRET_NAME: test-secret
+        FIRESTORE_EMULATOR_HOST: localhost:8080
+        FIREBASE_STORAGE_EMULATOR_HOST: localhost:9199
+        RUN_INTEGRATION_TESTS: 1
       run: |
         echo "🎯 ${{ steps.test_strategy.outputs.description }}"
-        echo "Running ${{ steps.test_strategy.outputs.test_type }} tests only..."
+        echo "🔥 Starting Firebase emulators for ${{ steps.test_strategy.outputs.test_type }} tests..."
         
-        # Run specific test category
+        # Start Firebase emulators in background
+        firebase emulators:start --only firestore,storage --project demo-test-project &
+        EMULATOR_PID=$!
+        
+        # Wait for emulators to start
+        echo "⏳ Waiting for Firebase emulators to be ready..."
+        for i in {1..30}; do
+          if curl -s http://localhost:8080 > /dev/null 2>&1; then
+            echo "✅ Firestore emulator is ready!"
+            break
+          fi
+          echo "Waiting for emulators... ($i/30)"
+          sleep 2
+        done
+        
+        # Run specific test category with emulator
         python -m pytest tests/ -m "${{ steps.test_strategy.outputs.test_type }}" -v --tb=short
+        
+        # Stop emulators
+        kill $EMULATOR_PID || true
         
         echo "✅ ${{ steps.test_strategy.outputs.test_type }} tests completed successfully!"
         
@@ -233,14 +275,16 @@ jobs:
         pip install firebase-admin || echo "Firebase Admin SDK already installed"
         
         # Seed test data for integration tests
-        if [ -f "scripts/seed_test_data.py" ]; then
+        if [ -f "scripts/create_test_data.py" ]; then
           echo "🌱 Seeding Firebase emulator with test data..."
-          python scripts/seed_test_data.py
+          python scripts/create_test_data.py
           if [ $? -eq 0 ]; then
             echo "✅ Test data seeded successfully!"
           else
-            echo "⚠️ Seeding failed, but continuing with tests..."
+            echo "⚠️ Test data seeding failed, but continuing with tests..."
           fi
+        else
+          echo "⚠️ Test data script not found, running tests without seed data..."
         fi
         
         # Run comprehensive test suite
