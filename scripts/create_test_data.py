@@ -8,6 +8,8 @@ import os
 import sys
 import firebase_admin
 from firebase_admin import firestore, credentials
+import tempfile
+import json
 from datetime import datetime, timedelta
 
 # Add parent directory to path
@@ -20,22 +22,25 @@ def create_test_data():
     print(f"🔍 GOOGLE_APPLICATION_CREDENTIALS = {os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')}")
     print(f"🔍 Using demo project: demo-test-project")
     
-    # Initialize Firebase app for emulator (no credentials needed)
+    # Initialize Firebase app for emulator
     if not firebase_admin._apps:
-        try:
-            # For emulator, we can initialize without credentials
-            firebase_admin.initialize_app(options={
-                'projectId': 'demo-test-project',
-                'storageBucket': 'demo-test-project.appspot.com'
-            })
-        except Exception as e:
-            print(f"⚠️ Error initializing Firebase: {e}")
-            # Try with a mock credential if the above fails
-            os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/dev/null'
-            firebase_admin.initialize_app(options={
-                'projectId': 'demo-test-project',
-                'storageBucket': 'demo-test-project.appspot.com'
-            })
+        # Create minimal mock credentials for emulator
+        mock_cred = {
+            "type": "service_account",
+            "project_id": "demo-test-project", 
+            "client_email": "test@demo-test-project.iam.gserviceaccount.com",
+            "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC5oP1234567890\n-----END PRIVATE KEY-----\n"
+        }
+        
+        # Write to temp file and use it
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+            json.dump(mock_cred, f)
+            os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = f.name
+        
+        firebase_admin.initialize_app(options={
+            'projectId': 'demo-test-project',
+            'storageBucket': 'demo-test-project.appspot.com'
+        })
     
     # Connect to emulator
     db = firestore.client()
