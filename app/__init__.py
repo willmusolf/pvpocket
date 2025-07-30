@@ -35,6 +35,7 @@ from .routes.meta import meta_bp
 from .routes.collection import collection_bp
 from .routes.friends import friends_bp
 from .routes.internal import internal_bp
+from .routes.admin import admin_bp
 from Card import Card, CardCollection
 from Deck import Deck
 
@@ -534,6 +535,7 @@ def create_app(config_name="default"):
     app.register_blueprint(collection_bp)
     app.register_blueprint(friends_bp)
     app.register_blueprint(internal_bp)
+    app.register_blueprint(admin_bp)
 
     # Initialize monitoring system (after all other services)
     # Start performance monitoring only in main process

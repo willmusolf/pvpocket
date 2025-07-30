@@ -170,10 +170,6 @@ def proxy_image():
         return jsonify({"error": "Internal server error"}), 500
 
 
-@main_bp.route("/test-scalability-dashboard")
-def test_scalability_dashboard():
-    """Web-based scalability testing dashboard."""
-    return render_template("test_scalability.html")
 
 
 @main_bp.route("/test-scalability")

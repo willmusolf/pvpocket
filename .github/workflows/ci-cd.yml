@@ -552,8 +552,8 @@ jobs:
         # Test multiple endpoints for basic load testing  
         for i in {1..5}; do
           echo "Load test iteration $i"
-          curl -f --max-time 15 --connect-timeout 5 "$TEST_BASE_URL/health" -w "Response time: %{time_total}s\n" || echo "Health check failed"
-          curl -f --max-time 15 --connect-timeout 5 "$TEST_BASE_URL/" -w "Homepage time: %{time_total}s\n" || echo "Homepage failed"
+          curl -f -s -o /dev/null --max-time 15 --connect-timeout 5 "$TEST_BASE_URL/health" -w "Response time: %{time_total}s\n" || echo "Health check failed"
+          curl -f -s -o /dev/null --max-time 15 --connect-timeout 5 "$TEST_BASE_URL/" -w "Homepage time: %{time_total}s\n" || echo "Homepage failed"
           sleep 1
         done
         
