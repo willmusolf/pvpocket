@@ -147,8 +147,11 @@ def create_app(config_name="default"):
                 print(f"🎯 FORCED FIRESTORE_EMULATOR_HOST: {emulator_host}")
                 
                 # CRITICAL: Disable credentials for emulator to bypass authentication
-                os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = ''
-                print("🔧 Disabled GOOGLE_APPLICATION_CREDENTIALS for emulator")
+                if 'GOOGLE_APPLICATION_CREDENTIALS' in os.environ:
+                    del os.environ['GOOGLE_APPLICATION_CREDENTIALS']
+                    print("🔧 Removed GOOGLE_APPLICATION_CREDENTIALS for emulator")
+                else:
+                    print("🔧 GOOGLE_APPLICATION_CREDENTIALS already not set")
                 
                 print(f"🔧 Set GCLOUD_PROJECT: {os.environ.get('GCLOUD_PROJECT')}")
                 print(f"🔧 Set FIREBASE_PROJECT_ID: {os.environ.get('FIREBASE_PROJECT_ID')}")

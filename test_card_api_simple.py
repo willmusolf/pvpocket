@@ -19,7 +19,8 @@ def test_card_api():
     os.environ['FLASK_CONFIG'] = 'testing'
     os.environ['RUN_INTEGRATION_TESTS'] = '1'
     os.environ['FORCE_EMULATOR_MODE'] = '1'
-    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = ''
+    if 'GOOGLE_APPLICATION_CREDENTIALS' in os.environ:
+        del os.environ['GOOGLE_APPLICATION_CREDENTIALS']
     app = create_app('testing')
     
     with app.test_client() as client:
@@ -58,7 +59,8 @@ def test_card_paginated_api():
     os.environ['FLASK_CONFIG'] = 'testing'
     os.environ['RUN_INTEGRATION_TESTS'] = '1'
     os.environ['FORCE_EMULATOR_MODE'] = '1'
-    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = ''
+    if 'GOOGLE_APPLICATION_CREDENTIALS' in os.environ:
+        del os.environ['GOOGLE_APPLICATION_CREDENTIALS']
     app = create_app('testing')
     
     with app.test_client() as client:
