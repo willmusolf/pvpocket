@@ -10,6 +10,7 @@ from flask import current_app
 from Card import CardCollection, Card
 from .cache_manager import cache_manager
 from .db_service import db_service
+from firebase_admin import firestore
 
 
 class CardService:
@@ -95,9 +96,40 @@ class CardService:
         """Get priority sets dynamically based on release order.
         This allows for automatic adaptation when new sets are released.
         """
-        # In the future, this could query the database for the most recent sets
-        # For now, return the hardcoded list but this makes it easier to update
-        return CardService.PRIORITY_SETS
+        try:
+            # Query Firestore for sets ordered by release_order descending
+            db_client = db_service.get_db_client()
+            if not db_client:
+                # Fallback to hardcoded list if no DB connection
+                return CardService.PRIORITY_SETS
+            
+            # Get top 5 sets by release_order (highest numbers = newest sets)
+            sets_query = (
+                db_client.collection("cards")
+                .order_by("release_order", direction=firestore.Query.DESCENDING)
+                .limit(5)
+                .stream()
+            )
+            
+            priority_sets = []
+            for set_doc in sets_query:
+                set_data = set_doc.to_dict()
+                if set_data and "set_name" in set_data:
+                    # Skip Promo-A from priority loading
+                    if set_data["set_name"] != "Promo-A":
+                        priority_sets.append(set_data["set_name"])
+            
+            # If we got sets from DB, use them; otherwise fallback
+            if priority_sets:
+                current_app.logger.debug(f"Dynamic priority sets: {priority_sets}")
+                return priority_sets
+            else:
+                return CardService.PRIORITY_SETS
+                
+        except Exception as e:
+            # If release_order field doesn't exist or any error, fallback to hardcoded
+            current_app.logger.debug(f"Could not get dynamic priority sets: {e}")
+            return CardService.PRIORITY_SETS
     
     @staticmethod
     def _is_background_loading_active() -> bool:
@@ -199,6 +231,10 @@ class CardService:
             set_found = False
             
             for set_doc in all_set_docs:
+                # Get set data including release_order
+                set_data = set_doc.to_dict() or {}
+                set_release_order = set_data.get("release_order", None)
+                
                 # Load cards from this set's subcollection
                 cards_subcollection_ref = set_doc.reference.collection("set_cards")
                 card_docs = list(cards_subcollection_ref.stream())
@@ -240,6 +276,7 @@ class CardService:
                             original_image_url=card_data.get("original_image_url"),
                             flavor_text=card_data.get("flavor_text"),
                             abilities=card_data.get("abilities", []),
+                            set_release_order=set_release_order,
                         )
                         collection.add_card(card)
                         set_loaded_count += 1

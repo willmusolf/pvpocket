@@ -56,36 +56,42 @@ def trigger_cache_refresh():
     load_dotenv()
     base_url = os.getenv("WEBSITE_URL")
     refresh_key = os.getenv("REFRESH_SECRET_KEY")
+    
+    # Check if we're in a Cloud Run job (scraping context)
+    is_cloud_job = os.environ.get('JOB_TYPE') is not None
+    should_log = (os.environ.get('FLASK_DEBUG') == '1' or 
+                  os.environ.get('FLASK_CONFIG') == 'development' or
+                  is_cloud_job)
 
     if not base_url or not refresh_key:
-        # Only log in development
-        if os.environ.get('FLASK_DEBUG') == '1' or os.environ.get('FLASK_CONFIG') == 'development':
-            print(
-                "ERROR: WEBSITE_URL or REFRESH_SECRET_KEY not set. Cannot trigger refresh."
-            )
+        if should_log:
+            print("ERROR: WEBSITE_URL or REFRESH_SECRET_KEY not set. Cannot trigger refresh.")
+            if not base_url:
+                print("  Missing: WEBSITE_URL")
+            if not refresh_key:
+                print("  Missing: REFRESH_SECRET_KEY")
         return
 
     refresh_url = f"{base_url}/api/refresh-cards"
     headers = {"X-Refresh-Key": refresh_key}
-    # Only log cache refresh in development
-    if os.environ.get('FLASK_DEBUG') == '1' or os.environ.get('FLASK_CONFIG') == 'development':
+    
+    if should_log:
         print(f"Triggering cache refresh at {refresh_url}...")
+        
     try:
-        response = requests.post(refresh_url, headers=headers, timeout=60)
+        response = requests.post(refresh_url, headers=headers, timeout=120)  # Increased timeout
         if response.status_code == 200:
-            # Only log success in development
-            if os.environ.get('FLASK_DEBUG') == '1' or os.environ.get('FLASK_CONFIG') == 'development':
+            if should_log:
                 print(f"SUCCESS: Cache refresh triggered: {response.json()}")
         else:
-            # Only log errors in development
-            if os.environ.get('FLASK_DEBUG') == '1' or os.environ.get('FLASK_CONFIG') == 'development':
-                print(
-                    f"ERROR: Cache refresh failed. Status: {response.status_code}, Text: {response.text}"
-                )
+            # Always log errors
+            print(f"ERROR: Cache refresh failed. Status: {response.status_code}, Text: {response.text}")
+    except requests.exceptions.Timeout:
+        # Always log timeout errors  
+        print("ERROR: Cache refresh timed out after 120 seconds. The site may still be processing.")
     except requests.exceptions.RequestException as e:
-        # Only log connection errors in development
-        if os.environ.get('FLASK_DEBUG') == '1' or os.environ.get('FLASK_CONFIG') == 'development':
-            print(f"CRITICAL ERROR: Could not connect to refresh cache: {e}")
+        # Always log connection errors
+        print(f"CRITICAL ERROR: Could not connect to refresh cache: {e}")
 
 
 def is_emulator_running(host='localhost', port=8080):
