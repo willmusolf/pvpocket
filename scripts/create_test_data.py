@@ -24,26 +24,20 @@ def create_test_data():
     
     # Initialize Firebase app for emulator
     if not firebase_admin._apps:
-        # Create minimal mock credentials for emulator
-        mock_cred = {
-            "type": "service_account",
-            "project_id": "demo-test-project", 
-            "client_email": "test@demo-test-project.iam.gserviceaccount.com",
-            "client_id": "123456789",
-            "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC5oP1234567890\n-----END PRIVATE KEY-----\n",
-            "token_uri": "https://oauth2.googleapis.com/token",
-            "auth_uri": "https://accounts.google.com/o/oauth2/auth"
-        }
-        
-        # Write to temp file and use it
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
-            json.dump(mock_cred, f)
-            os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = f.name
-        
-        firebase_admin.initialize_app(options={
-            'projectId': 'demo-test-project',
-            'storageBucket': 'demo-test-project.appspot.com'
-        })
+        # Use mock credentials for emulator
+        try:
+            mock_cred = credentials.Mock()
+            firebase_admin.initialize_app(mock_cred, options={
+                'projectId': 'demo-test-project',
+                'storageBucket': 'demo-test-project.appspot.com'
+            })
+        except Exception as e:
+            print(f"⚠️ Mock credentials failed: {e}")
+            # Fallback: no credentials initialization
+            firebase_admin.initialize_app(options={
+                'projectId': 'demo-test-project',
+                'storageBucket': 'demo-test-project.appspot.com'
+            })
     
     # Connect to emulator
     db = firestore.client()
