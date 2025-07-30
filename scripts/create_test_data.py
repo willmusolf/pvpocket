@@ -29,7 +29,10 @@ def create_test_data():
             "type": "service_account",
             "project_id": "demo-test-project", 
             "client_email": "test@demo-test-project.iam.gserviceaccount.com",
-            "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC5oP1234567890\n-----END PRIVATE KEY-----\n"
+            "client_id": "123456789",
+            "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC5oP1234567890\n-----END PRIVATE KEY-----\n",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth"
         }
         
         # Write to temp file and use it
