@@ -385,18 +385,30 @@ jobs:
         
         # Verify deployment status
         echo "Checking deployment status..."
-        gcloud app versions list --service=test-env --limit=1
+        echo "All services:"
+        gcloud app services list
+        echo "Test service versions:"
+        gcloud app versions list --service=test-env --limit=3 || echo "test-env service not found"
+        echo "All versions (any service):"
+        gcloud app versions list --limit=5
         
     - name: Run post-deployment health check
       run: |
         sleep 30
         TEST_URL="https://test-env-dot-${{ env.GCP_PROJECT_ID }}.uc.r.appspot.com/health"
+        echo "🔍 DEBUGGING HEALTH CHECK"
+        echo "========================"
         echo "Testing health endpoint: $TEST_URL"
         echo "GCP_PROJECT_ID: ${{ env.GCP_PROJECT_ID }}"
+        echo "Current time: $(date)"
         
         # First test DNS resolution
-        echo "Testing DNS resolution..."
+        echo "🌐 Testing DNS resolution..."
         nslookup test-env-dot-${{ env.GCP_PROJECT_ID }}.uc.r.appspot.com || echo "DNS lookup failed"
+        
+        # Test basic connectivity
+        echo "🔌 Testing basic connectivity (ping-like)..."
+        timeout 10 bash -c "</dev/tcp/test-env-dot-${{ env.GCP_PROJECT_ID }}.uc.r.appspot.com/443" 2>/dev/null && echo "✅ Port 443 is reachable" || echo "❌ Port 443 not reachable"
         
         # Test with very short timeout first
         echo "Quick connectivity test..."
