@@ -24,20 +24,16 @@ def create_test_data():
     
     # Initialize Firebase app for emulator
     if not firebase_admin._apps:
-        # Use mock credentials for emulator
+        # For emulator, try application default credentials first
         try:
-            mock_cred = credentials.Mock()
-            firebase_admin.initialize_app(mock_cred, options={
-                'projectId': 'demo-test-project',
-                'storageBucket': 'demo-test-project.appspot.com'
-            })
-        except Exception as e:
-            print(f"⚠️ Mock credentials failed: {e}")
-            # Fallback: no credentials initialization
             firebase_admin.initialize_app(options={
                 'projectId': 'demo-test-project',
                 'storageBucket': 'demo-test-project.appspot.com'
             })
+            print("✅ Firebase initialized successfully")
+        except Exception as e:
+            print(f"❌ Firebase initialization failed: {e}")
+            print("This might be due to credential issues - emulator should still work")
     
     # Connect to emulator
     db = firestore.client()
