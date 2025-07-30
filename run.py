@@ -105,8 +105,16 @@ def start_emulator_if_needed():
         return False
 
 def sync_emulator_data():
-    """Sync all production data to emulator."""
-    print("\n🔄 Checking emulator data...")
+    """Smart sync: Only sync production data when actually needed."""
+    import sys
+    from datetime import datetime, timedelta
+    
+    # Check for force sync flag
+    force_sync = '--force-sync' in sys.argv
+    if force_sync:
+        print("\n🔄 Force sync requested - syncing all production data...")
+    else:
+        print("\n🔄 Checking emulator data...")
     
     try:
         import firebase_admin
@@ -133,20 +141,68 @@ def sync_emulator_data():
         cards_ref = emulator_db.collection('cards')
         card_count = len(list(cards_ref.limit(1).stream()))
         
-        if card_count == 0:
-            print("📥 Emulator is empty - syncing all production data...")
-            print("   This may take a few minutes for the first sync...")
-        else:
-            print("🔄 Smart sync: Checking for changes...")
+        # Check last sync timestamp
+        internal_config_ref = emulator_db.collection('internal_config').document('sync_metadata')
+        sync_metadata = internal_config_ref.get()
         
-        # Always run smart sync (it only updates what's different)
-        from shared_utils import sync_to_local_emulator
-        sync_to_local_emulator()
+        last_sync_time = None
+        if sync_metadata.exists:
+            sync_data = sync_metadata.to_dict()
+            last_sync_time = sync_data.get('last_sync_timestamp')
         
-        if card_count == 0:
-            print("✅ Initial sync complete! All production data now available locally.")
+        # Determine if sync is needed
+        needs_sync = False
+        sync_reason = ""
+        
+        if force_sync:
+            needs_sync = True
+            sync_reason = "Force sync requested"
+        elif card_count == 0:
+            needs_sync = True
+            sync_reason = "Emulator is empty"
+        elif last_sync_time is None:
+            needs_sync = True
+            sync_reason = "No sync timestamp found"
         else:
-            print("✅ Smart sync complete!")
+            # Check if data is stale (older than 24 hours)
+            try:
+                if isinstance(last_sync_time, str):
+                    last_sync = datetime.fromisoformat(last_sync_time.replace('Z', '+00:00'))
+                else:
+                    last_sync = last_sync_time
+                
+                if datetime.now().astimezone() - last_sync.astimezone() > timedelta(hours=24):
+                    needs_sync = True
+                    sync_reason = f"Data is stale (last sync: {last_sync.strftime('%Y-%m-%d %H:%M')})"
+                else:
+                    print(f"✅ Emulator data is fresh (last sync: {last_sync.strftime('%Y-%m-%d %H:%M')})")
+                    print("   Skipping sync to save Firebase costs")
+                    return
+            except Exception as e:
+                needs_sync = True
+                sync_reason = f"Invalid sync timestamp: {e}"
+        
+        if needs_sync:
+            print(f"📥 {sync_reason} - syncing production data...")
+            if card_count == 0:
+                print("   This may take a few minutes for the first sync...")
+            
+            # Run the actual sync
+            from shared_utils import sync_to_local_emulator
+            sync_to_local_emulator()
+            
+            # Update sync timestamp
+            sync_metadata_doc = {
+                'last_sync_timestamp': datetime.now().isoformat(),
+                'sync_reason': sync_reason,
+                'card_count': len(list(cards_ref.limit(10).stream()))  # Quick recount
+            }
+            internal_config_ref.set(sync_metadata_doc)
+            
+            if card_count == 0:
+                print("✅ Initial sync complete! All production data now available locally.")
+            else:
+                print("✅ Smart sync complete!")
             
     except Exception as e:
         print(f"⚠️  Sync check failed: {e}")
@@ -179,8 +235,8 @@ if config_name == "development" and os.environ.get('WERKZEUG_RUN_MAIN'):
     
     if using_emulator:
         print("📊 Data Source: Firebase Emulator (FREE)")
-        print("✅ All production data synced locally")
-        print("🔄 Run 'rm -rf emulator_data' then restart to force fresh sync")
+        print("✅ Smart sync: Only syncs when data is stale (>24h old)")
+        print("🔄 Force fresh sync: python3 run.py --force-sync")
     else:
         print("📊 Data Source: Production Firestore (COSTS MONEY)")
         print("⚠️  Install Firebase CLI for free emulator:")
