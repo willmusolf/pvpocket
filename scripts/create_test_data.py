@@ -18,7 +18,10 @@ def create_test_data():
     
     # Initialize Firebase app for emulator
     if not firebase_admin._apps:
-        firebase_admin.initialize_app(options={'projectId': 'demo-test-project'})
+        firebase_admin.initialize_app(options={
+            'projectId': 'demo-test-project',
+            'storageBucket': 'demo-test-project.appspot.com'
+        })
     
     # Connect to emulator
     db = firestore.client()
