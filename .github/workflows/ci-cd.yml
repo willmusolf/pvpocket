@@ -203,9 +203,20 @@ jobs:
           echo "🌱 Seeding Firebase emulator with test data..."
           export FIRESTORE_EMULATOR_HOST=127.0.0.1:8080
           export FIREBASE_STORAGE_EMULATOR_HOST=127.0.0.1:9199
-          # Create empty credentials file to prevent auth errors
-          echo '{}' > /tmp/empty_creds.json
-          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/empty_creds.json
+          # Create mock service account file for emulator
+          cat > /tmp/mock_creds.json << 'EOF'
+{
+  "type": "service_account",
+  "project_id": "demo-test-project",
+  "private_key_id": "mock",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC5V7C8YQcYO7FU\nMock-Private-Key-Data-For-Emulator-Testing-Only\n-----END PRIVATE KEY-----\n",
+  "client_email": "test@demo-test-project.iam.gserviceaccount.com",
+  "client_id": "123456789",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token"
+}
+EOF
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/mock_creds.json
           python scripts/create_test_data.py
           if [ $? -eq 0 ]; then
             echo "✅ Test data seeded successfully!"
@@ -262,9 +273,20 @@ jobs:
           echo "🌱 Seeding Firebase emulator with test data..."
           export FIRESTORE_EMULATOR_HOST=127.0.0.1:8080
           export FIREBASE_STORAGE_EMULATOR_HOST=127.0.0.1:9199
-          # Create empty credentials file to prevent auth errors
-          echo '{}' > /tmp/empty_creds.json
-          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/empty_creds.json
+          # Create mock service account file for emulator
+          cat > /tmp/mock_creds.json << 'EOF'
+{
+  "type": "service_account",
+  "project_id": "demo-test-project",
+  "private_key_id": "mock",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC5V7C8YQcYO7FU\nMock-Private-Key-Data-For-Emulator-Testing-Only\n-----END PRIVATE KEY-----\n",
+  "client_email": "test@demo-test-project.iam.gserviceaccount.com",
+  "client_id": "123456789",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token"
+}
+EOF
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/mock_creds.json
           python scripts/create_test_data.py
           if [ $? -eq 0 ]; then
             echo "✅ Test data seeded successfully!"
