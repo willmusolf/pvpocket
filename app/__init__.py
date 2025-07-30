@@ -115,11 +115,18 @@ def create_app(config_name="default"):
 
             # Check if running with Firebase emulator
             if os.environ.get('FIRESTORE_EMULATOR_HOST') or os.environ.get('RUN_INTEGRATION_TESTS'):
-                # Use emulator configuration
+                # Use emulator configuration - ensure exact same project ID as REST API seeding
+                emulator_project_id = 'demo-test-project'  # Must match REST API exactly
                 print("🔥 FIREBASE: Using Firebase Emulator (FREE - no production costs!)")
                 print(f"🔗 Emulator Host: {os.environ.get('FIRESTORE_EMULATOR_HOST', 'localhost:8080')}")
+                print(f"📋 Project ID: {emulator_project_id} (matching REST API seeding)")
+                
+                # Set environment variable to ensure consistent project ID
+                os.environ['GCLOUD_PROJECT'] = emulator_project_id
+                os.environ['FIREBASE_PROJECT_ID'] = emulator_project_id
+                
                 firebase_admin.initialize_app(options={
-                    'projectId': project_id or 'demo-test-project',
+                    'projectId': emulator_project_id,
                     'storageBucket': bucket_name
                 })
             elif project_id and secret_name:
@@ -148,7 +155,7 @@ def create_app(config_name="default"):
     app.config["FIRESTORE_DB"] = db_client
     
     # Debug: Test if the client is actually connected to emulator
-    if config_name == 'development':
+    if config_name in ['development', 'testing']:
         try:
             # Get the project ID from the client
             project_id = db_client.project
@@ -161,7 +168,12 @@ def create_app(config_name="default"):
                 print(f"🔍 DEBUG: Collection: {col.id}")
                 if col.id == 'cards':
                     cards = list(col.stream())
-                    print(f"🔍 DEBUG: Cards collection has {len(cards)} sets")
+                    print(f"🔍 DEBUG: Cards collection has {len(cards)} documents")
+                    # List first few document IDs
+                    for i, card in enumerate(cards[:5]):
+                        print(f"🔍 DEBUG: Card document: {card.id}")
+                    if len(cards) > 5:
+                        print(f"🔍 DEBUG: ... and {len(cards) - 5} more cards")
         except Exception as e:
             print(f"🔍 DEBUG: Error testing Firestore client: {e}")
     login_manager.init_app(app)

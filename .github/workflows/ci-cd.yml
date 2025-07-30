@@ -205,6 +205,8 @@ jobs:
           python scripts/create_test_data.py
           if [ $? -eq 0 ]; then
             echo "✅ Test data seeded successfully!"
+            echo "⏱️ Waiting 3 seconds for emulator to fully process data..."
+            sleep 3
           else
             echo "⚠️ Test data seeding failed, but continuing with tests..."
           fi
@@ -260,6 +262,8 @@ jobs:
           python scripts/create_test_data.py
           if [ $? -eq 0 ]; then
             echo "✅ Test data seeded successfully!"
+            echo "⏱️ Waiting 3 seconds for emulator to fully process data..."
+            sleep 3
           else
             echo "⚠️ Test data seeding failed, but continuing with tests..."
           fi
