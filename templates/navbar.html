@@ -1,7 +1,16 @@
 {% macro account_dropdown_items(current_path) %}
     {% if current_user.is_authenticated %}
-        <li><h6 class="dropdown-header text-end">{{ current_user.username }}</h6></li>
+        {% set is_admin = current_user.email == 'willmusolf@gmail.com' %}
+        <li><h6 class="dropdown-header text-end">
+            {{ current_user.username }}
+            {% if is_admin %}
+                <small class="text-warning d-block" style="font-size: 0.7em; font-weight: normal;">🔧 Admin</small>
+            {% endif %}
+        </h6></li>
         <li><a class="dropdown-item text-end" href="{{ url_for('auth.user_profile_and_settings') }}">Profile/Settings</a></li>
+        {% if is_admin %}
+            <li><a class="dropdown-item text-end text-warning" href="{{ url_for('admin.metrics_dashboard') }}">📊 Metrics Dashboard</a></li>
+        {% endif %}
         <li><a class="dropdown-item text-end" href="{{ url_for('friends.friends_page') }}">Friends</a></li>
         <li><hr class="dropdown-divider"></li>
         <li><a class="dropdown-item user-logout-link text-end" href="{{ url_for('auth.logout') }}">Logout</a></li>

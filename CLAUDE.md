@@ -218,8 +218,8 @@ python test_scalability.py
 # Run quick performance tests
 python test_quick.py
 
-# Access performance monitoring dashboard (while app running)
-# http://localhost:5001/test-scalability-dashboard
+# Access admin metrics dashboard (while app running)
+# http://localhost:5001/admin/metrics
 
 # Check application health
 curl http://localhost:5001/health
@@ -407,7 +407,6 @@ pokemon_tcg_pocket/
 ### Monitoring and Testing
 - **Health Endpoint**: `/health` - System status and diagnostics
 - **Metrics Endpoint**: `/metrics` - Performance data in JSON format
-- **Testing Dashboard**: `/test-scalability-dashboard` - Interactive performance testing
 - **Automated Testing**: `test_scalability.py` - Comprehensive load testing suite
 
 ## Testing and Quality Assurance

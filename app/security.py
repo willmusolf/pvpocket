@@ -38,8 +38,8 @@ class SecurityManager:
             # Very lenient limits for testing
             default_limits = ["10000 per day", "5000 per hour", "1000 per minute"]
         elif app.config.get('FLASK_ENV') == 'development':
-            # More lenient limits for development
-            default_limits = ["1000 per day", "200 per hour", "50 per minute"]
+            # Very lenient limits for development and load testing
+            default_limits = ["10000 per day", "5000 per hour", "1000 per minute"]
         else:
             # Production limits
             default_limits = ["200 per day", "50 per hour", "10 per minute"]
@@ -163,15 +163,32 @@ class SecurityManager:
         """Check if request appears suspicious."""
         suspicious_patterns = [
             'wp-admin', 'phpmyadmin', '.env', '.git',
-            'admin', 'login.php', 'wp-login.php',
+            'login.php', 'wp-login.php',
             'xmlrpc.php', 'config.php'
         ]
         
         # Check path for suspicious patterns
         path = request.path.lower()
+        
+        # Skip legitimate admin routes for authenticated admin users
+        if path.startswith('/admin/'):
+            from flask_login import current_user
+            if current_user.is_authenticated and hasattr(current_user, 'email'):
+                admin_emails = ["willmusolf@gmail.com"]
+                env_admins = os.environ.get("ADMIN_EMAILS", "")
+                if env_admins:
+                    admin_emails.extend(env_admins.split(","))
+                if current_user.email in admin_emails:
+                    return False  # Not suspicious for legitimate admin
+        
+        # Check for other suspicious patterns (but not legitimate admin routes)
         for pattern in suspicious_patterns:
             if pattern in path:
                 return True
+        
+        # Flag generic 'admin' attempts that aren't our legitimate admin routes
+        if 'admin' in path and not path.startswith('/admin/'):
+            return True
         
         # Check for suspicious user agents
         user_agent = request.headers.get('User-Agent', '').lower()
