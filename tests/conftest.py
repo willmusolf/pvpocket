@@ -119,6 +119,77 @@ def mock_card_data():
     ]
 
 
+@pytest.fixture(scope="session")
+def real_firebase_app():
+    """Create application with real Firebase emulator connection for integration tests."""
+    # Only create if we're running integration tests
+    if not os.environ.get('RUN_INTEGRATION_TESTS'):
+        return None
+        
+    # Set test environment variables
+    os.environ['FLASK_CONFIG'] = 'testing'
+    os.environ['SECRET_KEY'] = 'test-secret-key-for-pytest'
+    os.environ['REFRESH_SECRET_KEY'] = 'test-refresh-key'
+    os.environ['GCP_PROJECT_ID'] = 'demo-test-project'
+    os.environ['FIREBASE_SECRET_NAME'] = 'test-secret'
+    
+    # Configure Firebase emulator environment variables
+    os.environ['FIRESTORE_EMULATOR_HOST'] = 'localhost:8080'
+    os.environ['FIREBASE_STORAGE_EMULATOR_HOST'] = 'localhost:9199'
+    os.environ['GCLOUD_PROJECT'] = 'demo-test-project'
+    
+    # Check if emulator is running before attempting to connect
+    import socket
+    def is_emulator_running(host, port):
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(1)
+            result = sock.connect_ex((host, port))
+            sock.close()
+            return result == 0
+        except:
+            return False
+    
+    if not is_emulator_running('localhost', 8080):
+        pytest.skip("Firebase emulator not running on localhost:8080")
+        return None
+    
+    # Import Firebase modules
+    import firebase_admin
+    from firebase_admin import credentials
+    
+    # Clear any existing Firebase apps to ensure clean initialization
+    try:
+        firebase_admin.delete_app(firebase_admin.get_app())
+    except ValueError:
+        pass  # No app to delete
+    
+    # Initialize Firebase Admin SDK explicitly for emulator use
+    # This must happen BEFORE create_app is called
+    firebase_admin.initialize_app(options={
+        'projectId': 'demo-test-project'
+    })
+    
+    # Create app with real Firebase connection (no mocking)
+    app = create_app('testing')
+    app.config.update({
+        'TESTING': True,
+        'WTF_CSRF_ENABLED': False,
+        'SECRET_KEY': 'test-secret-key-for-pytest',
+        'REFRESH_SECRET_KEY': 'test-refresh-key'
+    })
+    
+    return app
+
+
+@pytest.fixture
+def real_firebase_client(real_firebase_app):
+    """Create test client with real Firebase emulator connection."""
+    if not real_firebase_app:
+        pytest.skip("Real Firebase tests require RUN_INTEGRATION_TESTS=1")
+    return real_firebase_app.test_client()
+
+
 @pytest.fixture(autouse=True)
 def reset_cache(cache_manager):
     """Reset cache before each test."""
