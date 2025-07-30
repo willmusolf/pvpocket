@@ -60,6 +60,50 @@ def create_firestore_document(collection_name, document_id, data):
         print(f"❌ Error creating {collection_name}/{document_id}: {e}")
         return False
 
+def verify_document_creation(collection_name, document_id):
+    """Verify that a document was created by trying to read it back."""
+    emulator_host = os.environ.get('FIRESTORE_EMULATOR_HOST', '127.0.0.1:8080')
+    project_id = 'demo-test-project'
+    
+    url = f"http://{emulator_host}/v1/projects/{project_id}/databases/(default)/documents/{collection_name}/{document_id}"
+    
+    try:
+        response = requests.get(url, timeout=5)
+        if response.status_code == 200:
+            return True
+        else:
+            print(f"⚠️ Document {collection_name}/{document_id} not found: {response.status_code}")
+            return False
+    except Exception as e:
+        print(f"⚠️ Error verifying {collection_name}/{document_id}: {e}")
+        return False
+
+def list_collection_documents(collection_name, limit=5):
+    """List documents in a collection for debugging."""
+    emulator_host = os.environ.get('FIRESTORE_EMULATOR_HOST', '127.0.0.1:8080')
+    project_id = 'demo-test-project'
+    
+    url = f"http://{emulator_host}/v1/projects/{project_id}/databases/(default)/documents/{collection_name}"
+    
+    try:
+        response = requests.get(url, timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            documents = data.get('documents', [])
+            print(f"📋 Found {len(documents)} documents in {collection_name} collection")
+            for i, doc in enumerate(documents[:limit]):
+                doc_name = doc.get('name', '').split('/')[-1]
+                print(f"  - Document ID: {doc_name}")
+            if len(documents) > limit:
+                print(f"  ... and {len(documents) - limit} more")
+            return len(documents)
+        else:
+            print(f"❌ Failed to list {collection_name}: {response.status_code}")
+            return 0
+    except Exception as e:
+        print(f"❌ Error listing {collection_name}: {e}")
+        return 0
+
 def create_test_data():
     """Create comprehensive test data for GitHub Actions tests."""
     
@@ -199,6 +243,14 @@ def create_test_data():
         if create_firestore_document("cards", card_id, card_data):
             cards_created += 1
     
+    # Debug: Verify some cards were created and can be read back
+    print("🔍 Verifying card creation...")
+    verified_cards = 0
+    for i in [1, 2, 5]:  # Check first few cards
+        if verify_document_creation("cards", str(i)):
+            verified_cards += 1
+    print(f"  ✅ Verified {verified_cards}/3 sample cards can be read back")
+    
     print(f"  ✅ Created {cards_created}/{len(test_cards)} test cards")
     
     # 3. Create test decks
@@ -290,6 +342,26 @@ def create_test_data():
         print(f"🎉 All {total_created} documents created successfully!")
     else:
         print(f"⚠️  Created {total_created}/{total_expected} documents - some failures occurred")
+    
+    # Final debugging - list what's actually in the database
+    print("\n🔍 Final database verification:")
+    print("=" * 50)
+    list_collection_documents("cards", 5)
+    list_collection_documents("users", 3)
+    list_collection_documents("decks", 3)
+    print("=" * 50)
+    
+    # Give emulator a moment to process all documents
+    import time
+    print("⏱️ Waiting 2 seconds for emulator to process all documents...")
+    time.sleep(2)
+    
+    # Final check
+    final_card_count = list_collection_documents("cards", 1)
+    if final_card_count >= 10:
+        print("✅ Database contains expected number of cards - ready for CardCollection!")
+    else:
+        print(f"⚠️ Database only contains {final_card_count} cards - CardCollection might not find them")
     
 
 if __name__ == "__main__":
