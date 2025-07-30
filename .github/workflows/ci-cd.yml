@@ -173,7 +173,7 @@ jobs:
         REFRESH_SECRET_KEY: test-refresh-key-for-ci
         GCP_PROJECT_ID: demo-test-project
         FIREBASE_SECRET_NAME: test-secret
-        FIRESTORE_EMULATOR_HOST: localhost:8080
+        FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
         FIREBASE_STORAGE_EMULATOR_HOST: localhost:9199
         RUN_INTEGRATION_TESTS: 1
       run: |
@@ -201,6 +201,11 @@ jobs:
         # Seed test data for fast tests
         if [ -f "scripts/create_test_data.py" ]; then
           echo "🌱 Seeding Firebase emulator with test data..."
+          # Set environment for emulator
+          export FIRESTORE_EMULATOR_HOST=127.0.0.1:8080
+          export FIREBASE_STORAGE_EMULATOR_HOST=127.0.0.1:9199
+          # Disable Google credentials lookup
+          unset GOOGLE_APPLICATION_CREDENTIALS
           python scripts/create_test_data.py
           if [ $? -eq 0 ]; then
             echo "✅ Test data seeded successfully!"
@@ -227,7 +232,7 @@ jobs:
         REFRESH_SECRET_KEY: test-refresh-key-for-ci
         GCP_PROJECT_ID: demo-test-project
         FIREBASE_SECRET_NAME: test-secret
-        FIRESTORE_EMULATOR_HOST: localhost:8080
+        FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
         FIREBASE_STORAGE_EMULATOR_HOST: localhost:9199
         RUN_INTEGRATION_TESTS: 1
       run: |
@@ -255,6 +260,11 @@ jobs:
         # Seed test data for specific test categories
         if [ -f "scripts/create_test_data.py" ]; then
           echo "🌱 Seeding Firebase emulator with test data..."
+          # Set environment for emulator
+          export FIRESTORE_EMULATOR_HOST=127.0.0.1:8080
+          export FIREBASE_STORAGE_EMULATOR_HOST=127.0.0.1:9199
+          # Disable Google credentials lookup
+          unset GOOGLE_APPLICATION_CREDENTIALS
           python scripts/create_test_data.py
           if [ $? -eq 0 ]; then
             echo "✅ Test data seeded successfully!"
@@ -281,7 +291,7 @@ jobs:
         REFRESH_SECRET_KEY: test-refresh-key-for-ci
         GCP_PROJECT_ID: demo-test-project
         FIREBASE_SECRET_NAME: test-secret
-        FIRESTORE_EMULATOR_HOST: localhost:8080
+        FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
         FIREBASE_STORAGE_EMULATOR_HOST: localhost:9199
         RUN_INTEGRATION_TESTS: 1
       run: |
