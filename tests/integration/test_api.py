@@ -103,10 +103,14 @@ class TestInternalAPI:
         
         if response.status_code == 200:
             data = json.loads(response.data)
-            # Should contain performance metrics
-            expected_metrics = ['cache_hit_rate', 'response_times', 'active_users']
+            # Should contain basic performance metrics
+            expected_metrics = ['firebase_mode', 'app_config', 'cache_hit_rate', 'firestore_usage', 'cost_optimizations']
             for metric in expected_metrics:
-                assert metric in data
+                assert metric in data, f"Missing expected metric: {metric}"
+                
+            # Test cost optimization structure
+            assert 'using_emulator' in data['cost_optimizations']
+            assert 'lazy_loading' in data['cost_optimizations']
     
     def test_refresh_cards_auth_required(self, client):
         """Test that refresh cards requires proper authentication."""

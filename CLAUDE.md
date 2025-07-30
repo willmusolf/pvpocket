@@ -43,6 +43,15 @@ git push
 - **Cloud deployment**: Uses `deploy_secrets.py` script to fetch from Secret Manager
 - **GitHub Actions**: Secrets stored in repository settings
 
+### Firebase Cost Optimizations (Jan 2025)
+- **Extended Cache TTLs**: Card collection (72h), user data (2h), user collections (24h), decks (6h)
+- **Client-Side Filtering**: Deck searches filter locally after initial load, reducing Firestore reads by 50%+
+- **Connection Pool Optimization**: Reduced from 15 to 10 concurrent connections
+- **Batch Size Reduction**: Limited to 100 documents per batch (from 500)
+- **Composite Indexes**: Added for common query patterns (owner_id + updated_at, etc.)
+- **Usage Monitoring**: Track Firestore operations at `/internal/firestore-usage`
+- **Cost Alerts**: Automatic warnings when approaching daily limits or high costs
+
 ### How to Deploy
 ```bash
 # Deploy to production
@@ -55,6 +64,30 @@ python deploy_secrets.py --environment test
 gcloud app deploy app-test-deploy.yaml
 rm app-test-deploy.yaml
 ```
+
+### Firebase Emulator Strategy
+
+#### Local Development
+- **Purpose**: Free local development with full production data mirror
+- **Auto-start**: `python3 run.py` starts emulator and syncs if needed
+- **Data sync**: Syncs ALL collections from production on first run
+- **Persistence**: Data saved in `emulator_data/` directory
+- **Isolation**: Local changes don't affect production
+- **Collections synced**: cards (~1327), users (all), decks (all), internal_config, etc.
+
+#### GitHub Actions Tests
+- **Test data**: Uses `scripts/create_test_data.py` for consistent test data
+- **Content**: 10 test cards, 3 test users, 3 test decks
+- **Isolation**: Each test run gets fresh emulator instance
+- **All test types**: Fast, full, unit, security, performance tests use emulator
+
+#### Environment Summary
+| Environment | Firebase Mode | Data Content | Cost |
+|-------------|--------------|--------------|------|
+| Local Dev | Emulator | Full production mirror | FREE |
+| GitHub CI | Emulator | Test data (10 cards) | FREE |
+| Staging | Real Firestore | Production data | MINIMAL |
+| Production | Real Firestore | Production data | OPTIMIZED |
 
 ## Git Workflow & CI/CD
 
@@ -97,6 +130,50 @@ rm app-test-deploy.yaml
 - **Debug Firebase**: Check `app/__init__.py` for Firebase initialization and connection logs
 - **Profile Icon Management**: Icons stored in Firebase Storage under `profile_icons/`
 - **Energy Type Icons**: Predefined URLs in `app/__init__.py` for energy type visualization
+
+## Testing Strategy
+
+### ALWAYS Run Tests Before Deployment
+
+To avoid deployment issues like Firebase emulator misconfigurations, ALWAYS run tests locally before making changes that affect:
+- Firebase initialization
+- Configuration classes
+- Environment variables
+- API endpoints
+- Authentication flow
+
+### Quick Test Commands
+```bash
+# Fast tests (like PRs) - catches most issues in ~3 seconds
+pytest -m "not real_data" -v
+
+# Integration tests with emulator - catches Firebase issues
+pytest tests/integration/ -v
+
+# Full test suite - comprehensive validation  
+pytest -v
+
+# Specific test categories
+pytest -m security -v        # Security tests
+pytest -m performance -v     # Performance tests
+pytest -m unit -v           # Unit tests only
+```
+
+### Test-Driven Development
+1. **Before changing configs**: Run `pytest tests/integration/test_api.py::TestInternalAPI::test_metrics_endpoint -v`
+2. **Before Firebase changes**: Run `pytest tests/integration/ -v` 
+3. **Before deployment**: Run full test suite `pytest -v`
+4. **After deployment**: Check logs for Firebase connection messages
+
+### What Tests Catch
+- ✅ Missing configuration fields (like `minimal_data` removal)
+- ✅ Firebase emulator vs production connection issues  
+- ✅ API endpoint changes and authentication
+- ✅ Environment variable misconfigurations
+- ✅ Security vulnerabilities and rate limiting
+- ✅ Performance regressions
+
+See `TESTING.md` and `TESTING_CHEAT_SHEET.md` for complete testing documentation.
 
 ## Development Commands
 

@@ -33,17 +33,22 @@ class Config:
 class DevelopmentConfig(Config):
     """Configuration for development environment."""
     DEBUG = True
+    # Always use full data in development - emulator provides 1327 cards for free
+    # If no emulator is available, the app will fall back to production Firestore
+    USE_MINIMAL_DATA = False
 
 
 class ProductionConfig(Config):
     """Configuration for production environment."""
     DEBUG = False
     ASSET_BASE_URL = 'https://cdn.pvpocket.xyz'
+    # Only load cards when actually needed (lazy loading)
+    LAZY_LOAD_CARDS = True
 
 
 class StagingConfig(ProductionConfig):
     """Configuration for staging environment."""
-    pass
+    DEBUG = True  # Enable debug logging for test environment
 
 
 class TestingConfig(Config):

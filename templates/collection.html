@@ -843,11 +843,68 @@
 
 <script>
     let allDecks = [];
+    let filteredDecks = []; // Store filtered decks for client-side filtering
+    let allDecksLoaded = false; // Track if we've loaded all decks
     let activeFilters = {
         searchText: '',
         energyTypes: [],
         privacyFilter: 'all'
     };
+    
+    // Client-side filtering function
+    function filterDecksClientSide() {
+        const searchLower = activeFilters.searchText.toLowerCase();
+        
+        filteredDecks = allDecks.filter(deck => {
+            // Privacy filter
+            if (activeFilters.privacyFilter === 'public' && !deck.is_public) return false;
+            if (activeFilters.privacyFilter === 'private' && deck.is_public) return false;
+            
+            // Energy type filter
+            if (activeFilters.energyTypes.length > 0) {
+                const deckTypes = deck.types || [];
+                if (deckTypes.length !== activeFilters.energyTypes.length || 
+                    !activeFilters.energyTypes.every(type => deckTypes.includes(type))) {
+                    return false;
+                }
+            }
+            
+            // Search text filter (deck name only for client-side)
+            if (searchLower && !deck.name.toLowerCase().includes(searchLower)) {
+                return false;
+            }
+            
+            return true;
+        });
+        
+        // Update deck display
+        displayFilteredDecks();
+    }
+    
+    // Display filtered decks
+    function displayFilteredDecks() {
+        const decksContainer = document.getElementById('decks-container');
+        decksContainer.innerHTML = '';
+        
+        if (filteredDecks.length === 0) {
+            decksContainer.innerHTML = `
+                <div class="col-12 text-center py-5 text-muted">
+                    <i class="bi bi-search" style="font-size: 3rem;"></i>
+                    <p class="mt-2">No decks found matching your filters</p>
+                </div>
+            `;
+            return;
+        }
+        
+        // Display filtered decks
+        const decksHTML = filteredDecks.map(deck => createDeckCardHTML(deck, window.pageData)).join('');
+        decksContainer.innerHTML = decksHTML;
+        
+        // Initialize tooltips and lazy loading
+        const tooltipTriggerList = decksContainer.querySelectorAll('[data-bs-toggle="tooltip"]');
+        tooltipTriggerList.forEach(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+        initializeImageLazyLoader();
+    }
     
     // Debounce utility function
     function debounce(func, delay) {
@@ -1039,16 +1096,20 @@
     }
 
     async function loadDecksPage(page = 1, append = false, isInitialLoad = false) {
-        // loadDecksPage called
+        // For optimized client-side filtering, load all decks on first load
+        if (allDecksLoaded && !isInitialLoad) {
+            // Use client-side filtering instead of server requests
+            filterDecksClientSide();
+            isLoading = false;
+            return Promise.resolve();
+        }
         
         if (isLoading) {
-            // loadDecksPage: Already loading, returning
             return Promise.resolve();
         }
         
         isLoading = true;
         const decksContainer = document.getElementById('decks-container');
-        // decksContainer found
         
         if (!append) {
             // Only show skeleton cards for initial load, not for search/filter operations
@@ -1063,25 +1124,13 @@
         }
 
         try {
-            // Build query parameters with filters
+            // Build query parameters WITHOUT filters for initial load
             const params = new URLSearchParams({
                 page: page.toString(),
-                limit: '20'
+                limit: '100' // Load more at once to reduce requests
             });
             
-            // Add filter parameters
-            if (activeFilters.searchText.trim()) {
-                params.append('search', activeFilters.searchText.trim());
-            }
-            
-            activeFilters.energyTypes.forEach(type => {
-                params.append('energy_types', type);
-            });
-            
-            if (activeFilters.privacyFilter !== 'all') {
-                params.append('privacy', activeFilters.privacyFilter);
-            }
-            
+            // Fetch decks without filters for cost optimization
             const response = await fetch(`${window.pageData.api_url}?${params.toString()}`);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             
@@ -1091,6 +1140,11 @@
                 // Clear container for fresh load
                 decksContainer.innerHTML = '';
                 allDecks = [];
+            }
+            
+            // Check if we've loaded all decks
+            if (!data.pagination || !data.pagination.has_more) {
+                allDecksLoaded = true;
             }
             
             if (data.decks && data.decks.length > 0) {
@@ -1106,11 +1160,22 @@
                     }
                 }
                 
-                // Add deck HTML to container
-                data.decks.forEach(deck => {
-                    const deckCardHTML = createDeckCardHTML(deck, window.pageData);
-                    decksContainer.insertAdjacentHTML('beforeend', deckCardHTML);
-                });
+                // Apply client-side filtering if we have filters active
+                if (activeFilters.searchText || activeFilters.energyTypes.length > 0 || activeFilters.privacyFilter !== 'all') {
+                    filterDecksClientSide();
+                } else {
+                    // No filters active, display all loaded decks
+                    filteredDecks = [...allDecks];
+                    
+                    // Add deck HTML to container
+                    if (!append) {
+                        decksContainer.innerHTML = '';
+                    }
+                    filteredDecks.forEach(deck => {
+                        const deckCardHTML = createDeckCardHTML(deck, window.pageData);
+                        decksContainer.insertAdjacentHTML('beforeend', deckCardHTML);
+                    });
+                }
                 
                 // Move the loading sentinel to the bottom after adding new cards
                 if (append) {
@@ -1302,7 +1367,14 @@
     }
     
     function triggerSearch() {
-        // triggerSearch() called
+        // Use client-side filtering if all decks are loaded
+        if (allDecksLoaded) {
+            console.log('Using client-side filtering');
+            filterDecksClientSide();
+            hideSearchInputSpinner();
+            return Promise.resolve();
+        }
+        
         // Current filters
         console.log('Searching with filters:', {
             searchText: activeFilters.searchText,
@@ -1318,7 +1390,6 @@
         hasMoreDecks = true;
         
         // Load first page with current filters and return the promise
-        // Calling loadDecksPage(1, false)
         return loadDecksPage(1, false);
     }
 
@@ -1504,6 +1575,7 @@
                             if (res.ok) {
                                 document.getElementById(`deck-col-${deckId}`).remove();
                                 allDecks = allDecks.filter(d => d.deck_id !== deckId);
+                                filteredDecks = filteredDecks.filter(d => d.deck_id !== deckId);
                             } else {
                                 alert('Failed to delete deck.');
                             }

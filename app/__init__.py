@@ -104,6 +104,9 @@ def create_app(config_name="default"):
     profanity.load_censor_words()
 
     # Initialize Firebase (critical for database access)
+    print(f"🔍 DEBUG: firebase_admin._apps = {firebase_admin._apps}")
+    print(f"🔍 DEBUG: FIRESTORE_EMULATOR_HOST = {os.environ.get('FIRESTORE_EMULATOR_HOST')}")
+    
     if not firebase_admin._apps:
         try:
             bucket_name = "pvpocket-dd286.firebasestorage.app"
@@ -111,12 +114,97 @@ def create_app(config_name="default"):
             secret_name = app.config.get("FIREBASE_SECRET_NAME")
 
             # Check if running with Firebase emulator
-            if os.environ.get('FIRESTORE_EMULATOR_HOST') or os.environ.get('RUN_INTEGRATION_TESTS'):
-                # Use emulator configuration
-                firebase_admin.initialize_app(options={
-                    'projectId': project_id or 'demo-test-project',
-                    'storageBucket': bucket_name
-                })
+            # Only use emulator for local development, never in cloud environments
+            is_local_development = (
+                os.environ.get('SERVER_SOFTWARE', '').startswith('werkzeug') or  # Flask dev server
+                not os.environ.get('GAE_ENV') and not os.environ.get('GAE_APPLICATION')  # Not Google App Engine
+            )
+            
+            if (is_local_development and 
+                (os.environ.get('FIRESTORE_EMULATOR_HOST') or 
+                 os.environ.get('RUN_INTEGRATION_TESTS') or 
+                 os.environ.get('FORCE_EMULATOR_MODE'))):
+                # Use emulator configuration - ensure exact same project ID as REST API seeding
+                emulator_project_id = 'demo-test-project'  # Must match REST API exactly
+                
+                # ALWAYS show this debug info in CI/testing
+                print("🔥 FIREBASE: Using Firebase Emulator (FREE - no production costs!)")
+                print(f"🔗 Emulator Host: {os.environ.get('FIRESTORE_EMULATOR_HOST', 'localhost:8080')}")
+                print(f"📋 Project ID: {emulator_project_id} (matching REST API seeding)")
+                print(f"🔍 FIRESTORE_EMULATOR_HOST: {os.environ.get('FIRESTORE_EMULATOR_HOST')}")
+                print(f"🔍 RUN_INTEGRATION_TESTS: {os.environ.get('RUN_INTEGRATION_TESTS')}")
+                print(f"🔍 FORCE_EMULATOR_MODE: {os.environ.get('FORCE_EMULATOR_MODE')}")
+                print(f"🔍 FLASK_CONFIG: {config_name}")
+                
+                # Set environment variable to ensure consistent project ID
+                os.environ['GCLOUD_PROJECT'] = emulator_project_id
+                os.environ['FIREBASE_PROJECT_ID'] = emulator_project_id
+                
+                # Ensure emulator host is properly set - CRITICAL for CI
+                emulator_host = os.environ.get('FIRESTORE_EMULATOR_HOST')
+                if not emulator_host:
+                    # Force emulator host if not set (CI environment)
+                    emulator_host = '127.0.0.1:8080'
+                    print("⚠️ FIRESTORE_EMULATOR_HOST not set, forcing to 127.0.0.1:8080")
+                elif ':' not in emulator_host:
+                    emulator_host = f"{emulator_host}:8080"
+                
+                # CRITICAL: Set the emulator host environment variable
+                os.environ['FIRESTORE_EMULATOR_HOST'] = emulator_host
+                print(f"🎯 FORCED FIRESTORE_EMULATOR_HOST: {emulator_host}")
+                
+                # CRITICAL: Disable credentials for emulator to bypass authentication
+                if 'GOOGLE_APPLICATION_CREDENTIALS' in os.environ:
+                    del os.environ['GOOGLE_APPLICATION_CREDENTIALS']
+                    print("🔧 Removed GOOGLE_APPLICATION_CREDENTIALS for emulator")
+                else:
+                    print("🔧 GOOGLE_APPLICATION_CREDENTIALS already not set")
+                
+                print(f"🔧 Set GCLOUD_PROJECT: {os.environ.get('GCLOUD_PROJECT')}")
+                print(f"🔧 Set FIREBASE_PROJECT_ID: {os.environ.get('FIREBASE_PROJECT_ID')}")
+                print(f"🔧 Set FIRESTORE_EMULATOR_HOST: {os.environ.get('FIRESTORE_EMULATOR_HOST')}")
+                
+                try:
+                    # Try to initialize without credentials first (emulator mode)
+                    firebase_admin.initialize_app(options={
+                        'projectId': emulator_project_id,
+                        'storageBucket': bucket_name
+                    })
+                    print("✅ Firebase Admin SDK initialized with emulator settings (no auth)")
+                except Exception as e:
+                    print(f"⚠️ Firebase Admin SDK init failed: {e}")
+                    # Fallback initialization
+                    firebase_admin.initialize_app()
+                    print("✅ Firebase Admin SDK initialized with fallback")
+            elif not is_local_development and (os.environ.get('FIRESTORE_EMULATOR_HOST') or 
+                                               os.environ.get('RUN_INTEGRATION_TESTS') or 
+                                               os.environ.get('FORCE_EMULATOR_MODE')):
+                # Running in cloud environment but emulator variables are set - ignore them
+                print("🚨 FIREBASE: Emulator variables detected in cloud environment - ignoring for production safety")
+                print(f"🔍 GAE_ENV: {os.environ.get('GAE_ENV')}")
+                print(f"🔍 GAE_APPLICATION: {os.environ.get('GAE_APPLICATION')}")
+                print(f"🔍 SERVER_SOFTWARE: {os.environ.get('SERVER_SOFTWARE')}")
+                print(f"🔍 FIRESTORE_EMULATOR_HOST: {os.environ.get('FIRESTORE_EMULATOR_HOST')}")
+                
+                # Clear any emulator environment variables to ensure production Firestore connection
+                if 'FIRESTORE_EMULATOR_HOST' in os.environ:
+                    del os.environ['FIRESTORE_EMULATOR_HOST']
+                    print("🔧 Cleared FIRESTORE_EMULATOR_HOST for production")
+                
+                # Use production configuration
+                if project_id and secret_name:
+                    client = secretmanager.SecretManagerServiceClient()
+                    name = f"projects/{project_id}/secrets/{secret_name}/versions/latest"
+                    response = client.access_secret_version(request={"name": name})
+                    secret_payload = response.payload.data.decode("UTF-8")
+                    cred_dict = json.loads(secret_payload)
+                    cred = credentials.Certificate(cred_dict)
+                    print("🔥 FIREBASE: Using Production Firestore (REAL COSTS)")
+                    print(f"📊 Project: {project_id}")
+                    firebase_admin.initialize_app(cred, {"storageBucket": bucket_name})
+                else:
+                    print("🔥 FIREBASE: Using Default Configuration (REAL COSTS)")
+                    firebase_admin.initialize_app(options={"storageBucket": bucket_name})
             elif project_id and secret_name:
                 client = secretmanager.SecretManagerServiceClient()
                 name = f"projects/{project_id}/secrets/{secret_name}/versions/latest"
@@ -124,8 +212,11 @@ def create_app(config_name="default"):
                 secret_payload = response.payload.data.decode("UTF-8")
                 cred_dict = json.loads(secret_payload)
                 cred = credentials.Certificate(cred_dict)
+                print("🔥 FIREBASE: Using Production Firestore (REAL COSTS)")
+                print(f"📊 Project: {project_id}")
                 firebase_admin.initialize_app(cred, {"storageBucket": bucket_name})
             else:
+                print("🔥 FIREBASE: Using Default Configuration (REAL COSTS)")
                 firebase_admin.initialize_app(options={"storageBucket": bucket_name})
         except Exception as e:
             # Only log critical Firebase errors in debug mode
@@ -136,7 +227,31 @@ def create_app(config_name="default"):
                 )
             firebase_admin.initialize_app()
 
-    app.config["FIRESTORE_DB"] = firestore.client()
+    db_client = firestore.client()
+    app.config["FIRESTORE_DB"] = db_client
+    
+    # Debug: Test if the client is actually connected to emulator - ALWAYS show in testing/CI
+    if config_name in ['development', 'testing'] or os.environ.get('RUN_INTEGRATION_TESTS'):
+        try:
+            # Get the project ID from the client
+            project_id = db_client.project
+            print(f"🔍 DEBUG: Firestore client project: {project_id}")
+            
+            # Quick test to see if we can access collections
+            collections = list(db_client.collections())
+            print(f"🔍 DEBUG: Firestore client has {len(collections)} collections")
+            for col in collections:
+                print(f"🔍 DEBUG: Collection: {col.id}")
+                if col.id == 'cards':
+                    cards = list(col.stream())
+                    print(f"🔍 DEBUG: Cards collection has {len(cards)} documents")
+                    # List first few document IDs
+                    for i, card in enumerate(cards[:5]):
+                        print(f"🔍 DEBUG: Card document: {card.id}")
+                    if len(cards) > 5:
+                        print(f"🔍 DEBUG: ... and {len(cards) - 5} more cards")
+        except Exception as e:
+            print(f"🔍 DEBUG: Error testing Firestore client: {e}")
     login_manager.init_app(app)
     
     # Initialize security middleware (rate limiting, security headers)
@@ -191,6 +306,12 @@ def create_app(config_name="default"):
         """Background task to load card collection after startup."""
         try:
             with app.app_context():
+                # Preserve emulator environment in background task
+                emulator_host = os.environ.get('FIRESTORE_EMULATOR_HOST')
+                if emulator_host:
+                    # Ensure emulator connection is maintained in background task
+                    os.environ['FIRESTORE_EMULATOR_HOST'] = emulator_host
+                
                 # Only log background loading in debug
                 if config_name == 'development':
                     app.logger.debug("🔄 Background: Loading card collection...")
@@ -209,11 +330,33 @@ def create_app(config_name="default"):
     
     # Schedule the card loading task to run after startup (5 second delay)
     # Only run in main process, not in Flask reloader process
+    # Skip card loading in reloader process, use appropriate loading strategy for environment
     if not os.environ.get('WERKZEUG_RUN_MAIN'):
         # This is the reloader process, skip background task scheduling
         pass
+    elif app.config.get('LAZY_LOAD_CARDS'):
+        # Production lazy loading - only load cards when actually requested
+        print("💰 CARD LOADING: LAZY (only loads on first user request)")
+        print("📊 Cards loaded: 0 (will load ~1300 when user visits)")
+        if config_name == 'production':
+            print("⚡ Deferred card loading: LAZY (will load on first user request)")
+    elif os.environ.get('FIRESTORE_EMULATOR_HOST'):
+        # Emulator mode - load immediately since it's free and fast
+        print("💰 CARD LOADING: EMULATOR (loads full collection immediately)")
+        print("📊 Cards loaded: All production data from emulator (FREE)")
+        try:
+            # Load cards immediately from emulator within app context
+            with app.app_context():
+                collection = CardService._load_full_collection(cache_as_full=True)
+                if config_name == 'development':
+                    print(f"✅ Loaded {len(collection)} cards from emulator")
+        except Exception as e:
+            if config_name == 'development':
+                print(f"❌ Error loading from emulator: {e}")
     else:
-        # This is the main app process, schedule the background task
+        # This is the main app process and not minimal mode, schedule the background task
+        print("💰 CARD LOADING: FULL (loads all cards immediately)")
+        print("📊 Cards loaded: ~1300 (full collection)")
         task_queue.enqueue_task("load_card_collection", {}, delay_seconds=5)
     
     # Deferred card collection loading scheduled
@@ -310,6 +453,39 @@ def create_app(config_name="default"):
         
         # For any other URLs, return as-is (fallback)
         return original_url
+
+    @app.route("/metrics", methods=["GET"])
+    def metrics():
+        """Get basic performance metrics."""
+        try:
+            from .monitoring import performance_monitor
+            from .cache_manager import cache_manager
+            
+            # Determine Firebase mode
+            firebase_mode = "Unknown"
+            if os.environ.get('FIRESTORE_EMULATOR_HOST'):
+                firebase_mode = "Emulator (FREE)"
+            elif app.config.get('LAZY_LOAD_CARDS'):
+                firebase_mode = "Production + Lazy Loading (SMART)"
+            else:
+                firebase_mode = "Production + Full Loading (EXPENSIVE)"
+            
+            metrics_data = {
+                "firebase_mode": firebase_mode,
+                "app_config": config_name,
+                "cache_hit_rate": f"{performance_monitor.metrics.get_cache_hit_rate():.1f}%",
+                "cache_healthy": cache_manager.health_check(),
+                "firestore_usage": performance_monitor.metrics.get_firestore_usage_stats(),
+                "cost_optimizations": {
+                    "using_emulator": bool(os.environ.get('FIRESTORE_EMULATOR_HOST')),
+                    "lazy_loading": app.config.get('LAZY_LOAD_CARDS', False)
+                },
+                "timestamp": datetime.utcnow().isoformat()
+            }
+            
+            return jsonify(metrics_data), 200
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
 
     @app.route("/api/refresh-cards", methods=["POST"])
     @security_manager.require_refresh_key

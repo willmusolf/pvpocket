@@ -5,6 +5,7 @@ Provides clean interfaces for accessing cached data without storing in app confi
 
 from typing import Optional, List, Dict, Any
 import threading
+import os
 from flask import current_app
 from Card import CardCollection, Card
 from .cache_manager import cache_manager
@@ -27,6 +28,67 @@ class CardService:
     # Track background loading state
     _background_loading_lock = threading.Lock()
     _background_loading_active = False
+    
+    @staticmethod
+    def _get_sample_card_collection() -> CardCollection:
+        """Create a small sample collection for development testing."""
+        from Card import Card
+        
+        collection = CardCollection()
+        
+        # Add a few sample cards for testing
+        sample_cards = [
+            Card(
+                id=1,
+                name="Pikachu",
+                energy_type="Lightning",
+                set_name="Sample Set",
+                set_code="SAM",
+                card_number=1,
+                card_number_str="001",
+                card_type="Pokemon",
+                hp=60,
+                attacks=[{"name": "Thunder Shock", "cost": ["Lightning"], "damage": 30}],
+                firebase_image_url="https://cdn.pvpocket.xyz/cards/sample_pikachu.png",
+                rarity="Common",
+                pack="Sample Pack"
+            ),
+            Card(
+                id=2,
+                name="Charizard",
+                energy_type="Fire",
+                set_name="Sample Set",
+                set_code="SAM",
+                card_number=2,
+                card_number_str="002",
+                card_type="Pokemon",
+                hp=120,
+                attacks=[{"name": "Fire Blast", "cost": ["Fire", "Fire"], "damage": 80}],
+                firebase_image_url="https://cdn.pvpocket.xyz/cards/sample_charizard.png",
+                rarity="Rare",
+                pack="Sample Pack"
+            ),
+            Card(
+                id=3,
+                name="Blastoise",
+                energy_type="Water",
+                set_name="Sample Set",
+                set_code="SAM",
+                card_number=3,
+                card_number_str="003",
+                card_type="Pokemon",
+                hp=100,
+                attacks=[{"name": "Hydro Pump", "cost": ["Water", "Water"], "damage": 70}],
+                firebase_image_url="https://cdn.pvpocket.xyz/cards/sample_blastoise.png",
+                rarity="Rare",
+                pack="Sample Pack"
+            )
+        ]
+        
+        for card in sample_cards:
+            collection.add_card(card)
+        
+        return collection
     
     @staticmethod
     def get_dynamic_priority_sets() -> List[str]:
@@ -52,6 +114,11 @@ class CardService:
     @staticmethod
     def get_card_collection() -> CardCollection:
         """Get card collection with graceful fallback for startup optimization."""
+        # Skip loading in development if USE_MINIMAL_DATA is set
+        if current_app.config.get("USE_MINIMAL_DATA"):
+            # Return a small sample collection for development testing
+            return CardService._get_sample_card_collection()
+        
         # Always try full collection from cache first
         full_collection = cache_manager.get_card_collection(cache_key="global_cards")
         
@@ -107,8 +174,8 @@ class CardService:
                 total_loaded += loaded_count
             
             if total_loaded > 0:
-                # Cache priority collection with shorter TTL
-                cache_manager.set_card_collection(collection, cache_key="global_cards_priority", ttl_hours=12)
+                # Cache priority collection with extended TTL for cost savings
+                cache_manager.set_card_collection(collection, cache_key="global_cards_priority", ttl_hours=48)
                 return collection
             else:
                 return None
@@ -251,13 +318,14 @@ class CardService:
         try:
             # Loading status only in debug
             if current_app and current_app.debug:
-                current_app.logger.debug("Loading complete card collection from Firestore...")
+                emulator_host = os.environ.get('FIRESTORE_EMULATOR_HOST')
+                current_app.logger.debug(f"Loading complete card collection from Firestore... (Emulator: {emulator_host})")
             collection = CardCollection()
             collection.load_from_firestore(db_client)
             
             if cache_as_full:
-                # Cache as full collection
-                cache_manager.set_card_collection(collection, ttl_hours=24)
+                # Cache as full collection with extended TTL for cost savings
+                cache_manager.set_card_collection(collection, ttl_hours=72)
                 # Success message only in debug
                 if current_app and current_app.debug:
                     current_app.logger.debug(f"Loaded and cached {len(collection)} cards (full collection).")
@@ -335,13 +403,13 @@ class CardService:
             for set_name in priority_sets:
                 CardService._load_cards_from_set(db_client, priority_collection, set_name)
             
-            # Cache priority collection
-            cache_manager.set_card_collection(priority_collection, cache_key="global_cards_priority", ttl_hours=12)
+            # Cache priority collection with extended TTL
+            cache_manager.set_card_collection(priority_collection, cache_key="global_cards_priority", ttl_hours=48)
             
-            # Load and cache full collection
+            # Load and cache full collection with extended TTL
             full_collection = CardCollection()
             full_collection.load_from_firestore(db_client)
-            cache_manager.set_card_collection(full_collection, ttl_hours=24)
+            cache_manager.set_card_collection(full_collection, ttl_hours=72)
             
             return True
         except Exception as e:
@@ -368,8 +436,8 @@ class UserService:
             if user_data:
                 collection_data = user_data.get("collection", {})
                 
-                # Cache for 6 hours
-                cache_manager.set_user_collection(user_id, collection_data, ttl_hours=6)
+                # Cache for 24 hours to reduce Firestore reads
+                cache_manager.set_user_collection(user_id, collection_data, ttl_hours=24)
                 return collection_data
             
         except Exception as e:
@@ -392,8 +460,8 @@ class UserService:
             filters = [("user_id", "==", user_id)]
             decks_data = db_service.query_collection("decks", filters=filters)
             
-            # Cache for 2 hours
-            cache_manager.set_user_decks(user_id, decks_data, ttl_hours=2)
+            # Cache for 6 hours to reduce Firestore reads
+            cache_manager.set_user_decks(user_id, decks_data, ttl_hours=6)
             return decks_data
             
         except Exception as e:
