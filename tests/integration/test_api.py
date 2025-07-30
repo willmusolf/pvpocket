@@ -110,7 +110,6 @@ class TestInternalAPI:
                 
             # Test cost optimization structure
             assert 'using_emulator' in data['cost_optimizations']
-            assert 'minimal_data' in data['cost_optimizations']
             assert 'lazy_loading' in data['cost_optimizations']
     
     def test_refresh_cards_auth_required(self, client):

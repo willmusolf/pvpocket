@@ -131,6 +131,50 @@ rm app-test-deploy.yaml
 - **Profile Icon Management**: Icons stored in Firebase Storage under `profile_icons/`
 - **Energy Type Icons**: Predefined URLs in `app/__init__.py` for energy type visualization
 
+## Testing Strategy
+
+### ALWAYS Run Tests Before Deployment
+
+To avoid deployment issues like Firebase emulator misconfigurations, ALWAYS run tests locally before making changes that affect:
+- Firebase initialization
+- Configuration classes
+- Environment variables
+- API endpoints
+- Authentication flow
+
+### Quick Test Commands
+```bash
+# Fast tests (like PRs) - catches most issues in ~3 seconds
+pytest -m "not real_data" -v
+
+# Integration tests with emulator - catches Firebase issues
+pytest tests/integration/ -v
+
+# Full test suite - comprehensive validation  
+pytest -v
+
+# Specific test categories
+pytest -m security -v        # Security tests
+pytest -m performance -v     # Performance tests
+pytest -m unit -v           # Unit tests only
+```
+
+### Test-Driven Development
+1. **Before changing configs**: Run `pytest tests/integration/test_api.py::TestInternalAPI::test_metrics_endpoint -v`
+2. **Before Firebase changes**: Run `pytest tests/integration/ -v` 
+3. **Before deployment**: Run full test suite `pytest -v`
+4. **After deployment**: Check logs for Firebase connection messages
+
+### What Tests Catch
+- ✅ Missing configuration fields (like `minimal_data` removal)
+- ✅ Firebase emulator vs production connection issues  
+- ✅ API endpoint changes and authentication
+- ✅ Environment variable misconfigurations
+- ✅ Security vulnerabilities and rate limiting
+- ✅ Performance regressions
+
+See `TESTING.md` and `TESTING_CHEAT_SHEET.md` for complete testing documentation.
+
 ## Development Commands
 
 ### Environment Setup
