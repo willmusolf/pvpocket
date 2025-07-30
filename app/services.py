@@ -5,6 +5,7 @@ Provides clean interfaces for accessing cached data without storing in app confi
 
 from typing import Optional, List, Dict, Any
 import threading
+import os
 from flask import current_app
 from Card import CardCollection, Card
 from .cache_manager import cache_manager
@@ -27,6 +28,67 @@ class CardService:
     # Track background loading state
     _background_loading_lock = threading.Lock()
     _background_loading_active = False
+    
+    @staticmethod
+    def _get_sample_card_collection() -> CardCollection:
+        """Create a small sample collection for development testing."""
+        from Card import Card
+        
+        collection = CardCollection()
+        
+        # Add a few sample cards for testing
+        sample_cards = [
+            Card(
+                id=1,
+                name="Pikachu",
+                energy_type="Lightning",
+                set_name="Sample Set",
+                set_code="SAM",
+                card_number=1,
+                card_number_str="001",
+                card_type="Pokemon",
+                hp=60,
+                attacks=[{"name": "Thunder Shock", "cost": ["Lightning"], "damage": 30}],
+                firebase_image_url="https://cdn.pvpocket.xyz/cards/sample_pikachu.png",
+                rarity="Common",
+                pack="Sample Pack"
+            ),
+            Card(
+                id=2,
+                name="Charizard",
+                energy_type="Fire",
+                set_name="Sample Set",
+                set_code="SAM",
+                card_number=2,
+                card_number_str="002",
+                card_type="Pokemon",
+                hp=120,
+                attacks=[{"name": "Fire Blast", "cost": ["Fire", "Fire"], "damage": 80}],
+                firebase_image_url="https://cdn.pvpocket.xyz/cards/sample_charizard.png",
+                rarity="Rare",
+                pack="Sample Pack"
+            ),
+            Card(
+                id=3,
+                name="Blastoise",
+                energy_type="Water",
+                set_name="Sample Set",
+                set_code="SAM",
+                card_number=3,
+                card_number_str="003",
+                card_type="Pokemon",
+                hp=100,
+                attacks=[{"name": "Hydro Pump", "cost": ["Water", "Water"], "damage": 70}],
+                firebase_image_url="https://cdn.pvpocket.xyz/cards/sample_blastoise.png",
+                rarity="Rare",
+                pack="Sample Pack"
+            )
+        ]
+        
+        for card in sample_cards:
+            collection.add_card(card)
+        
+        return collection
     
     @staticmethod
     def get_dynamic_priority_sets() -> List[str]:
@@ -54,7 +116,8 @@ class CardService:
         """Get card collection with graceful fallback for startup optimization."""
         # Skip loading in development if USE_MINIMAL_DATA is set
         if current_app.config.get("USE_MINIMAL_DATA"):
-            return CardCollection()  # Return empty collection for development
+            # Return a small sample collection for development testing
+            return CardService._get_sample_card_collection()
         
         # Always try full collection from cache first
         full_collection = cache_manager.get_card_collection(cache_key="global_cards")
@@ -255,7 +318,8 @@ class CardService:
         try:
             # Loading status only in debug
             if current_app and current_app.debug:
-                current_app.logger.debug("Loading complete card collection from Firestore...")
+                emulator_host = os.environ.get('FIRESTORE_EMULATOR_HOST')
+                current_app.logger.debug(f"Loading complete card collection from Firestore... (Emulator: {emulator_host})")
             collection = CardCollection()
             collection.load_from_firestore(db_client)
             

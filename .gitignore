@@ -16,6 +16,10 @@ eggs/
 lib/
 lib64/
 node_modules/
+
+# Firebase emulator data (local development only)
+emulator_data/
+*.log
 parts/
 sdist/
 var/

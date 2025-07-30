@@ -36,6 +36,9 @@
       "enabled": true,
       "port": 4000
     },
-    "singleProjectMode": true
+    "singleProjectMode": true,
+    "export": {
+      "path": "emulator_data"
+    }
   }
 }
