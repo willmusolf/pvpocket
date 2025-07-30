@@ -151,7 +151,7 @@ class CacheManager:
                 pass
             return None
     
-    def set_user_data(self, user_id: str, user_data: Dict, ttl_minutes: int = 30) -> bool:
+    def set_user_data(self, user_id: str, user_data: Dict, ttl_minutes: int = 120) -> bool:
         """Cache user data with TTL."""
         try:
             # Convert Firestore datetime objects to strings
