@@ -381,7 +381,25 @@ jobs:
       run: |
         sleep 30
         TEST_URL="https://test-env-dot-${{ env.GCP_PROJECT_ID }}.uc.r.appspot.com/health"
-        curl -f "$TEST_URL" || exit 1
+        echo "Testing health endpoint: $TEST_URL"
+        
+        # Add timeout and retry logic
+        for i in {1..5}; do
+          echo "Health check attempt $i/5..."
+          if curl -f --max-time 30 --connect-timeout 10 "$TEST_URL"; then
+            echo "✅ Health check passed!"
+            exit 0
+          else
+            echo "❌ Health check failed (attempt $i/5)"
+            if [ $i -lt 5 ]; then
+              echo "Waiting 10 seconds before retry..."
+              sleep 10
+            fi
+          fi
+        done
+        
+        echo "❌ All health check attempts failed"
+        exit 1
 
   deploy-production:
     name: Deploy to Production
@@ -457,7 +475,25 @@ jobs:
       run: |
         sleep 30
         PROD_URL="https://${{ env.GCP_PROJECT_ID }}.uc.r.appspot.com/health"
-        curl -f "$PROD_URL" || exit 1
+        echo "Testing health endpoint: $PROD_URL"
+        
+        # Add timeout and retry logic
+        for i in {1..5}; do
+          echo "Health check attempt $i/5..."
+          if curl -f --max-time 30 --connect-timeout 10 "$PROD_URL"; then
+            echo "✅ Health check passed!"
+            exit 0
+          else
+            echo "❌ Health check failed (attempt $i/5)"
+            if [ $i -lt 5 ]; then
+              echo "Waiting 10 seconds before retry..."
+              sleep 10
+            fi
+          fi
+        done
+        
+        echo "❌ All health check attempts failed"
+        exit 1
         
     - name: Run production health and basic load test
       env:
@@ -469,8 +505,8 @@ jobs:
         # Test multiple endpoints for basic load testing  
         for i in {1..5}; do
           echo "Load test iteration $i"
-          curl -f "$TEST_BASE_URL/health" -w "Response time: %{time_total}s\n" || echo "Health check failed"
-          curl -f "$TEST_BASE_URL/" -w "Homepage time: %{time_total}s\n" || echo "Homepage failed"
+          curl -f --max-time 15 --connect-timeout 5 "$TEST_BASE_URL/health" -w "Response time: %{time_total}s\n" || echo "Health check failed"
+          curl -f --max-time 15 --connect-timeout 5 "$TEST_BASE_URL/" -w "Homepage time: %{time_total}s\n" || echo "Homepage failed"
           sleep 1
         done
         
