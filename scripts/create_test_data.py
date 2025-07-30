@@ -2,79 +2,79 @@
 """
 Create comprehensive test data for GitHub Actions tests.
 This provides a consistent set of test data for CI/CD pipelines.
+Uses Firestore REST API to bypass Firebase Admin SDK authentication issues.
 """
 
 import os
 import sys
-import firebase_admin
-from firebase_admin import firestore, credentials
-import tempfile
+import requests
 import json
 from datetime import datetime, timedelta
 
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+def convert_to_firestore_value(value):
+    """Convert Python value to Firestore REST API format."""
+    if value is None:
+        return {"nullValue": None}
+    elif isinstance(value, bool):
+        return {"booleanValue": value}
+    elif isinstance(value, int):
+        return {"integerValue": str(value)}
+    elif isinstance(value, float):
+        return {"doubleValue": value}
+    elif isinstance(value, str):
+        return {"stringValue": value}
+    elif isinstance(value, list):
+        return {"arrayValue": {"values": [convert_to_firestore_value(v) for v in value]}}
+    elif isinstance(value, dict):
+        return {"mapValue": {"fields": {k: convert_to_firestore_value(v) for k, v in value.items()}}}
+    elif isinstance(value, datetime):
+        return {"timestampValue": value.isoformat() + "Z"}
+    else:
+        # Fallback to string
+        return {"stringValue": str(value)}
+
+def create_firestore_document(collection_name, document_id, data):
+    """Create a document in Firestore emulator using REST API."""
+    emulator_host = os.environ.get('FIRESTORE_EMULATOR_HOST', '127.0.0.1:8080')
+    project_id = 'demo-test-project'
+    
+    # Convert data to Firestore format
+    firestore_data = {
+        "fields": {k: convert_to_firestore_value(v) for k, v in data.items()}
+    }
+    
+    # Create document via REST API
+    url = f"http://{emulator_host}/v1/projects/{project_id}/databases/(default)/documents/{collection_name}?documentId={document_id}"
+    
+    try:
+        response = requests.post(url, json=firestore_data, timeout=10)
+        if response.status_code in [200, 201]:
+            return True
+        else:
+            print(f"❌ Failed to create {collection_name}/{document_id}: {response.status_code} - {response.text}")
+            return False
+    except Exception as e:
+        print(f"❌ Error creating {collection_name}/{document_id}: {e}")
+        return False
+
 def create_test_data():
     """Create comprehensive test data for GitHub Actions tests."""
     
     print(f"🔍 FIRESTORE_EMULATOR_HOST = {os.environ.get('FIRESTORE_EMULATOR_HOST')}")
-    print(f"🔍 GOOGLE_APPLICATION_CREDENTIALS = {os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')}")
     print(f"🔍 Using demo project: demo-test-project")
+    print("🌐 Using Firestore REST API to bypass authentication issues")
     
-    # Initialize Firebase app for emulator
-    if not firebase_admin._apps:
-        # For Firebase emulator, we need to bypass authentication entirely
-        print("🔧 Configuring Firebase Admin SDK for emulator...")
-        
-        # Set GCLOUD_PROJECT environment variable as an alternative
-        os.environ['GCLOUD_PROJECT'] = 'demo-test-project'
-        
-        try:
-            # When using emulator, try to initialize without credentials
-            # The emulator host environment variable should be sufficient
-            firebase_admin.initialize_app(options={
-                'projectId': 'demo-test-project'
-            })
-            print("✅ Firebase initialized successfully for emulator")
-            
-        except Exception as e:
-            print(f"⚠️ Standard initialization failed: {e}")
-            print("🔄 Trying alternative approach for emulator...")
-            
-            try:
-                # Alternative: Set a fake service account to satisfy the SDK
-                fake_sa_path = '/tmp/fake_service_account.json'
-                fake_service_account = {
-                    "type": "service_account",
-                    "project_id": "demo-test-project", 
-                    "private_key_id": "fake",
-                    "private_key": "-----BEGIN PRIVATE KEY-----\\nfake\\n-----END PRIVATE KEY-----\\n",
-                    "client_email": "fake@demo-test-project.iam.gserviceaccount.com",
-                    "client_id": "fake",
-                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                    "token_uri": "https://oauth2.googleapis.com/token"
-                }
-                
-                with open(fake_sa_path, 'w') as f:
-                    json.dump(fake_service_account, f)
-                
-                os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = fake_sa_path
-                
-                # Re-initialize
-                firebase_admin.initialize_app(options={
-                    'projectId': 'demo-test-project'
-                })
-                print("✅ Firebase initialized with fake service account for emulator")
-                
-            except Exception as e2:
-                print(f"❌ Alternative initialization also failed: {e2}")
-                print("⚠️ Continuing anyway - emulator might still work via direct connection")
-                # Initialize with minimal config as last resort  
-                firebase_admin.initialize_app()
-    
-    # Connect to emulator
-    db = firestore.client()
+    # Verify emulator is accessible
+    emulator_host = os.environ.get('FIRESTORE_EMULATOR_HOST', '127.0.0.1:8080')
+    try:
+        response = requests.get(f"http://{emulator_host}", timeout=5)
+        print("✅ Firestore emulator is accessible via REST API")
+    except Exception as e:
+        print(f"❌ Cannot reach Firestore emulator: {e}")
+        print("⚠️ Continuing anyway...")
     
     print("🧪 Creating test data for GitHub Actions...")
     
@@ -115,11 +115,13 @@ def create_test_data():
         }
     ]
     
+    users_created = 0
     for user_data in test_users:
         user_id = user_data.pop("id")
-        db.collection("users").document(user_id).set(user_data)
+        if create_firestore_document("users", user_id, user_data):
+            users_created += 1
     
-    print(f"  ✅ Created {len(test_users)} test users")
+    print(f"  ✅ Created {users_created}/{len(test_users)} test users")
     
     # 2. Create test cards directly in cards collection
     print("🃏 Creating test cards...")
@@ -190,12 +192,14 @@ def create_test_data():
          "firebase_image_url": "https://example.com/charmander.png"}
     ]
     
-    # Add cards directly to cards collection (not in subcollection)
+    # Add cards directly to cards collection using REST API
+    cards_created = 0
     for card_data in test_cards:
         card_id = str(card_data["id"])
-        db.collection("cards").document(card_id).set(card_data)
+        if create_firestore_document("cards", card_id, card_data):
+            cards_created += 1
     
-    print(f"  ✅ Created {len(test_cards)} test cards")
+    print(f"  ✅ Created {cards_created}/{len(test_cards)} test cards")
     
     # 3. Create test decks
     print("🎯 Creating test decks...")
@@ -242,11 +246,13 @@ def create_test_data():
         }
     ]
     
+    decks_created = 0
     for deck_data in test_decks:
         deck_id = deck_data.pop("id")
-        db.collection("decks").document(deck_id).set(deck_data)
+        if create_firestore_document("decks", deck_id, deck_data):
+            decks_created += 1
     
-    print(f"  ✅ Created {len(test_decks)} test decks")
+    print(f"  ✅ Created {decks_created}/{len(test_decks)} test decks")
     
     # 4. Create internal config
     print("⚙️  Creating internal configuration...")
@@ -262,26 +268,28 @@ def create_test_data():
         }
     }
     
+    configs_created = 0
     for config_id, config_value in config_data.items():
-        db.collection("internal_config").document(config_id).set(config_value)
+        if create_firestore_document("internal_config", config_id, config_value):
+            configs_created += 1
     
-    print(f"  ✅ Created {len(config_data)} config documents")
+    print(f"  ✅ Created {configs_created}/{len(config_data)} config documents")
     
     # Summary
     print("\n✅ Test data creation complete!")
     print("📊 Summary:")
-    print(f"  • {len(test_users)} users")
-    print(f"  • {len(test_cards)} cards") 
-    print(f"  • {len(test_decks)} decks")
-    print(f"  • {len(config_data)} config documents")
+    print(f"  • {users_created}/{len(test_users)} users")
+    print(f"  • {cards_created}/{len(test_cards)} cards") 
+    print(f"  • {decks_created}/{len(test_decks)} decks")
+    print(f"  • {configs_created}/{len(config_data)} config documents")
     
-    # Clean up temporary credentials file if it exists
-    fake_sa_path = '/tmp/fake_service_account.json'
-    if os.path.exists(fake_sa_path):
-        try:
-            os.unlink(fake_sa_path)
-        except:
-            pass
+    total_created = users_created + cards_created + decks_created + configs_created
+    total_expected = len(test_users) + len(test_cards) + len(test_decks) + len(config_data)
+    
+    if total_created == total_expected:
+        print(f"🎉 All {total_created} documents created successfully!")
+    else:
+        print(f"⚠️  Created {total_created}/{total_expected} documents - some failures occurred")
     
 
 if __name__ == "__main__":
