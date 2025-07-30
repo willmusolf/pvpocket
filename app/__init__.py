@@ -104,6 +104,9 @@ def create_app(config_name="default"):
     profanity.load_censor_words()
 
     # Initialize Firebase (critical for database access)
+    print(f"🔍 DEBUG: firebase_admin._apps = {firebase_admin._apps}")
+    print(f"🔍 DEBUG: FIRESTORE_EMULATOR_HOST = {os.environ.get('FIRESTORE_EMULATOR_HOST')}")
+    
     if not firebase_admin._apps:
         try:
             bucket_name = "pvpocket-dd286.firebasestorage.app"
@@ -141,7 +144,26 @@ def create_app(config_name="default"):
                 )
             firebase_admin.initialize_app()
 
-    app.config["FIRESTORE_DB"] = firestore.client()
+    db_client = firestore.client()
+    app.config["FIRESTORE_DB"] = db_client
+    
+    # Debug: Test if the client is actually connected to emulator
+    if config_name == 'development':
+        try:
+            # Get the project ID from the client
+            project_id = db_client.project
+            print(f"🔍 DEBUG: Firestore client project: {project_id}")
+            
+            # Quick test to see if we can access collections
+            collections = list(db_client.collections())
+            print(f"🔍 DEBUG: Firestore client has {len(collections)} collections")
+            for col in collections:
+                print(f"🔍 DEBUG: Collection: {col.id}")
+                if col.id == 'cards':
+                    cards = list(col.stream())
+                    print(f"🔍 DEBUG: Cards collection has {len(cards)} sets")
+        except Exception as e:
+            print(f"🔍 DEBUG: Error testing Firestore client: {e}")
     login_manager.init_app(app)
     
     # Initialize security middleware (rate limiting, security headers)
@@ -196,6 +218,12 @@ def create_app(config_name="default"):
         """Background task to load card collection after startup."""
         try:
             with app.app_context():
+                # Preserve emulator environment in background task
+                emulator_host = os.environ.get('FIRESTORE_EMULATOR_HOST')
+                if emulator_host:
+                    # Ensure emulator connection is maintained in background task
+                    os.environ['FIRESTORE_EMULATOR_HOST'] = emulator_host
+                
                 # Only log background loading in debug
                 if config_name == 'development':
                     app.logger.debug("🔄 Background: Loading card collection...")
@@ -221,7 +249,7 @@ def create_app(config_name="default"):
     elif app.config.get('USE_MINIMAL_DATA'):
         # Development/minimal mode - skip expensive card loading
         print("💰 CARD LOADING: MINIMAL DATA (saves Firestore costs)")
-        print("📊 Cards loaded: ~0 (empty collection)")
+        print("📊 Cards loaded: ~3 sample cards (for development testing)")
         if config_name == 'development':
             app.logger.debug("⚡ Deferred card loading: SKIPPED (minimal data mode)")
     elif app.config.get('LAZY_LOAD_CARDS'):
@@ -230,6 +258,19 @@ def create_app(config_name="default"):
         print("📊 Cards loaded: 0 (will load ~1300 when user visits)")
         if config_name == 'production':
             print("⚡ Deferred card loading: LAZY (will load on first user request)")
+    elif os.environ.get('FIRESTORE_EMULATOR_HOST'):
+        # Emulator mode - load immediately since it's free and fast
+        print("💰 CARD LOADING: EMULATOR (loads sample cards immediately)")
+        print("📊 Cards loaded: From emulator (sample data)")
+        try:
+            # Load cards immediately from emulator within app context
+            with app.app_context():
+                collection = CardService._load_full_collection(cache_as_full=True)
+                if config_name == 'development':
+                    print(f"✅ Loaded {len(collection)} cards from emulator")
+        except Exception as e:
+            if config_name == 'development':
+                print(f"❌ Error loading from emulator: {e}")
     else:
         # This is the main app process and not minimal mode, schedule the background task
         print("💰 CARD LOADING: FULL (loads all cards immediately)")
