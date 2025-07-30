@@ -173,10 +173,12 @@ jobs:
         REFRESH_SECRET_KEY: test-refresh-key-for-ci
         GCP_PROJECT_ID: demo-test-project
         GCLOUD_PROJECT: demo-test-project
+        FIREBASE_PROJECT_ID: demo-test-project
         FIREBASE_SECRET_NAME: test-secret
         FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
         FIREBASE_STORAGE_EMULATOR_HOST: localhost:9199
         RUN_INTEGRATION_TESTS: 1
+        FORCE_EMULATOR_MODE: 1
       run: |
         echo "🚀 ${{ steps.test_strategy.outputs.description }}"
         echo "🔥 Starting Firebase emulators for fast tests..."
@@ -239,10 +241,12 @@ jobs:
         REFRESH_SECRET_KEY: test-refresh-key-for-ci
         GCP_PROJECT_ID: demo-test-project
         GCLOUD_PROJECT: demo-test-project
+        FIREBASE_PROJECT_ID: demo-test-project
         FIREBASE_SECRET_NAME: test-secret
         FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
         FIREBASE_STORAGE_EMULATOR_HOST: localhost:9199
         RUN_INTEGRATION_TESTS: 1
+        FORCE_EMULATOR_MODE: 1
       run: |
         echo "🎯 ${{ steps.test_strategy.outputs.description }}"
         echo "🔥 Starting Firebase emulators for ${{ steps.test_strategy.outputs.test_type }} tests..."
@@ -305,10 +309,12 @@ jobs:
         REFRESH_SECRET_KEY: test-refresh-key-for-ci
         GCP_PROJECT_ID: demo-test-project
         GCLOUD_PROJECT: demo-test-project
+        FIREBASE_PROJECT_ID: demo-test-project
         FIREBASE_SECRET_NAME: test-secret
         FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
         FIREBASE_STORAGE_EMULATOR_HOST: localhost:9199
         RUN_INTEGRATION_TESTS: 1
+        FORCE_EMULATOR_MODE: 1
       run: |
         echo "🔍 ${{ steps.test_strategy.outputs.description }}"
         echo "🔥 Starting Firebase emulators and running comprehensive tests..."
