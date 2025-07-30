@@ -429,6 +429,15 @@ jobs:
           fi
           
           echo "❌ Health check failed - service may not be ready yet"
+          
+          # Get recent logs to debug the issue
+          echo "📋 Fetching recent App Engine logs..."
+          gcloud app logs tail --service=test-env --limit=50 || echo "Could not fetch test-env logs"
+          echo "📋 Fetching default service logs..."
+          gcloud app logs tail --service=default --limit=50 || echo "Could not fetch default logs"
+          echo "📋 Fetching any recent logs..."
+          gcloud logging read "resource.type=gae_app" --limit=20 --format="table(timestamp,severity,textPayload)" || echo "Could not fetch general logs"
+          
           echo "This is not critical for test deployments, continuing..."
           exit 0
         fi

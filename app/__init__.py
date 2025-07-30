@@ -114,9 +114,16 @@ def create_app(config_name="default"):
             secret_name = app.config.get("FIREBASE_SECRET_NAME")
 
             # Check if running with Firebase emulator
-            if (os.environ.get('FIRESTORE_EMULATOR_HOST') or 
-                os.environ.get('RUN_INTEGRATION_TESTS') or 
-                os.environ.get('FORCE_EMULATOR_MODE')):
+            # Only use emulator for local development, never in cloud environments
+            is_local_development = (
+                os.environ.get('SERVER_SOFTWARE', '').startswith('werkzeug') or  # Flask dev server
+                not os.environ.get('GAE_ENV') and not os.environ.get('GAE_APPLICATION')  # Not Google App Engine
+            )
+            
+            if (is_local_development and 
+                (os.environ.get('FIRESTORE_EMULATOR_HOST') or 
+                 os.environ.get('RUN_INTEGRATION_TESTS') or 
+                 os.environ.get('FORCE_EMULATOR_MODE'))):
                 # Use emulator configuration - ensure exact same project ID as REST API seeding
                 emulator_project_id = 'demo-test-project'  # Must match REST API exactly
                 
@@ -169,6 +176,35 @@ def create_app(config_name="default"):
                     # Fallback initialization
                     firebase_admin.initialize_app()
                     print("✅ Firebase Admin SDK initialized with fallback")
+            elif not is_local_development and (os.environ.get('FIRESTORE_EMULATOR_HOST') or 
+                                               os.environ.get('RUN_INTEGRATION_TESTS') or 
+                                               os.environ.get('FORCE_EMULATOR_MODE')):
+                # Running in cloud environment but emulator variables are set - ignore them
+                print("🚨 FIREBASE: Emulator variables detected in cloud environment - ignoring for production safety")
+                print(f"🔍 GAE_ENV: {os.environ.get('GAE_ENV')}")
+                print(f"🔍 GAE_APPLICATION: {os.environ.get('GAE_APPLICATION')}")
+                print(f"🔍 SERVER_SOFTWARE: {os.environ.get('SERVER_SOFTWARE')}")
+                print(f"🔍 FIRESTORE_EMULATOR_HOST: {os.environ.get('FIRESTORE_EMULATOR_HOST')}")
+                
+                # Clear any emulator environment variables to ensure production Firestore connection
+                if 'FIRESTORE_EMULATOR_HOST' in os.environ:
+                    del os.environ['FIRESTORE_EMULATOR_HOST']
+                    print("🔧 Cleared FIRESTORE_EMULATOR_HOST for production")
+                
+                # Use production configuration
+                if project_id and secret_name:
+                    client = secretmanager.SecretManagerServiceClient()
+                    name = f"projects/{project_id}/secrets/{secret_name}/versions/latest"
+                    response = client.access_secret_version(request={"name": name})
+                    secret_payload = response.payload.data.decode("UTF-8")
+                    cred_dict = json.loads(secret_payload)
+                    cred = credentials.Certificate(cred_dict)
+                    print("🔥 FIREBASE: Using Production Firestore (REAL COSTS)")
+                    print(f"📊 Project: {project_id}")
+                    firebase_admin.initialize_app(cred, {"storageBucket": bucket_name})
+                else:
+                    print("🔥 FIREBASE: Using Default Configuration (REAL COSTS)")
+                    firebase_admin.initialize_app(options={"storageBucket": bucket_name})
             elif project_id and secret_name:
                 client = secretmanager.SecretManagerServiceClient()
                 name = f"projects/{project_id}/secrets/{secret_name}/versions/latest"
@@ -294,16 +330,10 @@ def create_app(config_name="default"):
     
     # Schedule the card loading task to run after startup (5 second delay)
     # Only run in main process, not in Flask reloader process
-    # Skip card loading in development or minimal data mode
+    # Skip card loading in reloader process, use appropriate loading strategy for environment
     if not os.environ.get('WERKZEUG_RUN_MAIN'):
         # This is the reloader process, skip background task scheduling
         pass
-    elif app.config.get('USE_MINIMAL_DATA'):
-        # Development/minimal mode - skip expensive card loading
-        print("💰 CARD LOADING: MINIMAL DATA (saves Firestore costs)")
-        print("📊 Cards loaded: ~3 sample cards (for development testing)")
-        if config_name == 'development':
-            app.logger.debug("⚡ Deferred card loading: SKIPPED (minimal data mode)")
     elif app.config.get('LAZY_LOAD_CARDS'):
         # Production lazy loading - only load cards when actually requested
         print("💰 CARD LOADING: LAZY (only loads on first user request)")
@@ -435,8 +465,6 @@ def create_app(config_name="default"):
             firebase_mode = "Unknown"
             if os.environ.get('FIRESTORE_EMULATOR_HOST'):
                 firebase_mode = "Emulator (FREE)"
-            elif app.config.get('USE_MINIMAL_DATA'):
-                firebase_mode = "Production + Minimal Data (CHEAP)"
             elif app.config.get('LAZY_LOAD_CARDS'):
                 firebase_mode = "Production + Lazy Loading (SMART)"
             else:
@@ -450,7 +478,6 @@ def create_app(config_name="default"):
                 "firestore_usage": performance_monitor.metrics.get_firestore_usage_stats(),
                 "cost_optimizations": {
                     "using_emulator": bool(os.environ.get('FIRESTORE_EMULATOR_HOST')),
-                    "minimal_data": app.config.get('USE_MINIMAL_DATA', False),
                     "lazy_loading": app.config.get('LAZY_LOAD_CARDS', False)
                 },
                 "timestamp": datetime.utcnow().isoformat()

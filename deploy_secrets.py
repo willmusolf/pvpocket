@@ -86,6 +86,7 @@ handlers:
   secure: always
 
 env_variables:
+  FLASK_CONFIG: '{flask_env}'
   FLASK_ENV: '{flask_env}'
   GCP_PROJECT_ID: "{project_id}"
   FIREBASE_SECRET_NAME: "firebase-admin-sdk-json"

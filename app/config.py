@@ -48,8 +48,6 @@ class ProductionConfig(Config):
 
 class StagingConfig(ProductionConfig):
     """Configuration for staging environment."""
-    # Use minimal data in staging/test to save costs
-    USE_MINIMAL_DATA = True
     DEBUG = True  # Enable debug logging for test environment
 
 
