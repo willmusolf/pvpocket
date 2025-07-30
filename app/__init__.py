@@ -260,8 +260,8 @@ def create_app(config_name="default"):
             print("⚡ Deferred card loading: LAZY (will load on first user request)")
     elif os.environ.get('FIRESTORE_EMULATOR_HOST'):
         # Emulator mode - load immediately since it's free and fast
-        print("💰 CARD LOADING: EMULATOR (loads sample cards immediately)")
-        print("📊 Cards loaded: From emulator (sample data)")
+        print("💰 CARD LOADING: EMULATOR (loads full collection immediately)")
+        print("📊 Cards loaded: All production data from emulator (FREE)")
         try:
             # Load cards immediately from emulator within app context
             with app.app_context():
