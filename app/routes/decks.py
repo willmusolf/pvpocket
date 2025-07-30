@@ -688,13 +688,15 @@ def get_cards_paginated():
                 rarity_priority = rarity_order.get(card.rarity, 99) if card.rarity else 99
                 
                 # Secondary sort: Most recent set (using same logic as set sorting)
+                # Get set name for all cards (needed for Promo-A check)
+                set_name = card.set_name if card.set_name else ""
+                
                 # Use release_order if available
                 if hasattr(card, 'set_release_order') and card.set_release_order is not None:
                     # Higher release_order = newer set, we want newer first so negate
                     set_priority = -card.set_release_order
                 else:
                     # Fallback to old logic
-                    set_name = card.set_name if card.set_name else ""
                     set_priority = SET_RELEASE_ORDER.get(set_name, 999)
                 
                 # Promo-A should ALWAYS be at the bottom regardless of sort direction
