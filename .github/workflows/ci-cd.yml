@@ -195,8 +195,21 @@ jobs:
           sleep 2
         done
         
-        # Skip test data seeding for now - run tests with mocked data
-        echo "⚡ Skipping test data seeding - running fast tests with mocked data"
+        # Install Firebase Admin SDK for seeding
+        pip install firebase-admin || echo "Firebase Admin SDK already installed"
+        
+        # Seed test data for integration tests that require real data
+        if [ -f "scripts/create_test_data.py" ]; then
+          echo "🌱 Seeding Firebase emulator with test data for integration tests..."
+          python scripts/create_test_data.py
+          if [ $? -eq 0 ]; then
+            echo "✅ Test data seeded successfully!"
+          else
+            echo "⚠️ Test data seeding failed, but continuing with tests..."
+          fi
+        else
+          echo "⚠️ Test data script not found, running tests without seed data..."
+        fi
         
         # Run fast tests with emulator
         python -m pytest tests/ -m "not slow" -v --tb=short --cov=app --cov-report=json
@@ -236,8 +249,21 @@ jobs:
           sleep 2
         done
         
-        # Skip test data seeding for now - run tests with mocked data
-        echo "⚡ Skipping test data seeding - running ${{ steps.test_strategy.outputs.test_type }} tests with mocked data"
+        # Install Firebase Admin SDK for seeding
+        pip install firebase-admin || echo "Firebase Admin SDK already installed"
+        
+        # Seed test data for integration tests that require real data
+        if [ -f "scripts/create_test_data.py" ]; then
+          echo "🌱 Seeding Firebase emulator with test data for integration tests..."
+          python scripts/create_test_data.py
+          if [ $? -eq 0 ]; then
+            echo "✅ Test data seeded successfully!"
+          else
+            echo "⚠️ Test data seeding failed, but continuing with tests..."
+          fi
+        else
+          echo "⚠️ Test data script not found, running tests without seed data..."
+        fi
         
         # Run specific test category with emulator
         python -m pytest tests/ -m "${{ steps.test_strategy.outputs.test_type }}" -v --tb=short
