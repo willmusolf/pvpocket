@@ -2,6 +2,7 @@ import re
 import requests
 import os
 import json
+import time
 import firebase_admin
 from firebase_admin import credentials, firestore
 from google.cloud import secretmanager
@@ -87,6 +88,7 @@ def modify_card_type_for_shiny(set_code, card_number_str, current_card_type):
     return new_card_type
 
 def update_card_in_firestore(set_doc_id, card_doc_id, updates):
+    db_firestore = firestore.client()
     if not db_firestore:
         return False
     try:
@@ -104,35 +106,32 @@ def update_card_in_firestore(set_doc_id, card_doc_id, updates):
 
 
 def trigger_cache_refresh():
+    """Trigger cache refresh on production website after scraping."""
     load_dotenv()
-    base_url = os.getenv("WEBSITE_URL", "http://127.0.0.1:5001")
+    
+    # Use shared_utils version for consistency
+    from shared_utils import trigger_cache_refresh as shared_trigger
+    
+    # Always log in post-processor since it runs in Cloud Run jobs
+    print("\n=== TRIGGERING CACHE REFRESH ===")
+    
+    # Check environment variables
+    base_url = os.getenv("WEBSITE_URL")
     refresh_key = os.getenv("REFRESH_SECRET_KEY")
-
+    
+    if not base_url:
+        print("WARNING: WEBSITE_URL not set. Using default.")
+        base_url = "https://pvpocket.xyz"  # Default to production
+    
     if not refresh_key:
-        print(
-            "ERROR: REFRESH_SECRET_KEY not found in environment. Cannot trigger refresh."
-        )
+        print("ERROR: REFRESH_SECRET_KEY not found in environment.")
+        print("Cache refresh will fail. Please set REFRESH_SECRET_KEY in Cloud Run job.")
         return
-
-    refresh_url = f"{base_url}/api/refresh-cards"
-    headers = {"X-Refresh-Key": refresh_key}
-
-    print(f"Scraping complete. Triggering cache refresh at {refresh_url}...")
-    try:
-        response = requests.post(refresh_url, headers=headers, timeout=60)
-        if response.status_code == 200:
-            print("SUCCESS: Cache refresh triggered successfully.")
-            print(response.json())
-        else:
-            print(
-                f"ERROR: Failed to trigger cache refresh. Status Code: {response.status_code}"
-            )
-            print(f"Response: {response.text}")
-    except requests.exceptions.RequestException as e:
-        print(
-            f"CRITICAL ERROR: Could not connect to the application to refresh cache: {e}"
-        )
-        print("The website will show old data until it is restarted manually.")
+    
+    print(f"Target URL: {base_url}/api/refresh-cards")
+    
+    # Call shared trigger function
+    shared_trigger()
 
 
 def get_sortable_card_number(card_number_str: str) -> int:
@@ -147,6 +146,7 @@ def get_cards_grouped_by_set():
     Fetches all cards from Firestore and groups them by set.
     Returns a dictionary like: {'set_code': [card_list]}
     """
+    db_firestore = firestore.client()
     if not db_firestore:
         print("Firestore client not initialized. Cannot fetch cards.")
         return {}
@@ -191,6 +191,8 @@ def main_post_process():
     Main post-processing function. Applies automated shiny logic for most sets,
     a special rule for the P-A set, handles Ultra Beasts, and updates set counts.
     """
+    print("\n=== POST-PROCESSOR STARTING ===")
+    print(f"Time: {time.strftime('%Y-%m-%d %H:%M:%S')}")
     # --- Firebase Initialization ---
     if not firebase_admin._apps:
         try:
@@ -226,6 +228,8 @@ def main_post_process():
                 f"CRITICAL ERROR: Failed to initialize Firebase Admin SDK for post-processor: {e}"
             )
             db_firestore = None
+    else:
+        db_firestore = firestore.client()
             
     if not db_firestore:
         print("Exiting: Firestore client failed to initialize.")
@@ -242,6 +246,7 @@ def main_post_process():
     # Part 1: Process each set for shiny and ultra beast updates
     for set_code, cards in all_sets.items():
         print(f"\nProcessing set: {set_code} ({len(cards)} cards)")
+        shiny_conversions_in_set = 0
 
         sorted_cards = sorted(
             cards, key=lambda c: get_sortable_card_number(c["card_number_str"])
@@ -258,6 +263,10 @@ def main_post_process():
                 first_crown_rare_index = i
 
         shiny_start_index = last_three_star_index + 1
+        
+        print(f"  Shiny detection range: cards {shiny_start_index} to {first_crown_rare_index - 1}")
+        print(f"  Last ☆☆☆ card at index: {last_three_star_index}")
+        print(f"  First ♛ card at index: {first_crown_rare_index}")
 
         # Now iterate through all cards to apply all rules
         for i, card in enumerate(sorted_cards):
@@ -279,6 +288,8 @@ def main_post_process():
             ):
                 if " (Shiny)" not in final_card_type:
                     final_card_type += " (Shiny)"
+                    print(f"    AUTO-SHINY: {card.get('name')} at index {i} (between ☆☆☆ and ♛)")
+                    shiny_conversions_in_set += 1
 
                 # Also update its rarity symbol to the shiny version
                 num_stars = str(card.get("rarity", "")).count("☆")
@@ -304,7 +315,11 @@ def main_post_process():
                 ):
                     total_updates_made += 1
 
-    print(f"\nFinished processing cards. Total updates made: {total_updates_made}")
+        if shiny_conversions_in_set > 0:
+            print(f"  Total shinies converted in {set_code}: {shiny_conversions_in_set}")
+    
+    print(f"\n=== CARD PROCESSING COMPLETE ===")
+    print(f"Total updates made: {total_updates_made}")
 
     # Part 2: Update Set Document Card Counts (Unchanged)
     print("\nStarting to update set documents with card counts...")
@@ -336,6 +351,8 @@ def main_post_process():
         f"Set card count update complete. {set_count_update_success} set(s) updated, {set_count_update_failure} failed."
     )
     print("\n\n✅ All post-processing tasks are complete.")
+    print(f"End time: {time.strftime('%Y-%m-%d %H:%M:%S')}")
+    print("=== POST-PROCESSOR FINISHED ===")
 
 
 if __name__ == "__main__":

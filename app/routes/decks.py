@@ -665,7 +665,8 @@ def get_cards_paginated():
 
         # Get sorting parameters
         sort_type = request.args.get("sort", "name")
-        direction = request.args.get("direction", "asc")
+        direction = request.args.get("direction", "desc")
+        current_app.logger.info(f"DEBUG API CALL: sort_type={sort_type}, direction={direction}, all_args={dict(request.args)}")
         
         # Apply sorting
         if sort_type == "name":
@@ -687,8 +688,14 @@ def get_cards_paginated():
                 rarity_priority = rarity_order.get(card.rarity, 99) if card.rarity else 99
                 
                 # Secondary sort: Most recent set (using same logic as set sorting)
-                set_name = card.set_name if card.set_name else ""
-                set_priority = SET_RELEASE_ORDER.get(set_name, 999)
+                # Use release_order if available
+                if hasattr(card, 'set_release_order') and card.set_release_order is not None:
+                    # Higher release_order = newer set, we want newer first so negate
+                    set_priority = -card.set_release_order
+                else:
+                    # Fallback to old logic
+                    set_name = card.set_name if card.set_name else ""
+                    set_priority = SET_RELEASE_ORDER.get(set_name, 999)
                 
                 # Promo-A should ALWAYS be at the bottom regardless of sort direction
                 if set_name == "Promo-A":
@@ -728,9 +735,14 @@ def get_cards_paginated():
                     stage_priority = 99
                 
                 # Add set-based secondary sorting (same logic as set sorting)
-                set_priority = SET_RELEASE_ORDER.get(card.set_name, 999)
+                # Use release_order if available
+                if hasattr(card, 'set_release_order') and card.set_release_order is not None:
+                    # Higher release_order = newer set, we want newer first for secondary sort
+                    set_priority = -card.set_release_order
+                else:
+                    # Fallback to old logic
+                    set_priority = SET_RELEASE_ORDER.get(card.set_name, 999)
                 
-                # Handle direction for set sorting (same logic as main set sort)
                 # Promo-A should ALWAYS be at the bottom regardless of sort direction
                 if card.set_name == "Promo-A":
                     set_priority = 999  # Make Promo-A always come last
@@ -742,34 +754,38 @@ def get_cards_paginated():
                 reverse=(direction == "desc")
             )
         elif sort_type == "set":
-            # Sort by set release order (most recent first), then by card number within each set
+            # Sort by set release order, then by card number within each set
             def set_sort_key(card):
-                set_name = card.set_name if card.set_name else ""
-                
-                # Get set priority (lower number = more recent)
-                set_priority = SET_RELEASE_ORDER.get(set_name, 999)  # Unknown sets go to the end
-                
-                # Handle direction for set sorting
-                if direction == "desc":
-                    # For descending: we want oldest set first (Genetic Apex), then newer sets
-                    # So we invert the priorities: highest number becomes 1, etc.
-                    if set_name != "Promo-A" and set_name in SET_RELEASE_ORDER:
-                        max_priority = max(v for k, v in SET_RELEASE_ORDER.items() if k != "Promo-A")
-                        set_priority = (max_priority + 1) - set_priority  # Auto-invert based on current max
-                    # Promo-A should ALWAYS be at the bottom regardless of sort direction
-                    if set_name == "Promo-A":
-                        set_priority = 999  # Make Promo-A always come last
+                # Use release_order from card if available, otherwise use old logic
+                if hasattr(card, 'set_release_order') and card.set_release_order is not None:
+                    # SIMPLE FIX: Just swap what the directions do
+                    if direction == "desc":
+                        set_priority = card.set_release_order    # desc = newest first = higher numbers first
+                    else:
+                        set_priority = -card.set_release_order   # asc = oldest first = lower numbers first
                 else:
-                    # For ascending: keep normal order (Eevee Grove first)
-                    # Promo-A should ALWAYS be at the bottom regardless of sort direction
-                    if set_name == "Promo-A":
-                        set_priority = 999  # Make Promo-A always come last
+                    # Fallback to old hardcoded logic for cards without release_order
+                    set_name = card.set_name if card.set_name else ""
+                    set_priority = SET_RELEASE_ORDER.get(set_name, 999)
+                    
+                    if direction == "desc":
+                        if set_name != "Promo-A" and set_name in SET_RELEASE_ORDER:
+                            max_priority = max(v for k, v in SET_RELEASE_ORDER.items() if k != "Promo-A")
+                            set_priority = (max_priority + 1) - set_priority
+                        if set_name == "Promo-A":
+                            set_priority = 999
+                    else:
+                        if set_name == "Promo-A":
+                            set_priority = 999
                 
-                # Use card_number (integer) if available, otherwise try to extract from card_number_str
+                # Special handling for Promo-A - always put it last
+                if card.set_name == "Promo-A":
+                    set_priority = 9999
+                
+                # Use card_number for secondary sort
                 card_num = card.card_number if card.card_number is not None else 0
                 if card_num == 0 and hasattr(card, 'card_number_str') and card.card_number_str:
                     try:
-                        # Try to extract numeric part from card_number_str (e.g. "123a" -> 123)
                         import re
                         match = re.search(r'(\d+)', str(card.card_number_str))
                         card_num = int(match.group(1)) if match else 0
@@ -1473,6 +1489,65 @@ def update_deck_description(deck_id: str):
             "success": False,
             "error": "An error occurred while updating the description."
         }), 500
+
+
+@decks_bp.route("/api/decks/<string:deck_id>/privacy", methods=["POST"])
+@login_required
+def toggle_deck_privacy(deck_id: str):
+    """Toggle privacy of user's own deck."""
+    try:
+        from better_profanity import profanity
+        db = get_db()
+        current_user_id = flask_login_current_user.id
+        card_collection = card_service.get_card_collection()
+        
+        # Get the deck
+        deck_doc = db.collection("decks").document(deck_id).get()
+        if not deck_doc.exists:
+            return jsonify({"error": "Deck not found."}), 404
+        
+        deck = Deck.from_firestore_doc(deck_doc, card_collection)
+        
+        # Check ownership
+        if deck.owner_id != current_user_id:
+            return jsonify({"error": "You can only modify your own decks."}), 403
+        
+        # Get request data
+        data = request.get_json() or {}
+        description = data.get("description", "").strip()
+        
+        # Length check for description
+        if description and len(description) > 100:
+            return jsonify({"error": "Description must be 100 characters or less."}), 400
+        
+        # Profanity check for description
+        if description and profanity.contains_profanity(description):
+            return jsonify({"error": "Description contains inappropriate language. Please use appropriate language."}), 400
+        
+        old_privacy = deck.is_public
+        new_privacy = deck.toggle_privacy()
+        
+        if new_privacy and description:
+            deck.description = description
+        
+        # Save to Firestore - only update privacy-related fields to avoid changing updated_at
+        update_data = {
+            "is_public": new_privacy,
+            "shared_at": deck.shared_at,
+            "description": deck.description
+        }
+        db.collection("decks").document(deck_id).update(update_data)
+        
+        action = "made public" if new_privacy else "made private"
+        return jsonify({
+            "success": True, 
+            "message": f"Deck {action} successfully.",
+            "is_public": new_privacy
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"Error updating deck privacy: {e}")
+        return jsonify({"error": "Failed to update deck privacy."}), 500
 
 
 # Change the route and method for copy_deck

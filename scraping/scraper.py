@@ -176,6 +176,31 @@ def get_current_max_card_id(db: firestore.client) -> int:
         return 0
 
 
+def get_current_max_set_release_order(db: firestore.client) -> int:
+    """Get the highest release_order value from all sets in Firestore."""
+    print("Determining current maximum set release_order from Firestore...")
+    max_order = 0
+    try:
+        sets_query = (
+            db.collection("cards")
+            .order_by("release_order", direction=firestore.Query.DESCENDING)
+            .limit(1)
+            .stream()
+        )
+        for set_doc in sets_query:
+            if set_doc.exists:
+                set_data = set_doc.to_dict()
+                current_order = set_data.get("release_order", 0)
+                if isinstance(current_order, int) and current_order > max_order:
+                    max_order = current_order
+        print(f"Current maximum set release_order found: {max_order}")
+        return max_order
+    except Exception as e:
+        # If release_order field doesn't exist yet, that's ok
+        print(f"Note: release_order field may not exist yet. Starting from 0.")
+        return 0
+
+
 def save_card_to_firestore(
     card_data_dict: Dict[str, Any], id_counter: int
 ) -> tuple[bool, int]:
@@ -235,7 +260,21 @@ def save_card_to_firestore(
             assigned_id = id_counter
             card_data_dict["id"] = assigned_id
 
-            set_doc_data = {"set_name": set_name_original, "set_code": set_code}
+            # Check if this set already has a release_order
+            existing_set = set_doc_ref.get()
+            if existing_set.exists and "release_order" in existing_set.to_dict():
+                # Set already has release_order, just update name/code
+                set_doc_data = {"set_name": set_name_original, "set_code": set_code}
+            else:
+                # New set or missing release_order - assign the next highest number
+                db_firestore = firestore.client()
+                max_order = get_current_max_set_release_order(db_firestore)
+                set_doc_data = {
+                    "set_name": set_name_original, 
+                    "set_code": set_code,
+                    "release_order": max_order + 1
+                }
+                print(f"Assigning release_order {max_order + 1} to new set: {set_name_original}")
             set_doc_ref.set(set_doc_data, merge=True)
             card_specific_ref.set(card_data_dict)
             print(
@@ -245,7 +284,21 @@ def save_card_to_firestore(
         else:
             if "id" in card_data_dict:
                 del card_data_dict["id"]
-            set_doc_data = {"set_name": set_name_original, "set_code": set_code}
+            # Check if this set already has a release_order
+            existing_set = set_doc_ref.get()
+            if existing_set.exists and "release_order" in existing_set.to_dict():
+                # Set already has release_order, just update name/code
+                set_doc_data = {"set_name": set_name_original, "set_code": set_code}
+            else:
+                # New set or missing release_order - assign the next highest number
+                db_firestore = firestore.client()
+                max_order = get_current_max_set_release_order(db_firestore)
+                set_doc_data = {
+                    "set_name": set_name_original, 
+                    "set_code": set_code,
+                    "release_order": max_order + 1
+                }
+                print(f"Assigning release_order {max_order + 1} to new set: {set_name_original}")
             set_doc_ref.set(set_doc_data, merge=True)
             card_specific_ref.set(card_data_dict, merge=True)
             print(f"UPDATED: {card_name_original} ({set_code} {card_number_str_val})")
