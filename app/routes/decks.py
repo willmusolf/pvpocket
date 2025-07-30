@@ -1475,6 +1475,65 @@ def update_deck_description(deck_id: str):
         }), 500
 
 
+@decks_bp.route("/api/decks/<string:deck_id>/privacy", methods=["POST"])
+@login_required
+def toggle_deck_privacy(deck_id: str):
+    """Toggle privacy of user's own deck."""
+    try:
+        from better_profanity import profanity
+        db = get_db()
+        current_user_id = flask_login_current_user.id
+        card_collection = card_service.get_card_collection()
+        
+        # Get the deck
+        deck_doc = db.collection("decks").document(deck_id).get()
+        if not deck_doc.exists:
+            return jsonify({"error": "Deck not found."}), 404
+        
+        deck = Deck.from_firestore_doc(deck_doc, card_collection)
+        
+        # Check ownership
+        if deck.owner_id != current_user_id:
+            return jsonify({"error": "You can only modify your own decks."}), 403
+        
+        # Get request data
+        data = request.get_json() or {}
+        description = data.get("description", "").strip()
+        
+        # Length check for description
+        if description and len(description) > 100:
+            return jsonify({"error": "Description must be 100 characters or less."}), 400
+        
+        # Profanity check for description
+        if description and profanity.contains_profanity(description):
+            return jsonify({"error": "Description contains inappropriate language. Please use appropriate language."}), 400
+        
+        old_privacy = deck.is_public
+        new_privacy = deck.toggle_privacy()
+        
+        if new_privacy and description:
+            deck.description = description
+        
+        # Save to Firestore - only update privacy-related fields to avoid changing updated_at
+        update_data = {
+            "is_public": new_privacy,
+            "shared_at": deck.shared_at,
+            "description": deck.description
+        }
+        db.collection("decks").document(deck_id).update(update_data)
+        
+        action = "made public" if new_privacy else "made private"
+        return jsonify({
+            "success": True, 
+            "message": f"Deck {action} successfully.",
+            "is_public": new_privacy
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"Error updating deck privacy: {e}")
+        return jsonify({"error": "Failed to update deck privacy."}), 500
+
+
 # Change the route and method for copy_deck
 @decks_bp.route(
     "/api/decks/<string:original_deck_id>/copy", methods=["POST"]
