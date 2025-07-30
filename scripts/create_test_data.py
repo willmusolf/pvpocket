@@ -83,19 +83,10 @@ def create_test_data():
     
     print(f"  ✅ Created {len(test_users)} test users")
     
-    # 2. Create test card sets and cards
+    # 2. Create test cards directly in cards collection
     print("🃏 Creating test cards...")
     
-    # Create a test set document
-    test_set = {
-        "name": "Test Set",
-        "code": "TST",
-        "release_date": datetime.utcnow()
-    }
-    set_ref = db.collection("cards").document("test_set")
-    set_ref.set(test_set)
-    
-    # Create test cards (representative sample)
+    # Create test cards (representative sample) - store directly in cards/{id}
     test_cards = [
         # Pokémon cards
         {"id": 1, "name": "Pikachu", "energy_type": "Lightning", "card_type": "Pokemon", 
@@ -161,10 +152,10 @@ def create_test_data():
          "firebase_image_url": "https://example.com/charmander.png"}
     ]
     
-    # Add cards to subcollection
+    # Add cards directly to cards collection (not in subcollection)
     for card_data in test_cards:
         card_id = str(card_data["id"])
-        set_ref.collection("set_cards").document(card_id).set(card_data)
+        db.collection("cards").document(card_id).set(card_data)
     
     print(f"  ✅ Created {len(test_cards)} test cards")
     
