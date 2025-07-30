@@ -181,7 +181,8 @@ jobs:
         echo "🚀 ${{ steps.test_strategy.outputs.description }}"
         echo "🔥 Starting Firebase emulators for fast tests..."
         
-        # Start Firebase emulators in background
+        # Start Firebase emulators in background with explicit project ID
+        echo "🔥 Starting Firebase emulators with project: demo-test-project"
         firebase emulators:start --only firestore,storage --project demo-test-project &
         EMULATOR_PID=$!
         
@@ -207,6 +208,14 @@ jobs:
             echo "✅ Test data seeded successfully!"
             echo "⏱️ Waiting 3 seconds for emulator to fully process data..."
             sleep 3
+            
+            # Debug: Test data accessibility from both REST API and Admin SDK
+            echo "🔍 Running Firebase connection diagnostic..."
+            python debug_firebase_connection.py
+            
+            # Test card API endpoints directly
+            echo "🧪 Testing card API endpoints..."
+            python test_card_api_simple.py
           else
             echo "⚠️ Test data seeding failed, but continuing with tests..."
           fi
@@ -238,7 +247,8 @@ jobs:
         echo "🎯 ${{ steps.test_strategy.outputs.description }}"
         echo "🔥 Starting Firebase emulators for ${{ steps.test_strategy.outputs.test_type }} tests..."
         
-        # Start Firebase emulators in background
+        # Start Firebase emulators in background with explicit project ID
+        echo "🔥 Starting Firebase emulators with project: demo-test-project"
         firebase emulators:start --only firestore,storage --project demo-test-project &
         EMULATOR_PID=$!
         
@@ -264,6 +274,14 @@ jobs:
             echo "✅ Test data seeded successfully!"
             echo "⏱️ Waiting 3 seconds for emulator to fully process data..."
             sleep 3
+            
+            # Debug: Test data accessibility from both REST API and Admin SDK
+            echo "🔍 Running Firebase connection diagnostic..."
+            python debug_firebase_connection.py
+            
+            # Test card API endpoints directly
+            echo "🧪 Testing card API endpoints..."
+            python test_card_api_simple.py
           else
             echo "⚠️ Test data seeding failed, but continuing with tests..."
           fi
@@ -295,7 +313,8 @@ jobs:
         echo "🔍 ${{ steps.test_strategy.outputs.description }}"
         echo "🔥 Starting Firebase emulators and running comprehensive tests..."
         
-        # Start Firebase emulators in background
+        # Start Firebase emulators in background with explicit project ID
+        echo "🔥 Starting Firebase emulators with project: demo-test-project"
         firebase emulators:start --only firestore,storage --project demo-test-project &
         EMULATOR_PID=$!
         

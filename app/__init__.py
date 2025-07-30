@@ -117,18 +117,33 @@ def create_app(config_name="default"):
             if os.environ.get('FIRESTORE_EMULATOR_HOST') or os.environ.get('RUN_INTEGRATION_TESTS'):
                 # Use emulator configuration - ensure exact same project ID as REST API seeding
                 emulator_project_id = 'demo-test-project'  # Must match REST API exactly
+                
+                # ALWAYS show this debug info in CI/testing
                 print("🔥 FIREBASE: Using Firebase Emulator (FREE - no production costs!)")
                 print(f"🔗 Emulator Host: {os.environ.get('FIRESTORE_EMULATOR_HOST', 'localhost:8080')}")
                 print(f"📋 Project ID: {emulator_project_id} (matching REST API seeding)")
+                print(f"🔍 RUN_INTEGRATION_TESTS: {os.environ.get('RUN_INTEGRATION_TESTS')}")
+                print(f"🔍 FLASK_CONFIG: {config_name}")
                 
                 # Set environment variable to ensure consistent project ID
                 os.environ['GCLOUD_PROJECT'] = emulator_project_id
                 os.environ['FIREBASE_PROJECT_ID'] = emulator_project_id
                 
+                # Ensure emulator host is properly set
+                emulator_host = os.environ.get('FIRESTORE_EMULATOR_HOST', '127.0.0.1:8080')
+                if ':' not in emulator_host:
+                    emulator_host = f"{emulator_host}:8080"
+                os.environ['FIRESTORE_EMULATOR_HOST'] = emulator_host
+                
+                print(f"🔧 Set GCLOUD_PROJECT: {os.environ.get('GCLOUD_PROJECT')}")
+                print(f"🔧 Set FIREBASE_PROJECT_ID: {os.environ.get('FIREBASE_PROJECT_ID')}")
+                print(f"🔧 Set FIRESTORE_EMULATOR_HOST: {os.environ.get('FIRESTORE_EMULATOR_HOST')}")
+                
                 firebase_admin.initialize_app(options={
                     'projectId': emulator_project_id,
                     'storageBucket': bucket_name
                 })
+                print("✅ Firebase Admin SDK initialized with emulator settings")
             elif project_id and secret_name:
                 client = secretmanager.SecretManagerServiceClient()
                 name = f"projects/{project_id}/secrets/{secret_name}/versions/latest"
@@ -154,8 +169,8 @@ def create_app(config_name="default"):
     db_client = firestore.client()
     app.config["FIRESTORE_DB"] = db_client
     
-    # Debug: Test if the client is actually connected to emulator
-    if config_name in ['development', 'testing']:
+    # Debug: Test if the client is actually connected to emulator - ALWAYS show in testing/CI
+    if config_name in ['development', 'testing'] or os.environ.get('RUN_INTEGRATION_TESTS'):
         try:
             # Get the project ID from the client
             project_id = db_client.project
