@@ -25,44 +25,51 @@ def initialize_firebase_for_emulator():
     
     print("🔧 Configuring Firebase Admin SDK for emulator...")
     
-    # For emulator, we need to create a minimal service account to satisfy the SDK
-    # but the emulator will ignore the credentials anyway
-    fake_service_account = {
-        "type": "service_account",
-        "project_id": "demo-test-project",
-        "private_key_id": "1",
-        "private_key": "-----BEGIN PRIVATE KEY-----\\nfake\\n-----END PRIVATE KEY-----\\n",
-        "client_email": "fake@demo-test-project.iam.gserviceaccount.com",
-        "client_id": "1",
-        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-        "token_uri": "https://oauth2.googleapis.com/token"
-    }
+    # Set environment variables that help with emulator authentication
+    os.environ['GCLOUD_PROJECT'] = 'demo-test-project'
+    os.environ['FIREBASE_PROJECT_ID'] = 'demo-test-project'
     
-    # Create temporary credentials file
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as temp_file:
-        json.dump(fake_service_account, temp_file)
-        temp_cred_path = temp_file.name
-    
+    # For emulator, use a different approach that doesn't require valid credentials
     try:
-        # Set environment variable for Firebase Admin SDK
-        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = temp_cred_path
-        
-        # Initialize Firebase app
+        # Try to initialize without credentials first (works with some emulator setups)
         app = firebase_admin.initialize_app(options={
             'projectId': 'demo-test-project'
         })
         
-        print("✅ Firebase Admin SDK initialized for emulator")
+        print("✅ Firebase Admin SDK initialized for emulator (no credentials)")
         return app
         
-    except Exception as e:
-        print(f"❌ Firebase initialization failed: {e}")
-        # Clean up temp file on failure
+    except Exception as e1:
+        print(f"⚠️ Basic initialization failed: {e1}")
+        print("🔄 Trying with Application Default Credentials...")
+        
         try:
-            os.unlink(temp_cred_path)
-        except:
-            pass
-        raise
+            # Try with Application Default Credentials
+            cred = credentials.ApplicationDefault()
+            app = firebase_admin.initialize_app(cred, options={
+                'projectId': 'demo-test-project'
+            })
+            
+            print("✅ Firebase Admin SDK initialized with Application Default")
+            return app
+            
+        except Exception as e2:
+            print(f"⚠️ Application Default failed: {e2}")
+            print("🔄 Trying direct initialization...")
+            
+            try:
+                # Last resort: just initialize the app with minimal config
+                # The emulator should work regardless of auth issues
+                app = firebase_admin.initialize_app()
+                print("✅ Firebase Admin SDK initialized with default config")
+                return app
+                
+            except Exception as e3:
+                print(f"❌ All Firebase initialization methods failed:")
+                print(f"  1. Basic: {e1}")
+                print(f"  2. App Default: {e2}")
+                print(f"  3. Default: {e3}")
+                raise e3
 
 def create_firestore_document(db_client, collection_name, document_id, data):
     """Create a document using Firebase Admin SDK."""
@@ -357,13 +364,7 @@ def create_test_data():
     else:
         print(f"⚠️ Database only contains {final_card_count} cards - CardCollection might not find them")
     
-    # Clean up temporary credentials file
-    temp_cred_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
-    if temp_cred_path and temp_cred_path.startswith('/tmp/'):
-        try:
-            os.unlink(temp_cred_path)
-        except:
-            pass
+    # Firebase Admin SDK cleanup is handled automatically
     
 
 if __name__ == "__main__":
