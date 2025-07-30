@@ -1,16 +1,28 @@
 import os
+import sys
 import socket
 import subprocess
 import time
 import atexit
 
-# Set emulator environment BEFORE any other imports
-try:
-    with socket.create_connection(('localhost', 8080), timeout=1):
-        os.environ['FIRESTORE_EMULATOR_HOST'] = 'localhost:8080'
-        print("🔗 Early emulator detection: Connected")
-except (socket.error, ConnectionRefusedError):
-    pass
+# Set emulator environment BEFORE any other imports - ONLY in local development
+# Don't run emulator detection in cloud environments like Google App Engine
+is_cloud_environment = (
+    os.environ.get('GAE_ENV') or  # Google App Engine
+    os.environ.get('GAE_APPLICATION') or  # Google App Engine
+    os.environ.get('GOOGLE_CLOUD_PROJECT') or  # Generic Google Cloud
+    'gunicorn' in ' '.join(sys.argv)  # Running via gunicorn (production)
+)
+
+if not is_cloud_environment:
+    try:
+        with socket.create_connection(('localhost', 8080), timeout=1):
+            os.environ['FIRESTORE_EMULATOR_HOST'] = 'localhost:8080'
+            print("🔗 Early emulator detection: Connected")
+    except (socket.error, ConnectionRefusedError):
+        pass
+else:
+    print("🚨 CLOUD ENVIRONMENT: Skipping emulator detection for production safety")
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -140,13 +152,18 @@ def sync_emulator_data():
         print(f"⚠️  Sync check failed: {e}")
         print("   Continuing with existing emulator data...")
 
-# Auto-start emulator for local development
-emulator_started = start_emulator_if_needed()
-
-# Sync production data to emulator if needed
-if emulator_started and os.environ.get('FIRESTORE_EMULATOR_HOST'):
-    if os.environ.get('SKIP_EMULATOR_SYNC') != '1':
-        sync_emulator_data()
+# Auto-start emulator for local development ONLY
+# Don't run emulator startup in cloud environments
+if not is_cloud_environment:
+    emulator_started = start_emulator_if_needed()
+    
+    # Sync production data to emulator if needed
+    if emulator_started and os.environ.get('FIRESTORE_EMULATOR_HOST'):
+        if os.environ.get('SKIP_EMULATOR_SYNC') != '1':
+            sync_emulator_data()
+else:
+    emulator_started = False
+    print("🚨 CLOUD: Skipping emulator startup (production environment)")
 
 # Now import and create the Flask app
 from app import create_app
