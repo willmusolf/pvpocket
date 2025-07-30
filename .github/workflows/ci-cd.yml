@@ -172,6 +172,7 @@ jobs:
         SECRET_KEY: test-secret-key-for-ci
         REFRESH_SECRET_KEY: test-refresh-key-for-ci
         GCP_PROJECT_ID: demo-test-project
+        GCLOUD_PROJECT: demo-test-project
         FIREBASE_SECRET_NAME: test-secret
         FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
         FIREBASE_STORAGE_EMULATOR_HOST: localhost:9199
@@ -226,6 +227,7 @@ jobs:
         SECRET_KEY: test-secret-key-for-ci
         REFRESH_SECRET_KEY: test-refresh-key-for-ci
         GCP_PROJECT_ID: demo-test-project
+        GCLOUD_PROJECT: demo-test-project
         FIREBASE_SECRET_NAME: test-secret
         FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
         FIREBASE_STORAGE_EMULATOR_HOST: localhost:9199
@@ -280,6 +282,7 @@ jobs:
         SECRET_KEY: test-secret-key-for-ci
         REFRESH_SECRET_KEY: test-refresh-key-for-ci
         GCP_PROJECT_ID: demo-test-project
+        GCLOUD_PROJECT: demo-test-project
         FIREBASE_SECRET_NAME: test-secret
         FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
         FIREBASE_STORAGE_EMULATOR_HOST: localhost:9199
