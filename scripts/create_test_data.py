@@ -24,16 +24,54 @@ def create_test_data():
     
     # Initialize Firebase app for emulator
     if not firebase_admin._apps:
-        # For emulator, try application default credentials first
+        # For Firebase emulator, we need to bypass authentication entirely
+        print("🔧 Configuring Firebase Admin SDK for emulator...")
+        
+        # Set GCLOUD_PROJECT environment variable as an alternative
+        os.environ['GCLOUD_PROJECT'] = 'demo-test-project'
+        
         try:
+            # When using emulator, try to initialize without credentials
+            # The emulator host environment variable should be sufficient
             firebase_admin.initialize_app(options={
-                'projectId': 'demo-test-project',
-                'storageBucket': 'demo-test-project.appspot.com'
+                'projectId': 'demo-test-project'
             })
-            print("✅ Firebase initialized successfully")
+            print("✅ Firebase initialized successfully for emulator")
+            
         except Exception as e:
-            print(f"❌ Firebase initialization failed: {e}")
-            print("This might be due to credential issues - emulator should still work")
+            print(f"⚠️ Standard initialization failed: {e}")
+            print("🔄 Trying alternative approach for emulator...")
+            
+            try:
+                # Alternative: Set a fake service account to satisfy the SDK
+                fake_sa_path = '/tmp/fake_service_account.json'
+                fake_service_account = {
+                    "type": "service_account",
+                    "project_id": "demo-test-project", 
+                    "private_key_id": "fake",
+                    "private_key": "-----BEGIN PRIVATE KEY-----\\nfake\\n-----END PRIVATE KEY-----\\n",
+                    "client_email": "fake@demo-test-project.iam.gserviceaccount.com",
+                    "client_id": "fake",
+                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                    "token_uri": "https://oauth2.googleapis.com/token"
+                }
+                
+                with open(fake_sa_path, 'w') as f:
+                    json.dump(fake_service_account, f)
+                
+                os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = fake_sa_path
+                
+                # Re-initialize
+                firebase_admin.initialize_app(options={
+                    'projectId': 'demo-test-project'
+                })
+                print("✅ Firebase initialized with fake service account for emulator")
+                
+            except Exception as e2:
+                print(f"❌ Alternative initialization also failed: {e2}")
+                print("⚠️ Continuing anyway - emulator might still work via direct connection")
+                # Initialize with minimal config as last resort  
+                firebase_admin.initialize_app()
     
     # Connect to emulator
     db = firestore.client()
@@ -236,6 +274,14 @@ def create_test_data():
     print(f"  • {len(test_cards)} cards") 
     print(f"  • {len(test_decks)} decks")
     print(f"  • {len(config_data)} config documents")
+    
+    # Clean up temporary credentials file if it exists
+    fake_sa_path = '/tmp/fake_service_account.json'
+    if os.path.exists(fake_sa_path):
+        try:
+            os.unlink(fake_sa_path)
+        except:
+            pass
     
 
 if __name__ == "__main__":
