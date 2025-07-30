@@ -65,15 +65,19 @@ def test_admin_sdk_access():
         os.environ['GCLOUD_PROJECT'] = emulator_project_id
         os.environ['FIREBASE_PROJECT_ID'] = emulator_project_id
         
+        # CRITICAL: Disable credentials for emulator
+        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = ''
+        
         print(f"📋 Setting project ID: {emulator_project_id}")
         print(f"🔗 Emulator host: {os.environ.get('FIRESTORE_EMULATOR_HOST')}")
+        print("🔧 Disabled GOOGLE_APPLICATION_CREDENTIALS for emulator")
         
         try:
             app = firebase_admin.initialize_app(options={
                 'projectId': emulator_project_id,
                 'storageBucket': 'pvpocket-dd286.firebasestorage.app'
             })
-            print("✅ Firebase Admin SDK initialized successfully")
+            print("✅ Firebase Admin SDK initialized successfully (no auth)")
         except Exception as e:
             print(f"❌ Firebase Admin SDK initialization failed: {e}")
             return 0
@@ -119,6 +123,7 @@ def test_environment_variables():
         'GCP_PROJECT_ID', 
         'GCLOUD_PROJECT',
         'FIREBASE_PROJECT_ID',
+        'GOOGLE_APPLICATION_CREDENTIALS',
         'RUN_INTEGRATION_TESTS',
         'FORCE_EMULATOR_MODE',
         'FLASK_CONFIG'

@@ -146,15 +146,26 @@ def create_app(config_name="default"):
                 os.environ['FIRESTORE_EMULATOR_HOST'] = emulator_host
                 print(f"🎯 FORCED FIRESTORE_EMULATOR_HOST: {emulator_host}")
                 
+                # CRITICAL: Disable credentials for emulator to bypass authentication
+                os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = ''
+                print("🔧 Disabled GOOGLE_APPLICATION_CREDENTIALS for emulator")
+                
                 print(f"🔧 Set GCLOUD_PROJECT: {os.environ.get('GCLOUD_PROJECT')}")
                 print(f"🔧 Set FIREBASE_PROJECT_ID: {os.environ.get('FIREBASE_PROJECT_ID')}")
                 print(f"🔧 Set FIRESTORE_EMULATOR_HOST: {os.environ.get('FIRESTORE_EMULATOR_HOST')}")
                 
-                firebase_admin.initialize_app(options={
-                    'projectId': emulator_project_id,
-                    'storageBucket': bucket_name
-                })
-                print("✅ Firebase Admin SDK initialized with emulator settings")
+                try:
+                    # Try to initialize without credentials first (emulator mode)
+                    firebase_admin.initialize_app(options={
+                        'projectId': emulator_project_id,
+                        'storageBucket': bucket_name
+                    })
+                    print("✅ Firebase Admin SDK initialized with emulator settings (no auth)")
+                except Exception as e:
+                    print(f"⚠️ Firebase Admin SDK init failed: {e}")
+                    # Fallback initialization
+                    firebase_admin.initialize_app()
+                    print("✅ Firebase Admin SDK initialized with fallback")
             elif project_id and secret_name:
                 client = secretmanager.SecretManagerServiceClient()
                 name = f"projects/{project_id}/secrets/{secret_name}/versions/latest"
