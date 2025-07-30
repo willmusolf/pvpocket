@@ -203,6 +203,9 @@ jobs:
           echo "🌱 Seeding Firebase emulator with test data..."
           export FIRESTORE_EMULATOR_HOST=127.0.0.1:8080
           export FIREBASE_STORAGE_EMULATOR_HOST=127.0.0.1:9199
+          # Create empty credentials file to prevent auth errors
+          echo '{}' > /tmp/empty_creds.json
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/empty_creds.json
           python scripts/create_test_data.py
           if [ $? -eq 0 ]; then
             echo "✅ Test data seeded successfully!"
@@ -257,11 +260,11 @@ jobs:
         # Seed test data for specific test categories
         if [ -f "scripts/create_test_data.py" ]; then
           echo "🌱 Seeding Firebase emulator with test data..."
-          # Set environment for emulator
           export FIRESTORE_EMULATOR_HOST=127.0.0.1:8080
           export FIREBASE_STORAGE_EMULATOR_HOST=127.0.0.1:9199
-          # Disable Google credentials lookup
-          unset GOOGLE_APPLICATION_CREDENTIALS
+          # Create empty credentials file to prevent auth errors
+          echo '{}' > /tmp/empty_creds.json
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/empty_creds.json
           python scripts/create_test_data.py
           if [ $? -eq 0 ]; then
             echo "✅ Test data seeded successfully!"
