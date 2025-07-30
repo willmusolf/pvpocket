@@ -7,7 +7,7 @@ This provides a consistent set of test data for CI/CD pipelines.
 import os
 import sys
 import firebase_admin
-from firebase_admin import firestore
+from firebase_admin import firestore, credentials
 from datetime import datetime, timedelta
 
 # Add parent directory to path
@@ -16,12 +16,26 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 def create_test_data():
     """Create comprehensive test data for GitHub Actions tests."""
     
-    # Initialize Firebase app for emulator
+    print(f"🔍 FIRESTORE_EMULATOR_HOST = {os.environ.get('FIRESTORE_EMULATOR_HOST')}")
+    print(f"🔍 GOOGLE_APPLICATION_CREDENTIALS = {os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')}")
+    print(f"🔍 Using demo project: demo-test-project")
+    
+    # Initialize Firebase app for emulator (no credentials needed)
     if not firebase_admin._apps:
-        firebase_admin.initialize_app(options={
-            'projectId': 'demo-test-project',
-            'storageBucket': 'demo-test-project.appspot.com'
-        })
+        try:
+            # For emulator, we can initialize without credentials
+            firebase_admin.initialize_app(options={
+                'projectId': 'demo-test-project',
+                'storageBucket': 'demo-test-project.appspot.com'
+            })
+        except Exception as e:
+            print(f"⚠️ Error initializing Firebase: {e}")
+            # Try with a mock credential if the above fails
+            os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/dev/null'
+            firebase_admin.initialize_app(options={
+                'projectId': 'demo-test-project',
+                'storageBucket': 'demo-test-project.appspot.com'
+            })
     
     # Connect to emulator
     db = firestore.client()
