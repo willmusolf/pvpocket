@@ -114,7 +114,9 @@ def create_app(config_name="default"):
             secret_name = app.config.get("FIREBASE_SECRET_NAME")
 
             # Check if running with Firebase emulator
-            if os.environ.get('FIRESTORE_EMULATOR_HOST') or os.environ.get('RUN_INTEGRATION_TESTS'):
+            if (os.environ.get('FIRESTORE_EMULATOR_HOST') or 
+                os.environ.get('RUN_INTEGRATION_TESTS') or 
+                os.environ.get('FORCE_EMULATOR_MODE')):
                 # Use emulator configuration - ensure exact same project ID as REST API seeding
                 emulator_project_id = 'demo-test-project'  # Must match REST API exactly
                 
@@ -122,18 +124,27 @@ def create_app(config_name="default"):
                 print("🔥 FIREBASE: Using Firebase Emulator (FREE - no production costs!)")
                 print(f"🔗 Emulator Host: {os.environ.get('FIRESTORE_EMULATOR_HOST', 'localhost:8080')}")
                 print(f"📋 Project ID: {emulator_project_id} (matching REST API seeding)")
+                print(f"🔍 FIRESTORE_EMULATOR_HOST: {os.environ.get('FIRESTORE_EMULATOR_HOST')}")
                 print(f"🔍 RUN_INTEGRATION_TESTS: {os.environ.get('RUN_INTEGRATION_TESTS')}")
+                print(f"🔍 FORCE_EMULATOR_MODE: {os.environ.get('FORCE_EMULATOR_MODE')}")
                 print(f"🔍 FLASK_CONFIG: {config_name}")
                 
                 # Set environment variable to ensure consistent project ID
                 os.environ['GCLOUD_PROJECT'] = emulator_project_id
                 os.environ['FIREBASE_PROJECT_ID'] = emulator_project_id
                 
-                # Ensure emulator host is properly set
-                emulator_host = os.environ.get('FIRESTORE_EMULATOR_HOST', '127.0.0.1:8080')
-                if ':' not in emulator_host:
+                # Ensure emulator host is properly set - CRITICAL for CI
+                emulator_host = os.environ.get('FIRESTORE_EMULATOR_HOST')
+                if not emulator_host:
+                    # Force emulator host if not set (CI environment)
+                    emulator_host = '127.0.0.1:8080'
+                    print("⚠️ FIRESTORE_EMULATOR_HOST not set, forcing to 127.0.0.1:8080")
+                elif ':' not in emulator_host:
                     emulator_host = f"{emulator_host}:8080"
+                
+                # CRITICAL: Set the emulator host environment variable
                 os.environ['FIRESTORE_EMULATOR_HOST'] = emulator_host
+                print(f"🎯 FORCED FIRESTORE_EMULATOR_HOST: {emulator_host}")
                 
                 print(f"🔧 Set GCLOUD_PROJECT: {os.environ.get('GCLOUD_PROJECT')}")
                 print(f"🔧 Set FIREBASE_PROJECT_ID: {os.environ.get('FIREBASE_PROJECT_ID')}")

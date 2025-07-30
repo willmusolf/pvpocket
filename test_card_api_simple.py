@@ -15,8 +15,10 @@ def test_card_api():
     print("🧪 TESTING CARD API ENDPOINT")
     print("="*50)
     
-    # Create Flask app with testing config
+    # Create Flask app with testing config and force emulator mode
     os.environ['FLASK_CONFIG'] = 'testing'
+    os.environ['RUN_INTEGRATION_TESTS'] = '1'
+    os.environ['FORCE_EMULATOR_MODE'] = '1'
     app = create_app('testing')
     
     with app.test_client() as client:
@@ -51,7 +53,10 @@ def test_card_paginated_api():
     print("\n🧪 TESTING PAGINATED CARD API ENDPOINT")
     print("="*50)
     
-    # Create Flask app with testing config
+    # Create Flask app with testing config and force emulator mode  
+    os.environ['FLASK_CONFIG'] = 'testing'
+    os.environ['RUN_INTEGRATION_TESTS'] = '1'
+    os.environ['FORCE_EMULATOR_MODE'] = '1'
     app = create_app('testing')
     
     with app.test_client() as client:

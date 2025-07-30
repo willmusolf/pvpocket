@@ -120,6 +120,7 @@ def test_environment_variables():
         'GCLOUD_PROJECT',
         'FIREBASE_PROJECT_ID',
         'RUN_INTEGRATION_TESTS',
+        'FORCE_EMULATOR_MODE',
         'FLASK_CONFIG'
     ]
     
