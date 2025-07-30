@@ -177,7 +177,6 @@ jobs:
         FIREBASE_SECRET_NAME: test-secret
         FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
         FIREBASE_STORAGE_EMULATOR_HOST: localhost:9199
-        GOOGLE_APPLICATION_CREDENTIALS: ""
         RUN_INTEGRATION_TESTS: 1
         FORCE_EMULATOR_MODE: 1
       run: |
@@ -202,6 +201,11 @@ jobs:
         
         # Install Firebase Admin SDK for seeding
         pip install firebase-admin || echo "Firebase Admin SDK already installed"
+        
+        # CRITICAL: Unset credentials environment variable for emulator
+        echo "🔧 Unsetting GOOGLE_APPLICATION_CREDENTIALS for emulator mode..."
+        unset GOOGLE_APPLICATION_CREDENTIALS
+        export GOOGLE_APPLICATION_CREDENTIALS=
         
         # Seed test data for integration tests that require real data
         if [ -f "scripts/create_test_data.py" ]; then
@@ -246,7 +250,6 @@ jobs:
         FIREBASE_SECRET_NAME: test-secret
         FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
         FIREBASE_STORAGE_EMULATOR_HOST: localhost:9199
-        GOOGLE_APPLICATION_CREDENTIALS: ""
         RUN_INTEGRATION_TESTS: 1
         FORCE_EMULATOR_MODE: 1
       run: |
@@ -271,6 +274,11 @@ jobs:
         
         # Install Firebase Admin SDK for seeding
         pip install firebase-admin || echo "Firebase Admin SDK already installed"
+        
+        # CRITICAL: Unset credentials environment variable for emulator
+        echo "🔧 Unsetting GOOGLE_APPLICATION_CREDENTIALS for emulator mode..."
+        unset GOOGLE_APPLICATION_CREDENTIALS
+        export GOOGLE_APPLICATION_CREDENTIALS=
         
         # Seed test data for integration tests that require real data
         if [ -f "scripts/create_test_data.py" ]; then
@@ -315,7 +323,6 @@ jobs:
         FIREBASE_SECRET_NAME: test-secret
         FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
         FIREBASE_STORAGE_EMULATOR_HOST: localhost:9199
-        GOOGLE_APPLICATION_CREDENTIALS: ""
         RUN_INTEGRATION_TESTS: 1
         FORCE_EMULATOR_MODE: 1
       run: |

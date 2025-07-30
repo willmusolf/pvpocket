@@ -66,7 +66,8 @@ def test_admin_sdk_access():
         os.environ['FIREBASE_PROJECT_ID'] = emulator_project_id
         
         # CRITICAL: Disable credentials for emulator
-        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = ''
+        if 'GOOGLE_APPLICATION_CREDENTIALS' in os.environ:
+            del os.environ['GOOGLE_APPLICATION_CREDENTIALS']
         
         print(f"📋 Setting project ID: {emulator_project_id}")
         print(f"🔗 Emulator host: {os.environ.get('FIRESTORE_EMULATOR_HOST')}")
