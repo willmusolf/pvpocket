@@ -2,12 +2,12 @@
 
 ## Quick Reference: When Do Tests Run?
 
-| Action | Test Type | Duration | What It Tests |
-|--------|-----------|----------|---------------|
-| **Create PR** | Super Fast | ~5 sec | Essential tests, mocked data |
-| **Push to** `development` | Super Fast | ~5 sec | Essential tests, mocked data |
-| **Push to** `main` | Full | ~20-30 sec | Real Firebase + comprehensive |
-| **Manual trigger** | Your choice | Varies | Any test type you select |
+| Action | Test Type | Duration | What It Tests | Steps Skipped |
+|--------|-----------|----------|---------------|---------------|
+| **Create PR** | Super Fast | ~5 sec | Essential tests, mocked data | Security scans, Node.js, Firebase emulator |
+| **Push to** `development` | Super Fast | ~5 sec | Essential tests, mocked data | Security scans, Node.js, Firebase emulator |
+| **Push to** `main` | Full | ~20-30 sec | Real Firebase + comprehensive | None - all validation |
+| **Manual trigger** | Your choice | Varies | Any test type you select | Varies by selection |
 
 ## Manual Testing Options
 
@@ -107,3 +107,4 @@ pytest -m "not real_data" -v          # All mocked tests
 - **Debugging specific areas**: Use category-specific tests (`unit`, `security`, etc.)
 - **CI/CD confidence**: Only main branch runs expensive Firebase tests
 - **Speed matters**: Development branch optimized for maximum speed (<5 sec feedback)
+- **Streamlined CI**: Development pushes skip Node.js setup, security scans, and Firebase emulator for ultra-fast feedback
