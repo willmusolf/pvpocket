@@ -104,16 +104,15 @@ class CardService:
                 return CardService.PRIORITY_SETS
             
             # Get top 5 sets by release_order (highest numbers = newest sets)
-            sets_query = (
-                db_client.collection("cards")
-                .order_by("release_order", direction=firestore.Query.DESCENDING)
-                .limit(5)
-                .stream()
+            # Use db_service for metrics tracking
+            sets_data = db_service.query_collection(
+                "cards",
+                order_by="release_order desc",
+                limit=5
             )
             
             priority_sets = []
-            for set_doc in sets_query:
-                set_data = set_doc.to_dict()
+            for set_data in sets_data:
                 if set_data and "set_name" in set_data:
                     # Skip Promo-A from priority loading
                     if set_data["set_name"] != "Promo-A":
@@ -224,20 +223,30 @@ class CardService:
     def _load_cards_from_set(db_client, collection: CardCollection, set_name: str) -> int:
         """Load cards from a specific set into the collection."""
         try:
-            sets_collection_ref = db_client.collection("cards")
-            all_set_docs = list(sets_collection_ref.stream())
+            # Use db_service for metrics tracking
+            all_set_docs = db_service.query_collection("cards")
             
             loaded_count = 0
             set_found = False
             
-            for set_doc in all_set_docs:
+            for set_data in all_set_docs:
                 # Get set data including release_order
-                set_data = set_doc.to_dict() or {}
+                set_id = set_data.get('id')
                 set_release_order = set_data.get("release_order", None)
                 
                 # Load cards from this set's subcollection
-                cards_subcollection_ref = set_doc.reference.collection("set_cards")
+                # Note: subcollections need special handling - using direct Firestore for now
+                # TODO: Add subcollection support to db_service
+                cards_subcollection_ref = db_client.collection("cards").document(set_id).collection("set_cards")
                 card_docs = list(cards_subcollection_ref.stream())
+                
+                # Manually track the reads
+                if card_docs:
+                    try:
+                        from .monitoring import performance_monitor
+                        performance_monitor.metrics.record_firestore_read("cards/set_cards", len(card_docs))
+                    except:
+                        pass
                 
                 set_loaded_count = 0
                 for card_doc in card_docs:
