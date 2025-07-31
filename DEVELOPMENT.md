@@ -2,7 +2,6 @@
 
 ## 🚀 Quick Start
 
-### Option 1: Smart Sync Start (Recommended)
 ```bash
 python3 run.py
 ```
@@ -10,14 +9,6 @@ python3 run.py
 - **Always runs smart sync** - only updates what's different
 - Restores deleted data automatically
 - Fast because it skips unchanged data
-
-### Option 2: No Sync Start (Fastest)
-```bash
-python3 run_simple.py
-```
-- Starts Firebase emulator automatically
-- **Never syncs** - uses existing emulator data only
-- Fastest startup when you don't need latest data
 
 ## 🔄 How Smart Sync Works
 
