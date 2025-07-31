@@ -200,13 +200,23 @@ class CardService:
             collection = CardCollection()
             
             total_loaded = 0
+            max_cards_per_set = 100  # Limit cards per set to reduce Firebase reads
+            
             for set_name in priority_sets:
-                loaded_count = CardService._load_cards_from_set(db_client, collection, set_name)
+                loaded_count = CardService._load_cards_from_set(db_client, collection, set_name, max_cards_per_set)
                 total_loaded += loaded_count
+                
+                # Stop if we've loaded enough cards (target: ~300 cards for priority collection)
+                if total_loaded >= 300:
+                    if current_app and current_app.debug:
+                        current_app.logger.debug(f"Reached target of 300 cards, stopping priority loading at {total_loaded}")
+                    break
             
             if total_loaded > 0:
-                # Cache priority collection with extended TTL for cost savings
-                cache_manager.set_card_collection(collection, cache_key="global_cards_priority", ttl_hours=48)
+                # Cache priority collection with extended TTL (1 week) for cost savings
+                cache_manager.set_card_collection(collection, cache_key="global_cards_priority", ttl_hours=168)
+                if current_app and current_app.debug:
+                    current_app.logger.debug(f"Cached priority collection with {total_loaded} cards")
                 return collection
             else:
                 return None
@@ -220,7 +230,7 @@ class CardService:
             return None
     
     @staticmethod
-    def _load_cards_from_set(db_client, collection: CardCollection, set_name: str) -> int:
+    def _load_cards_from_set(db_client, collection: CardCollection, set_name: str, max_cards: int = None) -> int:
         """Load cards from a specific set into the collection."""
         try:
             # Use db_service for metrics tracking
@@ -238,7 +248,12 @@ class CardService:
                 # Note: subcollections need special handling - using direct Firestore for now
                 # TODO: Add subcollection support to db_service
                 cards_subcollection_ref = db_client.collection("cards").document(set_id).collection("set_cards")
-                card_docs = list(cards_subcollection_ref.stream())
+                # Apply limit if specified to reduce Firebase reads
+                if max_cards and max_cards > 0:
+                    query = cards_subcollection_ref.limit(max_cards)
+                    card_docs = list(query.stream())
+                else:
+                    card_docs = list(cards_subcollection_ref.stream())
                 
                 # Manually track the reads
                 if card_docs:
@@ -258,6 +273,10 @@ class CardService:
                     card_set_name = card_data.get("set_name", "")
                     if card_set_name != set_name:
                         continue
+                    
+                    # Check if we've hit the max_cards limit
+                    if max_cards and set_loaded_count >= max_cards:
+                        break
                     
                     set_found = True
                     try:
@@ -352,8 +371,13 @@ class CardService:
         thread.start()
     
     @staticmethod
-    def _load_full_collection(cache_as_full: bool = True) -> CardCollection:
-        """Load the complete card collection from Firestore."""
+    def _load_full_collection(cache_as_full: bool = True, max_cards: int = None) -> CardCollection:
+        """Load the complete card collection from Firestore with optional limits.
+        
+        Args:
+            cache_as_full: Whether to cache the result as the full collection
+            max_cards: Optional limit on number of cards to load (for cost optimization)
+        """
         db_client = current_app.config.get("FIRESTORE_DB")
         if not db_client:
             # Critical error logging
@@ -365,16 +389,17 @@ class CardService:
             # Loading status only in debug
             if current_app and current_app.debug:
                 emulator_host = os.environ.get('FIRESTORE_EMULATOR_HOST')
-                current_app.logger.debug(f"Loading complete card collection from Firestore... (Emulator: {emulator_host})")
+                limit_msg = f" (limited to {max_cards} cards)" if max_cards else ""
+                current_app.logger.debug(f"Loading card collection from Firestore{limit_msg}... (Emulator: {emulator_host})")
             collection = CardCollection()
-            collection.load_from_firestore(db_client)
+            collection.load_from_firestore(db_client, max_cards=max_cards)
             
             if cache_as_full:
-                # Cache as full collection with extended TTL for cost savings
-                cache_manager.set_card_collection(collection, ttl_hours=72)
+                # Cache as full collection with extended TTL (1 week) for cost savings
+                cache_manager.set_card_collection(collection, ttl_hours=168)  # 7 days
                 # Success message only in debug
                 if current_app and current_app.debug:
-                    current_app.logger.debug(f"Loaded and cached {len(collection)} cards (full collection).")
+                    current_app.logger.debug(f"Loaded and cached {len(collection)} cards (full collection) with 168h TTL.")
             
             return collection
         except Exception as e:
@@ -447,15 +472,16 @@ class CardService:
             priority_collection = CardCollection()
             priority_sets = CardService.get_dynamic_priority_sets()
             for set_name in priority_sets:
-                CardService._load_cards_from_set(db_client, priority_collection, set_name)
+                CardService._load_cards_from_set(db_client, priority_collection, set_name, max_cards=50)
             
             # Cache priority collection with extended TTL
-            cache_manager.set_card_collection(priority_collection, cache_key="global_cards_priority", ttl_hours=48)
+            cache_manager.set_card_collection(priority_collection, cache_key="global_cards_priority", ttl_hours=168)
             
-            # Load and cache full collection with extended TTL
+            # Load and cache full collection with extended TTL (1 week) for cost optimization
+            # Use partial loading to reduce Firebase reads
             full_collection = CardCollection()
-            full_collection.load_from_firestore(db_client)
-            cache_manager.set_card_collection(full_collection, ttl_hours=72)
+            full_collection.load_from_firestore(db_client, max_cards=500)  # Limit to 500 cards
+            cache_manager.set_card_collection(full_collection, ttl_hours=168)  # 7 days
             
             return True
         except Exception as e:
