@@ -174,10 +174,10 @@ jobs:
         echo "Description: ${{ steps.test_strategy.outputs.description }}"
         echo ""
         if [[ "${{ steps.test_strategy.outputs.test_type }}" == "fast" ]]; then
-          echo "⚡ FAST MODE: Skipping heavy operations (Node.js, security scans, Firebase emulator)"
+          echo "⚡ ULTRA-FAST MODE: Skipping heavy operations (Flask app, Node.js, security scans, Firebase emulator)"
           echo "  - Only essential Python dependencies"
-          echo "  - Super fast tests with mocked data"
-          echo "  - Target: <10 second execution"
+          echo "  - Ultra-fast tests with no Flask app initialization"
+          echo "  - Target: <5 second total execution"
         else
           echo "🔍 FULL MODE: Running comprehensive validation"
           echo "  - All dependencies and security scans"

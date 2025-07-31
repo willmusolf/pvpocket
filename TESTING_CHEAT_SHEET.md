@@ -4,8 +4,8 @@
 
 | Action | Test Type | Duration | What It Tests | Steps Skipped |
 |--------|-----------|----------|---------------|---------------|
-| **Create PR** | Super Fast | ~5 sec | Essential tests, mocked data | Security scans, Node.js, Firebase emulator |
-| **Push to** `development` | Super Fast | ~5 sec | Essential tests, mocked data | Security scans, Node.js, Firebase emulator |
+| **Create PR** | Ultra Fast | ~1 sec | Core functionality, imports, basic validation | Flask app, security scans, Node.js, Firebase emulator |
+| **Push to** `development` | Ultra Fast | ~1 sec | Core functionality, imports, basic validation | Flask app, security scans, Node.js, Firebase emulator |
 | **Push to** `main` | Full | ~20-30 sec | Real Firebase + comprehensive | None - all validation |
 | **Manual trigger** | Your choice | Varies | Any test type you select | Varies by selection |
 
@@ -24,7 +24,7 @@
 
 ### Via Command Line (Local)
 ```bash
-# ⚡ Super fast tests (RECOMMENDED for daily development)
+# ⚡ Ultra fast tests (RECOMMENDED for daily development - 1 second!)
 ./scripts/run_tests.sh fast
 
 # All mocked tests  
@@ -47,11 +47,11 @@ pytest -m "performance" -v
 ```
 📝 Write Code
     ↓
-⚡ Run ./scripts/run_tests.sh fast (5 sec)
+⚡ Run ./scripts/run_tests.sh fast (1 sec)
     ↓
-🔀 Create PR → Super Fast Tests (5 sec)
+🔀 Create PR → Ultra Fast Tests (1 sec)
     ↓
-✅ Merge to development → Super Fast Tests (5 sec)
+✅ Merge to development → Ultra Fast Tests (1 sec)
     ↓
 🚀 Before pushing to main → Run ./scripts/run_tests.sh pre-prod locally
     ↓  
