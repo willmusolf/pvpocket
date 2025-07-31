@@ -167,18 +167,22 @@ Validates presence of:
 
 ## CI/CD Integration
 
-### GitHub Actions Workflow (Dual Strategy)
+### GitHub Actions Workflow (Optimized Strategy)
 
-**Pull Requests → Fast Tests**:
-- Uses mocked data for speed (~2-3 seconds)
-- Provides quick feedback during review
-- Runs all unit, integration, security, and performance tests with mocks
+**Development Branch Pushes & Pull Requests → Fast Tests Only**:
+- Uses `tests/test_fast_development.py` with mocked data (<5 seconds)
+- No Firebase emulator overhead - pure speed for development feedback
+- Essential tests: API endpoints, authentication, security headers, basic performance
+- Provides immediate feedback for development iterations
 
-**Pushes to main/development → Full Test Suite**:
+**Main Branch Pushes (Production Deployment) → Full Test Suite**:
 - Starts Firebase emulators with real data
-- Seeds test data for comprehensive testing
+- Seeds test data for comprehensive testing  
 - Tests actual Firebase operations and data persistence
-- Slower but thorough validation before deployment
+- Complete validation before production deployment (~20-30 seconds)
+
+**Manual Triggers → Flexible**:
+- Can run fast, full, unit, security, or performance tests via GitHub Actions UI
 
 **Security Scanning** (Both scenarios):
 - Python dependency vulnerabilities (Safety)
@@ -207,38 +211,63 @@ RUN_INTEGRATION_TESTS=1
 
 ## Running Tests
 
-### Local Development
+### Local Development Strategy
 
+**For Daily Development (Recommended)**:
 ```bash
-# Install test dependencies
-pip install -r requirements.txt
+# Super fast tests - like development branch CI (<5 seconds)
+./scripts/run_tests.sh fast
+# or directly: pytest tests/test_fast_development.py -v
 
-# Quick tests (like PRs)
-python -m pytest tests/ -m "not real_data" -v
+# All fast tests with mocks
+./scripts/run_tests.sh dev
+```
 
-# Full test suite (like pushes)
-./scripts/run_tests.sh full
+**Before Pushing to Main Branch (Pre-Production)**:
+```bash
+# Run the same comprehensive tests as production deployment
+./scripts/run_tests.sh pre-prod
 
-# Specific test categories
+# This will:
+# 1. Start Firebase emulator
+# 2. Seed test data  
+# 3. Run all tests including integration tests
+# 4. Generate coverage report
+# 5. Clean up emulator
+```
+
+**Specific Test Categories**:
+```bash
 python -m pytest tests/unit/ -v          # Unit tests only
 python -m pytest tests/security/ -v      # Security tests only
 python -m pytest tests/performance/ -v   # Performance tests only
 
-# Run with coverage
-python -m pytest tests/ --cov=app --cov-report=html
+# Full test suite (if emulator is already running)
+python -m pytest tests/ -v --cov=app --cov-report=html
 ```
+
+**Quick Development Workflow**:
+1. Make changes
+2. Run `./scripts/run_tests.sh fast` (5 seconds)
+3. If tests pass, push to development branch
+4. Before merging to main, run `./scripts/run_tests.sh pre-prod` locally
 
 ### CI/CD Environment
 
-**Dual Test Strategy**:
-- **Pull Requests**: Fast tests (~2-3 seconds) with mocked data
-- **Push to main/development**: Full test suite (~20-30 seconds) with Firebase emulator
+**Optimized Test Strategy**:
+- **Development Branch & PRs**: Fast tests only (~5 seconds) with mocked data
+- **Main Branch (Production)**: Full test suite (~20-30 seconds) with Firebase emulator
 - **Manual Triggers**: Can run specific test types via workflow dispatch
 
 **Test Flow**:
 ```
-Feature Branch → PR (Fast Tests) → Review → Merge → Push (Full Tests) → Deploy
+Feature Branch → PR (Fast) → Development (Fast) → Main (Full) → Production Deploy
 ```
+
+**Key Benefits**:
+- Development iterations are extremely fast
+- Production deployments are thoroughly validated
+- Local testing can match production requirements
 
 ### Test Markers
 
@@ -337,3 +366,28 @@ python -m pytest -m performance
    ```
 
 This testing architecture provides comprehensive coverage while maintaining security and performance standards. The migration from the old test files (test_scalability.py, test_quick.py) to this structured approach provides better maintainability, security, and reliability.
+
+## Firebase Cost Considerations
+
+### Does Firebase charge for reads during redeployment?
+
+**Short answer**: No, Firebase itself doesn't charge for reads during App Engine redeployment, but there are some nuances:
+
+**App Engine Deployment Process**:
+- App Engine creates new instances and routes traffic to them
+- Old instances are gradually terminated
+- No additional Firebase operations are triggered by the deployment itself
+- Your application's startup code may perform Firebase reads (e.g., loading configuration)
+
+**Potential Costs During Deployment**:
+1. **Startup reads**: If your app loads data on startup (like card collections), these count as normal reads
+2. **Health checks**: App Engine health checks may trigger Firebase reads if your `/health` endpoint queries Firebase
+3. **Instance scaling**: New instances starting up may each load configuration or cache data
+
+**Cost Optimization Tips**:
+- Use caching to minimize repeated Firebase reads during instance startup
+- Consider lazy loading for non-critical data
+- Monitor Firebase usage at `/internal/firestore-usage` during deployments
+- Pre-warm critical data during deployment rather than on-demand loading
+
+**Typical deployment cost**: <$0.01 for small applications due to minimal additional reads beyond normal startup operations.

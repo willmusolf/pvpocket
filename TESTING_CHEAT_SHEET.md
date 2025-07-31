@@ -2,12 +2,12 @@
 
 ## Quick Reference: When Do Tests Run?
 
-| Action | Test Type | Duration | What It Tests |
-|--------|-----------|----------|---------------|
-| **Create PR** → `main` or `development` | Fast | ~2-3 sec | Mocked data, quick feedback |
-| **Push to** `development` | Fast | ~2-3 sec | Staging validation |
-| **Push to** `main` | Full | ~20-30 sec | Real Firebase + integration |
-| **Manual trigger** | Your choice | Varies | Any test type you select |
+| Action | Test Type | Duration | What It Tests | Steps Skipped |
+|--------|-----------|----------|---------------|---------------|
+| **Create PR** | Ultra Fast | ~1 sec | Core functionality, imports, basic validation | Flask app, security scans, Node.js, Firebase emulator |
+| **Push to** `development` | Ultra Fast | ~1 sec | Core functionality, imports, basic validation | Flask app, security scans, Node.js, Firebase emulator |
+| **Push to** `main` | Full | ~20-30 sec | Real Firebase + comprehensive | None - all validation |
+| **Manual trigger** | Your choice | Varies | Any test type you select | Varies by selection |
 
 ## Manual Testing Options
 
@@ -24,29 +24,36 @@
 
 ### Via Command Line (Local)
 ```bash
-# Fast tests (like PRs/development)
-pytest -m "not real_data" -v
+# ⚡ Ultra fast tests (RECOMMENDED for daily development - 1 second!)
+./scripts/run_tests.sh fast
 
-# Full tests (like main branch)
+# All mocked tests  
+./scripts/run_tests.sh dev
+
+# 🚀 Pre-production validation (before pushing to main)
+./scripts/run_tests.sh pre-prod
+
+# Full tests (if emulator already running)
 ./scripts/run_tests.sh full
 
 # Specific categories
 pytest -m "unit" -v
 pytest -m "security" -v  
 pytest -m "performance" -v
-
-# All tests with coverage
-pytest --cov=app
 ```
 
-## Workflow Summary
+## Optimized Development Workflow
 
 ```
 📝 Write Code
     ↓
-🔀 Create PR → Fast Tests (2-3 sec)
+⚡ Run ./scripts/run_tests.sh fast (1 sec)
     ↓
-✅ Merge to development → Fast Tests (2-3 sec)
+🔀 Create PR → Ultra Fast Tests (1 sec)
+    ↓
+✅ Merge to development → Ultra Fast Tests (1 sec)
+    ↓
+🚀 Before pushing to main → Run ./scripts/run_tests.sh pre-prod locally
     ↓  
 🚀 Push to main → Full Tests (20-30 sec)
     ↓
@@ -68,27 +75,36 @@ pytest --cov=app
 ## Common Commands
 
 ```bash
-# What developers usually need:
-pytest -m "not real_data" -v          # Quick feedback
-./scripts/run_tests.sh full           # Before important merges
+# ⭐ What developers usually need:
+./scripts/run_tests.sh fast           # Daily development (5 seconds)
+./scripts/run_tests.sh pre-prod       # Before pushing to main
 pytest -m "security" -v               # Security checks only
 pytest --tb=short                     # Less verbose output
+
+# Legacy commands (still work):
+pytest -m "not real_data" -v          # All mocked tests
+./scripts/run_tests.sh full           # Full suite with emulator
 ```
 
 ## Troubleshooting
 
 ❓ **Tests failing on PR but passing locally?**
-- Run: `pytest -m "not real_data" -v` locally to match PR tests
+- Run: `./scripts/run_tests.sh fast` locally to match PR tests
 
 ❓ **Need to test Firebase operations?** 
-- Use manual trigger with "full" option or push to main
+- Use: `./scripts/run_tests.sh pre-prod` or push to main
 
 ❓ **Want faster feedback during development?**
-- Use fast tests and mock any external data in your test
+- Use: `./scripts/run_tests.sh fast` (5 seconds) instead of full suite
 
-## Pro Tips
+❓ **Pushing to main but tests might fail?**
+- Run: `./scripts/run_tests.sh pre-prod` locally first to avoid CI failures
 
-- **Development workflow**: Use fast tests 90% of the time
-- **Before major releases**: Run full tests manually
+## Pro Tips 🚀
+
+- **Daily development**: Use `./scripts/run_tests.sh fast` exclusively (5 seconds)
+- **Before production**: Always run `./scripts/run_tests.sh pre-prod` locally first
 - **Debugging specific areas**: Use category-specific tests (`unit`, `security`, etc.)
-- **CI/CD confidence**: Main branch = fully tested, development = quick validation
+- **CI/CD confidence**: Only main branch runs expensive Firebase tests
+- **Speed matters**: Development branch optimized for maximum speed (<5 sec feedback)
+- **Streamlined CI**: Development pushes skip Node.js setup, security scans, and Firebase emulator for ultra-fast feedback
