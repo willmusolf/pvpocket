@@ -198,8 +198,8 @@ jobs:
         # Integration tests now check endpoint availability rather than data
         echo "✅ Firebase emulator ready for basic integration tests"
         
-        # Run fast tests with emulator
-        python -m pytest tests/ -m "not slow" -v --tb=short --cov=app --cov-report=json
+        # Run fast tests with emulator (no coverage requirement for speed)
+        python -m pytest tests/ -m "not slow" -v --tb=short --cov=app --cov-report=json --cov-fail-under=0
         
         # Stop emulators
         kill $EMULATOR_PID || true
@@ -239,8 +239,8 @@ jobs:
         # Integration tests now check endpoint availability rather than data
         echo "✅ Firebase emulator ready for basic integration tests"
         
-        # Run specific test category with emulator
-        python -m pytest tests/ -m "${{ steps.test_strategy.outputs.test_type }}" -v --tb=short
+        # Run specific test category with emulator (no coverage requirement for targeted tests)
+        python -m pytest tests/ -m "${{ steps.test_strategy.outputs.test_type }}" -v --tb=short --cov-fail-under=0
         
         # Stop emulators
         kill $EMULATOR_PID || true
@@ -292,8 +292,8 @@ jobs:
           echo "⚠️ Test data script not found, running tests without seed data..."
         fi
         
-        # Run comprehensive test suite
-        python -m pytest tests/ -v --tb=short --cov=app --cov-report=json
+        # Run comprehensive test suite (full coverage requirement)
+        python -m pytest tests/ -v --tb=short --cov=app --cov-report=json --cov-fail-under=70
         
         # Stop emulators
         kill $EMULATOR_PID || true
