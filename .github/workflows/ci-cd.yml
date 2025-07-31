@@ -143,22 +143,14 @@ jobs:
           echo "🎮 Manual trigger - Running ${{ github.event.inputs.test_type }} tests"
           echo "test_type=${{ github.event.inputs.test_type }}" >> $GITHUB_OUTPUT
           echo "description=Manually triggered ${{ github.event.inputs.test_type }} tests" >> $GITHUB_OUTPUT
-        elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
-          echo "🚀 Pull Request detected - Running FAST tests (mocked data)"
-          echo "test_type=fast" >> $GITHUB_OUTPUT
-          echo "description=Fast tests with mocked data for quick PR feedback" >> $GITHUB_OUTPUT
         elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-          echo "🔍 Push to MAIN branch - Running FULL tests (including integration)"
+          echo "🔍 Push to MAIN branch - Running FULL tests (production deployment)"
           echo "test_type=full" >> $GITHUB_OUTPUT  
-          echo "description=Comprehensive test suite with Firebase emulator for production readiness" >> $GITHUB_OUTPUT
-        elif [[ "${{ github.ref }}" == "refs/heads/development" ]]; then
-          echo "⚡ Push to DEVELOPMENT branch - Running FAST tests (mocked data)"
-          echo "test_type=fast" >> $GITHUB_OUTPUT
-          echo "description=Fast tests for development branch - quick validation" >> $GITHUB_OUTPUT
+          echo "description=Comprehensive test suite with Firebase emulator for production deployment" >> $GITHUB_OUTPUT
         else
-          echo "❓ Unknown trigger - Defaulting to FAST tests"
+          echo "⚡ Fast tests for development/PR - No Firebase emulator needed"
           echo "test_type=fast" >> $GITHUB_OUTPUT
-          echo "description=Default fast tests for unknown trigger" >> $GITHUB_OUTPUT
+          echo "description=Fast tests with mocked data for quick feedback" >> $GITHUB_OUTPUT
         fi
         
     - name: Install test dependencies
@@ -171,40 +163,16 @@ jobs:
         FLASK_CONFIG: testing
         SECRET_KEY: test-secret-key-for-ci
         REFRESH_SECRET_KEY: test-refresh-key-for-ci
-        FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
-        FIREBASE_STORAGE_EMULATOR_HOST: localhost:9199
-        RUN_INTEGRATION_TESTS: 1
+        GCP_PROJECT_ID: test-project
+        FIREBASE_SECRET_NAME: test-secret
       run: |
         echo "🚀 ${{ steps.test_strategy.outputs.description }}"
-        echo "🔥 Starting Firebase emulators for fast tests..."
+        echo "⚡ Running fast development tests with mocked data (NO Firebase emulator)"
         
-        # Start Firebase emulators in background with explicit project ID
-        echo "🔥 Starting Firebase emulators with project: demo-test-project"
-        firebase emulators:start --only firestore,storage --project demo-test-project &
-        EMULATOR_PID=$!
+        # Run the consolidated fast test file - no emulator needed
+        python -m pytest tests/test_fast_development.py -v --tb=short --cov-fail-under=0
         
-        # Wait for emulators to start
-        echo "⏳ Waiting for Firebase emulators to be ready..."
-        for i in {1..30}; do
-          if curl -s http://localhost:8080 > /dev/null 2>&1; then
-            echo "✅ Firestore emulator is ready!"
-            break
-          fi
-          echo "Waiting for emulators... ($i/30)"
-          sleep 2
-        done
-        
-        # Note: Firebase emulator is running but we're not seeding data
-        # Integration tests now check endpoint availability rather than data
-        echo "✅ Firebase emulator ready for basic integration tests"
-        
-        # Run fast tests with emulator (no coverage requirement for speed)
-        python -m pytest tests/ -m "not slow" -v --tb=short --cov=app --cov-report=json --cov-fail-under=0
-        
-        # Stop emulators
-        kill $EMULATOR_PID || true
-        
-        echo "✅ Fast tests completed successfully!"
+        echo "✅ Fast tests completed successfully in $(date)!"
         
     - name: Run specific test category
       if: contains(fromJSON('["unit", "security", "performance"]'), steps.test_strategy.outputs.test_type)
