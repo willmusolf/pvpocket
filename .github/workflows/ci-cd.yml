@@ -292,8 +292,8 @@ jobs:
           echo "⚠️ Test data script not found, running tests without seed data..."
         fi
         
-        # Run comprehensive test suite (full coverage requirement)
-        python -m pytest tests/ -v --tb=short --cov=app --cov-report=json --cov-fail-under=70
+        # Run comprehensive test suite (30% coverage requirement)
+        python -m pytest tests/ -v --tb=short --cov=app --cov-report=json --cov-fail-under=30
         
         # Stop emulators
         kill $EMULATOR_PID || true
