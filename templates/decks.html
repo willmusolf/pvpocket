@@ -2793,14 +2793,30 @@
                     }
                 });
                 
-                // If no release_order data from backend, fall back to index-based ordering
+                // If no release_order data from backend, fall back to known ordering
                 if (Object.keys(setReleaseOrder).length === 0) {
                     console.warn('No release_order data from backend, using fallback ordering');
-                    uniqueSetsData.forEach((setData, index) => {
-                        if (setData.name === "Promo-A") {
-                            setReleaseOrder[setData.name] = -1; // Promo always last
+                    // Temporary fallback with known correct order (highest = newest)
+                    const knownOrder = {
+                        "Wisdom of Sea and Sky": 10,
+                        "Eevee Grove": 9,
+                        "Extradimensional Crisis": 8,
+                        "Celestial Guardians": 7,
+                        "Shining Revelry": 6,
+                        "Triumphant Light": 5,
+                        "Space-Time Smackdown": 4,
+                        "Mythical Island": 3,
+                        "Genetic Apex": 2,
+                        "Promo-A": 1
+                    };
+                    
+                    uniqueSetsData.forEach((setData) => {
+                        if (knownOrder[setData.name]) {
+                            setReleaseOrder[setData.name] = knownOrder[setData.name];
                         } else {
-                            setReleaseOrder[setData.name] = index + 1;
+                            // New unknown set gets highest priority
+                            const maxOrder = Math.max(...Object.values(knownOrder));
+                            setReleaseOrder[setData.name] = maxOrder + 1;
                         }
                     });
                 }
