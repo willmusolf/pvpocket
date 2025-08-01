@@ -2238,7 +2238,7 @@
     let batchLoadTimer = null; // Timer for batch processing (legacy)
 
     let currentSortType = 'set'; 
-    let currentSortDirection = 'asc'; 
+    let currentSortDirection = 'desc'; 
     let orderedSetNamesForSort = [];
 
     // Function to set sort type from URL parameters
@@ -2258,7 +2258,7 @@
         
     } 
     let sortTypeDirections = {
-        'set': 'asc',  
+        'set': 'desc',  // Default to desc for newest sets first
         'rarity': 'asc',  
         'type': 'asc',    
         'name': 'asc'     
@@ -5583,8 +5583,12 @@
 
                 // --- Update the visual state of the active menu item ---
                 a.classList.add('active'); // Add active highlighting
-                // Set the correct arrow icon for the dropdown menu item (flipped logic: down for asc, up for desc)
-                arrowSpan.innerHTML = currentSortDirection === 'asc' ? '<i class="bi bi-arrow-down"></i>' : '<i class="bi bi-arrow-up"></i>';
+                // Set the correct arrow icon for the dropdown menu item (special logic for set: desc=down, asc=up; others: asc=down, desc=up)
+                if (currentSortType === 'set') {
+                    arrowSpan.innerHTML = currentSortDirection === 'asc' ? '<i class="bi bi-arrow-up"></i>' : '<i class="bi bi-arrow-down"></i>';
+                } else {
+                    arrowSpan.innerHTML = currentSortDirection === 'asc' ? '<i class="bi bi-arrow-down"></i>' : '<i class="bi bi-arrow-up"></i>';
+                }
 
                 // --- Extract the base text for the main sort button from this active menu item ---
                 // Try to get the text content of the first child node (the text before the arrow span)
@@ -5598,8 +5602,13 @@
         });
 
         // --- Set the HTML content of the main sort button ---
-        // Include the extracted base text and the correct arrow icon (using the flipped logic)
-        const buttonArrowHtml = currentSortDirection === 'asc' ? '<i class="bi bi-arrow-down"></i>' : '<i class="bi bi-arrow-up"></i>';
+        // Include the extracted base text and the correct arrow icon (special logic for set: desc=down, asc=up; others: asc=down, desc=up)
+        let buttonArrowHtml;
+        if (currentSortType === 'set') {
+            buttonArrowHtml = currentSortDirection === 'asc' ? '<i class="bi bi-arrow-up"></i>' : '<i class="bi bi-arrow-down"></i>';
+        } else {
+            buttonArrowHtml = currentSortDirection === 'asc' ? '<i class="bi bi-arrow-down"></i>' : '<i class="bi bi-arrow-up"></i>';
+        }
         sortButton.innerHTML = `${buttonBaseText} ${buttonArrowHtml}`;
 
         // Optional: If foundActive is false, it means currentSortType isn't a valid option in the menu.
