@@ -1109,6 +1109,15 @@
         }
         
         isLoading = true;
+        
+        // Add safety timeout to prevent stuck loading states
+        const loadingTimeout = setTimeout(() => {
+            if (isLoading) {
+                console.warn('Deck loading took too long, resetting loading state');
+                isLoading = false;
+            }
+        }, 15000); // 15 second timeout
+        
         const decksContainer = document.getElementById('decks-container');
         
         if (!append) {
@@ -1253,6 +1262,7 @@
                 decksContainer.innerHTML = `<div class="col-12"><div class="alert alert-danger">Could not load decks. Please try again later.</div></div>`;
             }
         } finally {
+            clearTimeout(loadingTimeout); // Clear the safety timeout
             isLoading = false;
             hideSearchInputSpinner();
         }
@@ -1346,12 +1356,67 @@
                 }
             });
         }, {
-            rootMargin: '50px' // Load more when sentinel is 50px from viewport (requires more scrolling)
+            rootMargin: '200px', // Larger margin to catch fast scrolls
+            threshold: [0, 0.1, 0.5, 1] // Multiple thresholds for better detection
         });
         
-        // IntersectionObserver is sufficient for infinite scroll - no need for scroll listener fallback
-        
         window.deckScrollObserver.observe(scrollSentinel);
+        
+        // Add fallback scroll position monitoring for fast scrolls
+        let scrollTimeout;
+        let lastScrollTrigger = 0;
+        const scrollThrottleDelay = 300;
+        
+        const addScrollListener = () => {
+            const scrollHandler = () => {
+                clearTimeout(scrollTimeout);
+                scrollTimeout = setTimeout(() => {
+                    const currentlyHasMore = window.hasMoreDecks !== undefined ? window.hasMoreDecks : hasMoreDecks;
+                    if (currentlyHasMore && !isLoading) {
+                        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                        const windowHeight = window.innerHeight;
+                        const documentHeight = document.documentElement.scrollHeight;
+                        
+                        // If user is within 200px of bottom, trigger loading
+                        if (scrollTop + windowHeight >= documentHeight - 200) {
+                            const now = Date.now();
+                            if (now - lastScrollTrigger > scrollThrottleDelay) {
+                                lastScrollTrigger = now;
+                                if (!isLoading) {
+                                    loadDecksPage(currentPage + 1, true);
+                                }
+                            }
+                        }
+                        
+                        // Retry mechanism: if user is at very bottom and no loading for 2 seconds
+                        if (scrollTop + windowHeight >= documentHeight - 50) {
+                            if (!window.deckBottomRetryTimeout && currentlyHasMore && !isLoading) {
+                                window.deckBottomRetryTimeout = setTimeout(() => {
+                                    if (currentlyHasMore && !isLoading) {
+                                        console.log('Retry: User stuck at bottom, attempting to load more decks');
+                                        loadDecksPage(currentPage + 1, true);
+                                    }
+                                    window.deckBottomRetryTimeout = null;
+                                }, 2000);
+                            }
+                        } else {
+                            // Clear retry timeout if user scrolled away from bottom
+                            if (window.deckBottomRetryTimeout) {
+                                clearTimeout(window.deckBottomRetryTimeout);
+                                window.deckBottomRetryTimeout = null;
+                            }
+                        }
+                    }
+                }, 100); // Small delay to avoid excessive calls
+            };
+            
+            window.addEventListener('scroll', scrollHandler, { passive: true });
+            
+            // Store reference to remove later if needed
+            window.deckFallbackScrollHandler = scrollHandler;
+        };
+        
+        addScrollListener();
     }
 
     function syncEnergyIconsWithFilters() {
