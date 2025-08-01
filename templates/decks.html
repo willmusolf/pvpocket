@@ -2962,6 +2962,18 @@
         window.lastRequestKey = requestKey;
         
         isLoading = true;
+        
+        // Add safety timeout to prevent stuck loading states
+        const loadingTimeout = setTimeout(() => {
+            if (isLoading) {
+                console.warn('Loading took too long, resetting loading state');
+                isLoading = false;
+                window.lastRequestKey = null;
+                if (append) {
+                    showInfiniteScrollLoading(false);
+                }
+            }
+        }, 15000); // 15 second timeout
         const cardCollectionDiv = document.getElementById('card-collection');
         
         // Show user-friendly loading states
@@ -3122,6 +3134,7 @@
                 hasMoreCards = false;
             }
         } finally {
+            clearTimeout(loadingTimeout); // Clear the safety timeout
             isLoading = false;
             window.lastRequestKey = null; // Clear the request key to allow future requests
             hideSearchInputSpinner();
@@ -3173,11 +3186,16 @@
             loadingDiv.className = 'infinite-scroll-loading text-center p-3';
             loadingDiv.innerHTML = `
                 <div class="d-flex align-items-center justify-content-center">
-                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                    <div class="spinner-border text-primary" role="status" style="animation: spin 1s linear infinite, pulse 2s ease-in-out infinite alternate;">
                         <span class="visually-hidden">Loading...</span>
                     </div>
-                    <span>Loading more cards...</span>
                 </div>
+                <style>
+                    @keyframes pulse {
+                        0% { opacity: 0.6; }
+                        100% { opacity: 1; }
+                    }
+                </style>
             `;
             cardCollectionDiv.appendChild(loadingDiv);
         } else if (!show && loadingDiv) {
@@ -3190,13 +3208,15 @@
         const cardCollectionDiv = document.getElementById('card-collection');
         if (!cardCollectionDiv) return;
 
-        // Create or get the scroll sentinel
+        // Create or get the scroll sentinel - make it more prominent for fast scrolling
         let sentinel = cardCollectionDiv.querySelector('.scroll-sentinel');
         if (!sentinel) {
             sentinel = document.createElement('div');
             sentinel.className = 'scroll-sentinel';
-            sentinel.style.height = '20px';
-            sentinel.style.margin = '20px 0';
+            sentinel.style.height = '100px'; // Larger height to catch fast scrolls
+            sentinel.style.margin = '0';
+            sentinel.style.position = 'relative';
+            sentinel.style.zIndex = '1';
             cardCollectionDiv.appendChild(sentinel);
         }
 
@@ -3207,7 +3227,7 @@
 
         // Add back some intersection observer throttling for stability
         let lastTriggerTime = 0;
-        const throttleDelay = 500; // 500ms between triggers
+        const throttleDelay = 300; // Reduced to 300ms for smoother loading
         
         window.scrollObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
@@ -3215,15 +3235,74 @@
                     const now = Date.now();
                     if (now - lastTriggerTime > throttleDelay) {
                         lastTriggerTime = now;
-                        loadCardsPage(currentPage + 1, true);
+                        // Double-check loading state right before making request
+                        if (!isLoading) {
+                            loadCardsPage(currentPage + 1, true);
+                        }
                     }
                 }
             });
         }, {
-            rootMargin: '200px' // More conservative preloading
+            rootMargin: '300px', // Large margin to catch fast scrolls
+            threshold: [0, 0.1, 0.5, 1] // Multiple thresholds for better detection
         });
 
         window.scrollObserver.observe(sentinel);
+        
+        // Add fallback scroll position monitoring for fast scrolls
+        let scrollTimeout;
+        const addScrollListener = () => {
+            const scrollHandler = () => {
+                clearTimeout(scrollTimeout);
+                scrollTimeout = setTimeout(() => {
+                    if (hasMoreCards && !isLoading) {
+                        const cardCollectionDiv = document.getElementById('card-collection');
+                        if (!cardCollectionDiv) return;
+                        
+                        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                        const windowHeight = window.innerHeight;
+                        const documentHeight = document.documentElement.scrollHeight;
+                        
+                        // If user is within 200px of bottom, trigger loading
+                        if (scrollTop + windowHeight >= documentHeight - 200) {
+                            const now = Date.now();
+                            if (now - lastTriggerTime > throttleDelay) {
+                                lastTriggerTime = now;
+                                if (!isLoading) {
+                                    loadCardsPage(currentPage + 1, true);
+                                }
+                            }
+                        }
+                        
+                        // Retry mechanism: if user is at very bottom and no loading for 2 seconds
+                        if (scrollTop + windowHeight >= documentHeight - 50) {
+                            if (!window.bottomRetryTimeout && hasMoreCards && !isLoading) {
+                                window.bottomRetryTimeout = setTimeout(() => {
+                                    if (hasMoreCards && !isLoading) {
+                                        console.log('Retry: User stuck at bottom, attempting to load more cards');
+                                        loadCardsPage(currentPage + 1, true);
+                                    }
+                                    window.bottomRetryTimeout = null;
+                                }, 2000);
+                            }
+                        } else {
+                            // Clear retry timeout if user scrolled away from bottom
+                            if (window.bottomRetryTimeout) {
+                                clearTimeout(window.bottomRetryTimeout);
+                                window.bottomRetryTimeout = null;
+                            }
+                        }
+                    }
+                }, 100); // Small delay to avoid excessive calls
+            };
+            
+            window.addEventListener('scroll', scrollHandler, { passive: true });
+            
+            // Store reference to remove later if needed
+            window.fallbackScrollHandler = scrollHandler;
+        };
+        
+        addScrollListener();
     }
 
     // Load ALL cards for deck building, then load first page for display
