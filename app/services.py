@@ -255,6 +255,11 @@ class CardService:
                 set_id = set_data.get('id')
                 set_release_order = set_data.get("release_order", None)
                 
+                # Debug logging to see what we're getting
+                if current_app and current_app.debug:
+                    set_name = set_data.get("set_name", "Unknown")
+                    print(f"Loading set: {set_name}, release_order: {set_release_order}")
+                
                 # Load cards from this set's subcollection
                 # Note: subcollections need special handling - using direct Firestore for now
                 # TODO: Add subcollection support to db_service
@@ -294,6 +299,11 @@ class CardService:
                         card_pk_id = card_data.get("id")
                         if card_pk_id is None:
                             continue
+
+                        # Ensure set_release_order is properly set - debug logging
+                        if current_app and current_app.debug and set_release_order is None:
+                            set_name_debug = card_data.get("set_name", "Unknown")
+                            print(f"Warning: set_release_order is None for {set_name_debug}")
 
                         card = Card(
                             id=int(card_pk_id),

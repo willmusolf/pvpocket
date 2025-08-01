@@ -451,10 +451,29 @@ def get_all_cards():
         # or we add it explicitly if to_dict() doesn't include properties.
 
         card_dicts = []
+        
+        # Cache for set release orders to avoid repeated lookups
+        set_release_orders = {}
+        
         for card_obj in filtered_card_objects:
             card_dict = (
                 card_obj.to_dict()
             )  # Card.to_dict() should return all necessary fields
+            
+            # Fix missing set_release_order by looking it up from Firestore
+            if card_dict.get('set_release_order') is None and card_obj.set_name:
+                if card_obj.set_name not in set_release_orders:
+                    try:
+                        from ..db_service import db_service
+                        set_doc = db_service.get_document("cards", card_obj.set_name.replace(" ", "_"))
+                        if set_doc:
+                            set_release_orders[card_obj.set_name] = set_doc.get("release_order")
+                        else:
+                            set_release_orders[card_obj.set_name] = None
+                    except Exception:
+                        set_release_orders[card_obj.set_name] = None
+                
+                card_dict['set_release_order'] = set_release_orders[card_obj.set_name]
             
             # Process URL for CDN conversion on server side
             card_dict['display_image_path'] = url_service.process_firebase_to_cdn_url(card_obj.display_image_path)
@@ -807,8 +826,27 @@ def get_cards_paginated():
 
         # Convert Card objects to dictionaries for JSON response
         card_dicts = []
+        
+        # Cache for set release orders to avoid repeated lookups
+        set_release_orders = {}
+        
         for card_obj in paginated_cards:
             card_dict = card_obj.to_dict()
+            
+            # Fix missing set_release_order by looking it up from Firestore
+            if card_dict.get('set_release_order') is None and card_obj.set_name:
+                if card_obj.set_name not in set_release_orders:
+                    try:
+                        from ..db_service import db_service
+                        set_doc = db_service.get_document("cards", card_obj.set_name.replace(" ", "_"))
+                        if set_doc:
+                            set_release_orders[card_obj.set_name] = set_doc.get("release_order")
+                        else:
+                            set_release_orders[card_obj.set_name] = None
+                    except Exception:
+                        set_release_orders[card_obj.set_name] = None
+                
+                card_dict['set_release_order'] = set_release_orders[card_obj.set_name]
             
             # Process URL for CDN conversion on server side
             card_dict['display_image_path'] = url_service.process_firebase_to_cdn_url(card_obj.display_image_path)
