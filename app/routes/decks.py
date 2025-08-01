@@ -2019,3 +2019,81 @@ def view_public_deck(deck_id):
         owner=owner_info,
         is_owner=is_owner
     )
+
+
+@decks_bp.route("/api/sets", methods=["GET"])
+@rate_limit_api()
+def get_all_sets():
+    """API endpoint to get all sets with their metadata including release order."""
+    try:
+        db = get_db()
+        if not db:
+            current_app.logger.error("Database connection not available for /api/sets")
+            return jsonify({
+                "error": "Database is currently unavailable. Please try again later.",
+                "success": False,
+                "sets": []
+            }), 503
+
+        # Query the sets collection directly from Firebase
+        sets_ref = db.collection('cards')
+        sets_docs = list(sets_ref.stream())
+        
+        if not sets_docs:
+            current_app.logger.warning("No sets found in database for /api/sets")
+            return jsonify({
+                "error": "No sets found in database.",
+                "success": False,
+                "sets": []
+            }), 404
+
+        sets_data = []
+        for doc in sets_docs:
+            try:
+                set_data = doc.to_dict()
+                set_name = set_data.get('set_name')
+                release_order = set_data.get('release_order')
+                
+                if not set_name:
+                    current_app.logger.warning(f"Set document {doc.id} missing set_name")
+                    continue
+                
+                # Get card count from subcollection
+                cards_ref = doc.reference.collection('set_cards')
+                try:
+                    # Use a more efficient count query if available, otherwise get all docs
+                    cards_docs = list(cards_ref.stream())
+                    card_count = len(cards_docs)
+                except Exception as e:
+                    current_app.logger.warning(f"Could not count cards for set {set_name}: {e}")
+                    card_count = 0
+                
+                sets_data.append({
+                    "name": set_name,
+                    "code": set_data.get('set_code', ''),
+                    "release_order": release_order if release_order is not None else 0,
+                    "card_count": card_count
+                })
+                
+            except Exception as e:
+                current_app.logger.error(f"Error processing set document {doc.id}: {e}")
+                continue
+
+        # Sort by release_order (descending - newest first)
+        sets_data.sort(key=lambda x: x['release_order'], reverse=True)
+        
+        current_app.logger.info(f"Successfully retrieved {len(sets_data)} sets for /api/sets")
+        
+        return jsonify({
+            "success": True,
+            "sets": sets_data,
+            "count": len(sets_data)
+        })
+
+    except Exception as e:
+        current_app.logger.error(f"Error in /api/sets endpoint: {e}")
+        return jsonify({
+            "error": "An unexpected error occurred while retrieving sets.",
+            "success": False,
+            "sets": []
+        }), 500
