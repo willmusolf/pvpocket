@@ -528,6 +528,18 @@ def get_cards_paginated():
     """API endpoint to get cards with pagination and server-side filtering."""
     # Use get_full_card_collection to ensure all cards are available for search
     card_collection = card_service.get_full_card_collection()
+    
+    current_app.logger.info(f"DEBUG DECKS: Loaded {len(card_collection.cards) if card_collection else 0} total cards for paginated API")
+    
+    # Log set distribution
+    if card_collection and hasattr(card_collection, "cards"):
+        set_counts = {}
+        for card in card_collection.cards:
+            set_name = card.set_name
+            set_counts[set_name] = set_counts.get(set_name, 0) + 1
+        
+        current_app.logger.info(f"DEBUG DECKS: Cards per set: {dict(sorted(set_counts.items(), key=lambda x: x[1], reverse=True))}")
+        current_app.logger.info(f"DEBUG DECKS: Total unique sets: {len(set_counts)}")
 
     if not card_collection or not hasattr(card_collection, "cards"):
         current_app.logger.error(
