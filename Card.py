@@ -229,25 +229,98 @@ class CardCollection:
                 result.append(card)
         return result
 
-    def load_from_firestore(self, db_client) -> None:
+    def load_from_firestore(self, db_client, max_cards: int = None) -> None:
+        """Load cards from Firestore with optimized batch queries.
+        
+        Args:
+            db_client: Firestore client
+            max_cards: Optional limit on number of cards to load (for partial loading)
+        """
         self.cards = []
         self.cards_by_id = {}
         self.cards_by_name = {}
-        # Load card collection from Firestore with optimized batch queries
         loaded_card_count = 0
         
         try:
-            # First, get all documents from cards collection
-            sets_collection_ref = db_client.collection("cards")
-            set_docs = list(sets_collection_ref.stream())  # Load all docs at once
-            
-            # Debug logging for test environment
+            # First, try to use collection group query for efficient loading
+            # This reads all cards across all subcollections in one query
             try:
                 from flask import current_app
                 if current_app and current_app.debug:
-                    current_app.logger.debug(f"Found {len(set_docs)} documents in cards collection")
-            except:
-                pass
+                    current_app.logger.debug("Attempting optimized collection group query for cards...")
+                
+                # Use collection group query to get all set_cards in one go
+                collection_group_ref = db_client.collection_group("set_cards")
+                
+                # Add limit if specified to reduce reads
+                if max_cards:
+                    query = collection_group_ref.limit(max_cards)
+                else:
+                    query = collection_group_ref
+                
+                card_docs = list(query.stream())
+                
+                if current_app and current_app.debug:
+                    current_app.logger.debug(f"Collection group query returned {len(card_docs)} cards")
+                
+                # Process all cards from collection group query
+                for card_doc in card_docs:
+                    card_data = card_doc.to_dict()
+                    if card_data is None:
+                        continue
+                    
+                    try:
+                        card_pk_id = card_data.get("id")
+                        if card_pk_id is None:
+                            continue
+
+                        card = Card(
+                            id=int(card_pk_id),
+                            name=card_data.get("name", ""),
+                            energy_type=card_data.get("energy_type", ""),
+                            set_name=card_data.get("set_name", ""),
+                            set_code=card_data.get("set_code", ""),
+                            card_number=card_data.get("card_number"),
+                            card_number_str=card_data.get("card_number_str", ""),
+                            card_type=card_data.get("card_type", ""),
+                            hp=card_data.get("hp"),
+                            attacks=card_data.get("attacks", []),
+                            weakness=card_data.get("weakness"),
+                            retreat_cost=card_data.get("retreat_cost"),
+                            illustrator=card_data.get("illustrator"),
+                            firebase_image_url=card_data.get("firebase_image_url"),
+                            rarity=card_data.get("rarity", ""),
+                            pack=card_data.get("pack", ""),
+                            original_image_url=card_data.get("original_image_url"),
+                            flavor_text=card_data.get("flavor_text"),
+                            abilities=card_data.get("abilities", []),
+                            set_release_order=card_data.get("set_release_order"),
+                        )
+                        self.add_card(card)
+                        loaded_card_count += 1
+                        
+                    except Exception as e_card_init:
+                        # Card initialization error (skip silently in production)
+                        if current_app and current_app.debug:
+                            current_app.logger.debug(f"Error initializing card: {e_card_init}")
+                        pass
+                
+                if loaded_card_count > 0:
+                    if current_app and current_app.debug:
+                        current_app.logger.debug(f"Successfully loaded {loaded_card_count} cards using collection group query")
+                    return
+                    
+            except Exception as e_collection_group:
+                # Collection group query failed, fall back to original method
+                if current_app and current_app.debug:
+                    current_app.logger.debug(f"Collection group query failed: {e_collection_group}, falling back to original method")
+            
+            # Fallback: Original method with some optimizations
+            sets_collection_ref = db_client.collection("cards")
+            set_docs = list(sets_collection_ref.stream())  # Load all set docs at once
+            
+            if current_app and current_app.debug:
+                current_app.logger.debug(f"Found {len(set_docs)} documents in cards collection")
             
             # Try to load cards directly from documents first (for test data)
             direct_cards_loaded = 0
@@ -284,30 +357,43 @@ class CardCollection:
                         self.add_card(card)
                         direct_cards_loaded += 1
                         loaded_card_count += 1
+                        
+                        # Respect max_cards limit
+                        if max_cards and loaded_card_count >= max_cards:
+                            break
+                            
                     except Exception as e_card_init:
                         # Card initialization error (skip silently in production)
                         pass
             
-            # Debug logging for direct card loading
-            try:
-                from flask import current_app
-                if current_app and current_app.debug:
-                    current_app.logger.debug(f"Loaded {direct_cards_loaded} cards directly from documents")
-            except:
-                pass
+            if current_app and current_app.debug:
+                current_app.logger.debug(f"Loaded {direct_cards_loaded} cards directly from documents")
             
             # If we found direct cards, we're done
             if direct_cards_loaded > 0:
                 return
             
-            # Otherwise, try loading from subcollections (production structure)
-            # Found card sets. Loading cards in batches
+            # Otherwise, try loading from subcollections (production structure) with limits
+            # Apply smart loading strategy to reduce Firebase reads
             
-            # Process sets in parallel batches to reduce I/O wait time
-            batch_size = 5  # Process 5 sets at a time
+            if current_app and current_app.debug:
+                current_app.logger.debug("Loading from subcollections with read optimization...")
             
-            for i in range(0, len(set_docs), batch_size):
-                batch_sets = set_docs[i:i + batch_size]
+            # Limit the number of sets to process if max_cards is specified
+            sets_to_process = set_docs
+            if max_cards:
+                # Only process a subset of sets to stay within card limit
+                estimated_cards_per_set = max_cards // max(len(set_docs), 1)
+                max_sets = min(len(set_docs), max(1, max_cards // 50))  # Assume ~50 cards per set average
+                sets_to_process = set_docs[:max_sets]
+                if current_app and current_app.debug:
+                    current_app.logger.debug(f"Limited to processing {len(sets_to_process)} sets to stay within {max_cards} card limit")
+            
+            # Process sets with optimized batch loading
+            batch_size = 3  # Reduced batch size to limit concurrent reads
+            
+            for i in range(0, len(sets_to_process), batch_size):
+                batch_sets = sets_to_process[i:i + batch_size]
                 batch_loaded = 0
                 
                 # Load cards for this batch of sets
@@ -317,15 +403,32 @@ class CardCollection:
                         set_data = set_doc.to_dict() or {}
                         set_release_order = set_data.get("release_order", None)
                         
-                        # Use list() to execute the query once instead of streaming
+                        # Use limit to reduce reads per subcollection
                         cards_subcollection_ref = set_doc.reference.collection("set_cards")
-                        card_docs = list(cards_subcollection_ref.stream())
+                        
+                        # Apply per-set card limit if max_cards is specified
+                        if max_cards and loaded_card_count >= max_cards:
+                            break
+                            
+                        remaining_cards = max_cards - loaded_card_count if max_cards else None
+                        if remaining_cards and remaining_cards > 0:
+                            # Limit query to remaining card count
+                            query = cards_subcollection_ref.limit(min(remaining_cards, 100))
+                            card_docs = list(query.stream())
+                        else:
+                            # No limit specified, load all (but still limit to 200 per set to prevent runaway reads)
+                            query = cards_subcollection_ref.limit(200)
+                            card_docs = list(query.stream())
                         
                         # Process all cards from this set
                         for card_doc in card_docs:
                             card_data = card_doc.to_dict()
                             if card_data is None:
                                 continue
+                            
+                            # Check if we've hit our max_cards limit
+                            if max_cards and loaded_card_count >= max_cards:
+                                break
                                 
                             try:
                                 card_pk_id = card_data.get("id")

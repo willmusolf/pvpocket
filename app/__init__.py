@@ -582,4 +582,7 @@ def create_app(config_name="default"):
             except:
                 return "<h1>Internal Server Error</h1><p>Something went wrong. The team has been notified.</p>", 500
 
+    # Track app startup time for lazy loading
+    app._startup_time = time.time()
+    
     return app

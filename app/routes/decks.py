@@ -760,11 +760,11 @@ def get_cards_paginated():
             def set_sort_key(card):
                 # Use release_order from card if available, otherwise use old logic
                 if hasattr(card, 'set_release_order') and card.set_release_order is not None:
-                    # SIMPLE FIX: Just swap what the directions do
+                    # Fix: For desc, negate so higher release_order gets lower sort key (comes first)
                     if direction == "desc":
-                        set_priority = card.set_release_order    # desc = newest first = higher numbers first
+                        set_priority = -card.set_release_order   # desc = newest first = higher numbers first
                     else:
-                        set_priority = -card.set_release_order   # asc = oldest first = lower numbers first
+                        set_priority = card.set_release_order   # asc = oldest first = lower numbers first
                 else:
                     # Fallback to old hardcoded logic for cards without release_order
                     set_name = card.set_name if card.set_name else ""

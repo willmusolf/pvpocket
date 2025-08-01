@@ -473,6 +473,10 @@ jobs:
         echo "GOOGLE_OAUTH_CLIENT_ID=$(gcloud secrets versions access latest --secret=google-oauth-client-id)" >> $GITHUB_ENV
         echo "GOOGLE_OAUTH_CLIENT_SECRET=$(gcloud secrets versions access latest --secret=google-oauth-client-secret)" >> $GITHUB_ENV
         echo "TASK_AUTH_TOKEN=$(gcloud secrets versions access latest --secret=task-auth-token)" >> $GITHUB_ENV
+        echo "ALERT_EMAIL_USER=$(gcloud secrets versions access latest --secret=alert-email-user)" >> $GITHUB_ENV
+        echo "ALERT_EMAIL_PASS=$(gcloud secrets versions access latest --secret=alert-email-pass)" >> $GITHUB_ENV
+        echo "ALERT_EMAIL_TO=$(gcloud secrets versions access latest --secret=alert-email-to)" >> $GITHUB_ENV
+        echo "ALERT_SMS_TO=$(gcloud secrets versions access latest --secret=alert-sms-to)" >> $GITHUB_ENV
         
     - name: Create production deployment configuration
       run: |
@@ -506,6 +510,10 @@ jobs:
           GOOGLE_OAUTH_CLIENT_ID: '${{ env.GOOGLE_OAUTH_CLIENT_ID }}'
           GOOGLE_OAUTH_CLIENT_SECRET: '${{ env.GOOGLE_OAUTH_CLIENT_SECRET }}'
           TASK_AUTH_TOKEN: '${{ env.TASK_AUTH_TOKEN }}'
+          ALERT_EMAIL_USER: '${{ env.ALERT_EMAIL_USER }}'
+          ALERT_EMAIL_PASS: '${{ env.ALERT_EMAIL_PASS }}'
+          ALERT_EMAIL_TO: '${{ env.ALERT_EMAIL_TO }}'
+          ALERT_SMS_TO: '${{ env.ALERT_SMS_TO }}'
           USE_FIRESTORE_CACHE: 'false'
           CACHE_TTL_HOURS: '24'
           USER_CACHE_TTL_MINUTES: '30'

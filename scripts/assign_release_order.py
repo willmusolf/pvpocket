@@ -17,7 +17,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # Known set release order (from newest to oldest)
 # Higher numbers = newer sets
 SET_RELEASE_ORDER = {
-    "Eevee Grove": 9,  # Most recent (highest number)
+    "Wisdom of Sea and Sky": 10,  # Most recent (highest number)
+    "Eevee Grove": 9,
     "Extradimensional Crisis": 8,
     "Celestial Guardians": 7,
     "Shining Revelry": 6,
