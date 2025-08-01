@@ -166,6 +166,17 @@ class CardService:
                 CardService._background_load_remaining_sets()
             return priority_collection
         
+        # LAZY LOADING: If lazy loading is enabled and we're just starting up, return minimal collection
+        if current_app.config.get("LAZY_LOAD_CARDS"):
+            # Check if this is an early request (within first 60 seconds of app startup)
+            import time
+            startup_time = getattr(current_app, '_startup_time', None)
+            if startup_time and (time.time() - startup_time) < 60:
+                if current_app.debug:
+                    current_app.logger.debug("LAZY LOADING: Returning sample collection to avoid Firebase reads during startup")
+                # Return sample collection to avoid Firebase reads during startup
+                return CardService._get_sample_card_collection()
+        
         # No cached collections available - try loading priority collection first for better startup performance
         priority_collection = CardService._get_priority_card_collection()
         
