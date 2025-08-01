@@ -2786,12 +2786,23 @@
                 // Build set order from backend data (using release_order field)
                 const setReleaseOrder = {};
                 
+                // DEBUG: Log first 3 cards to see what we're getting
+                console.log('DEBUG FRONTEND: First 3 cards from API:', allCards.slice(0, 3).map(card => ({
+                    name: card.name,
+                    set_name: card.set_name,
+                    set_release_order: card.set_release_order
+                })));
+                
                 // First, populate from cards' set_release_order if available
+                let cardsWithReleaseOrder = 0;
                 allCards.forEach(card => {
                     if (card.set_release_order !== null && card.set_release_order !== undefined) {
                         setReleaseOrder[card.set_name] = card.set_release_order;
+                        cardsWithReleaseOrder++;
                     }
                 });
+                
+                console.log(`DEBUG FRONTEND: Found ${cardsWithReleaseOrder} cards with set_release_order out of ${allCards.length} total`);
                 
                 // If no release_order data from backend, fall back to known ordering
                 if (Object.keys(setReleaseOrder).length === 0) {
@@ -2820,6 +2831,9 @@
                         }
                     });
                 }
+                
+                // DEBUG: Log final setReleaseOrder object
+                console.log('DEBUG FRONTEND: Final setReleaseOrder object:', setReleaseOrder);
                 
                 // No need to assign automatic priorities - backend handles this
                 
