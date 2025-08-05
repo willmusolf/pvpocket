@@ -2315,6 +2315,12 @@
 
     document.addEventListener('DOMContentLoaded', function() {
         
+        // Performance tracking
+        if (window.perfDebug) {
+            window.perfDebug.mark('DOMContentLoaded-start');
+            console.log('🚀 DOM Content Loaded - Starting initialization');
+        }
+        
         // Apply user preferences
         userPrefs.applyPreferences();
         
@@ -3303,13 +3309,23 @@
     // Load ALL cards for deck building, then load first page for display
     async function loadCards() {
         
+        // Performance tracking
+        if (window.perfDebug) window.perfDebug.mark('loadCards-start');
+        
         // First load ALL cards for deck building
         try {
+            // Performance tracking for both dev and production
+            if (window.perfDebug) window.perfDebug.mark('fetch-cards-start');
+            if (window.perfTest) window.perfTest.mark('fetch-cards-start');
+            
             const response = await fetch('/api/cards');
             if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
             const data = await response.json();
+            if (window.perfDebug) window.perfDebug.measure('fetch-cards', 'fetch-cards-start');
+            if (window.perfTest) window.perfTest.measure('API /cards', 'fetch-cards-start');
+            
             if (data && data.cards && data.cards.length > 0) {
                 allCards = data.cards;
             } else {
@@ -3322,9 +3338,13 @@
         // Then initialize filters and load first page for display
         
         try {
+            if (window.perfDebug) window.perfDebug.mark('initializeFilters-start');
             await initializeFiltersData();
+            if (window.perfDebug) window.perfDebug.measure('initializeFilters', 'initializeFilters-start');
             
+            if (window.perfDebug) window.perfDebug.mark('loadCardsPage-start');
             await loadCardsPage(1, false, true);
+            if (window.perfDebug) window.perfDebug.measure('loadCardsPage', 'loadCardsPage-start');
             
             // Code after loading
             // Handle deck restoration after cards are loaded
@@ -3521,6 +3541,12 @@
                 cardCollectionDiv.innerHTML = '';
             }
             clearDeck(false);
+        }
+        
+        // Performance tracking
+        if (window.perfDebug) {
+            window.perfDebug.measure('loadCards-total', 'loadCards-start');
+            console.log('🎯 loadCards() completed!');
         }
     }
 
