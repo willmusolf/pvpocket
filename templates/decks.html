@@ -4789,8 +4789,12 @@
                     // This ensures shimmer is visible even for cached images
                 }
                 
-                img.src = imageToLoad; // Load immediately instead of lazy loading
-                // img.setAttribute('data-src', card.display_image_path); // Commented out lazy loading for now
+                img.src = imageToLoad;
+                img.loading = 'lazy'; // Add native lazy loading
+                // Add fetchpriority for first 12 cards (visible above fold)
+                if (!isAppend && index < 12) {
+                    img.fetchPriority = 'high';
+                }
                 img.setAttribute('data-original-src', card.display_image_path); // Store for mobile loading
                 
                 // Mark as high-res if we loaded the cached version
@@ -4800,11 +4804,8 @@
                 
                 // Add loading handlers to remove loading state with minimum delay
                 img.onload = () => {
-                    // Ensure shimmer is visible for at least 200ms
-                    setTimeout(() => {
-                        cardContainer.classList.remove('is-loading');
-                        cardContainer.classList.add('is-loaded');
-                    }, 200);
+                    cardContainer.classList.remove('is-loading');
+                    cardContainer.classList.add('is-loaded');
                 };
                 img.onerror = () => {
                     cardContainer.classList.remove('is-loading');
@@ -4850,10 +4851,8 @@
                                         
                                         // When image loads, remove shimmer state
                                         newImg.onload = () => {
-                                            setTimeout(() => {
-                                                existingContainer.classList.remove('is-loading');
-                                                existingContainer.classList.add('is-loaded');
-                                            }, 200);
+                                            existingContainer.classList.remove('is-loading');
+                                            existingContainer.classList.add('is-loaded');
                                         };
                                         newImg.onerror = () => {
                                             existingContainer.classList.remove('is-loading');
