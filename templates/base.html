@@ -11,6 +11,9 @@
     <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-fixes.css') }}">
     
+    <!-- Preconnect to CDN for faster image loading -->
+    <link rel="preconnect" href="https://cdn.pvpocket.xyz">
+    
     <!-- Universal CDN Image Utils - Load early so other scripts can use it -->
     <script src="{{ url_for('static', filename='js/image-utils.js') }}"></script>
     
@@ -244,6 +247,8 @@
 </head>
 <body>
     {% include 'navbar.html' %}
+
+    {% block hero_section %}{% endblock %}
 
     {# Main content area - use container-fluid for full width #}
     <div class="container-fluid py-4">

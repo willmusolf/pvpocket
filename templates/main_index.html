@@ -105,12 +105,13 @@
         background-position: center;
         background-repeat: no-repeat;
         background-attachment: scroll;
-        padding: 150px 0;
-        margin-bottom: 40px;
-        border-radius: 0.5rem;
-        min-height: 600px;
+        padding: 180px 0;
+        margin-bottom: 0;
+        margin-top: -1px; /* Compensate for navbar border */
+        min-height: 650px;
         position: relative;
         overflow: hidden;
+        width: 100%;
     }
     
     @media (max-width: 768px) {
@@ -396,8 +397,8 @@
   {% endif %}
 {% endblock %}
 
-{% block content %}
-    <div class="hero-section text-center">
+{% block hero_section %}
+<div class="hero-section text-center">
         <div class="hero-sparkles">
             <div class="sparkle"></div>
             <div class="sparkle"></div>
@@ -416,9 +417,11 @@
                 <a href="#features" class="btn btn-lg btn-outline-light px-4 py-2 no-hover-on-mobile">Explore Features</a>
             </div>
         </div>
-    </div>
+</div>
+{% endblock %}
 
-    <div class="container mb-5">
+{% block content %}
+<div class="container mb-5" style="margin-top: 1.5rem;">
         <div class="stats-container">
             <div class="row g-4">
                 <div class="col-lg-4 col-md-6"> {# Use lg-4 for 3 items, md-6 for 2 items on smaller screens #}

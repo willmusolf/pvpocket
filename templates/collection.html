@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}My Collection - PvPocket{% endblock %}
+{% block title %}Collection - PvPocket{% endblock %}
 
 {% block content %}
 <style>
@@ -944,7 +944,7 @@
 
         const coverCardsHTML = (deck.resolved_cover_cards || []).map(cover => {
             const imgPath = cover.display_image_path || '';
-            return `<div class="cover-card-image-wrapper is-loading"><img data-src="${escapeHTML(imgPath)}" alt="${escapeHTML(cover.name)}" title="${escapeHTML(cover.name)}"></div>`;
+            return `<div class="cover-card-image-wrapper is-loading"><img data-src="${escapeHTML(imgPath)}" loading="lazy" alt="${escapeHTML(cover.name)}" title="${escapeHTML(cover.name)}"></div>`;
         }).join('');
 
         const notUsableHTML = deck.card_count < 20 ? '<div class="deck-not-full-overlay">DECK NOT USABLE</div>' : '';
