@@ -468,7 +468,10 @@ def get_all_cards():
         current_app.logger.info(
             f"Returning {len(card_dicts)} cards after filtering from CardCollection."
         )
-        return jsonify({"cards": card_dicts, "success": True})
+        response = jsonify({"cards": card_dicts, "success": True})
+        # Cache for 5 minutes since cards don't change often
+        response.headers['Cache-Control'] = 'public, max-age=300'
+        return response
 
     except Exception as e:
         current_app.logger.error(

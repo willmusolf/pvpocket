@@ -1,16 +1,52 @@
 {
   "indexes": [
     {
-      "collectionGroup": "sets",
-      "queryScope": "COLLECTION",
+      "collectionGroup": "set_cards",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
         {
-          "fieldPath": "releaseDate",
-          "order": "DESCENDING"
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "set_cards", 
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "set_name",
+          "order": "ASCENDING"
         },
         {
-          "fieldPath": "id",
+          "fieldPath": "card_number",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collection": "decks",
+      "fields": [
+        {
+          "fieldPath": "owner_id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "created_at",
           "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collection": "decks",
+      "fields": [
+        {
+          "fieldPath": "owner_id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "name_lowercase",
+          "order": "ASCENDING"
         }
       ]
     }
