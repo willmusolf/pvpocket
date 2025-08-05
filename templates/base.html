@@ -17,6 +17,14 @@
     <!-- Universal CDN Image Utils - Load early so other scripts can use it -->
     <script src="{{ url_for('static', filename='js/image-utils.js') }}"></script>
     
+    <!-- Performance debugging (only in development) -->
+    {% if config.FLASK_DEBUG %}
+    <script src="{{ url_for('static', filename='js/performance-debug.js') }}"></script>
+    {% endif %}
+    
+    <!-- Production performance test (when ?perf=1 is in URL) -->
+    <script src="{{ url_for('static', filename='js/prod-performance-test.js') }}"></script>
+    
     <style>
         :root {
             --bg-color: #f8f9fa;
