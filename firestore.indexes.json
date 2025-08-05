@@ -1,16 +1,6 @@
 {
   "indexes": [
     {
-      "collectionGroup": "set_cards",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "__name__",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
       "collectionGroup": "set_cards", 
       "queryScope": "COLLECTION_GROUP",
       "fields": [
@@ -25,7 +15,8 @@
       ]
     },
     {
-      "collection": "decks",
+      "collectionGroup": "decks",
+      "queryScope": "COLLECTION",
       "fields": [
         {
           "fieldPath": "owner_id",
@@ -38,7 +29,8 @@
       ]
     },
     {
-      "collection": "decks",
+      "collectionGroup": "decks",
+      "queryScope": "COLLECTION",
       "fields": [
         {
           "fieldPath": "owner_id",
