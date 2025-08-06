@@ -7,6 +7,9 @@ import sys
 from dotenv import load_dotenv
 load_dotenv()
 
+# Add parent directory to path to import app module
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 # Set release order mapping based on Pokemon TCG Pocket release dates
 SET_RELEASE_ORDER = {
     "Genetic Apex": 1,

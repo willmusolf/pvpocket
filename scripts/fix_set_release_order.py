@@ -23,6 +23,10 @@ Correct order:
 import os
 import sys
 from dotenv import load_dotenv
+
+# Add parent directory to path to import shared_utils
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from shared_utils import initialize_firebase
 from firebase_admin import firestore
 import json

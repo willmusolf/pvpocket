@@ -2,6 +2,51 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## 🚨 CRITICAL: Testing & Code Quality Requirements
+
+### ⚠️ MANDATORY: Test Before AND After Changes
+**YOU MUST ALWAYS:**
+1. Run tests BEFORE making any code changes to establish baseline
+2. Run tests AFTER making changes to verify nothing broke
+3. If tests fail, FIX THEM before proceeding
+4. Never commit code with failing tests
+
+```bash
+# ALWAYS run this before making changes:
+./scripts/run_tests.sh fast  # Takes only 1-3 seconds!
+
+# After making changes:
+./scripts/run_tests.sh fast  # Verify nothing broke
+
+# Before major changes or deployment:
+./scripts/run_tests.sh pre-prod  # Full validation
+```
+
+### 📝 Code Simplicity & Quality Rules
+**ALWAYS write simple, maintainable code:**
+- **Prefer simple over clever** - Code should be easily understood by beginners
+- **Follow existing patterns** - Look at similar code in the project first
+- **Add error handling** - Every external call needs try/except
+- **Use descriptive names** - `user_decks` not `ud`, `card_collection` not `cc`
+- **Keep functions small** - If it's over 20 lines, split it up
+- **Document complex logic** - Add comments only where necessary
+
+### 🛡️ Error Handling Requirements
+**EVERY piece of code must handle errors gracefully:**
+```python
+# ✅ GOOD - Proper error handling
+try:
+    cards = db.collection('cards').get()
+    return [card.to_dict() for card in cards]
+except Exception as e:
+    app.logger.error(f"Failed to fetch cards: {e}")
+    return []  # Return safe default
+
+# ❌ BAD - No error handling
+cards = db.collection('cards').get()  # Could crash the app!
+return [card.to_dict() for card in cards]
+```
+
 ## 🎯 Simple Overview for Beginners
 
 ### What We Built
@@ -18,15 +63,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Daily Development (What You'll Actually Do)
 ```bash
-# 1. Start working
+# 1. Run tests first (MANDATORY)
+./scripts/run_tests.sh fast  # Establish baseline (1-3 seconds)
+
+# 2. Start working
 python run.py  # Run app locally
 
-# 2. Make changes, then save to GitHub
+# 3. After making changes, test again (MANDATORY)
+./scripts/run_tests.sh fast  # Verify nothing broke
+
+# 4. Save to GitHub (only if tests pass)
 git add .
 git commit -m "Description of what I changed"
 git push
 
-# That's it! Everything else happens automatically
 # ✅ CI/CD Pipeline: Fully configured with service account permissions
 ```
 
@@ -105,10 +155,34 @@ rm app-test-deploy.yaml
 6. Merge PR → Auto-deploys to production
 
 ### What Happens Automatically
+- **Claude runs tests** before and after every code change
 - **Security scanning** on every push
-- **Performance tests** on every push
+- **Performance tests** on every push  
 - **Auto-deployment** when pushing to main/develop
 - **Health checks** after each deployment
+- **Test failure blocking** - PRs can't merge with failing tests
+
+### Claude's Automated Behavior
+When you ask Claude to make changes, Claude will:
+1. **Run baseline tests** before starting work (`./scripts/run_tests.sh fast`)
+2. **Follow existing patterns** by examining similar code in the project
+3. **Add proper error handling** to all new code with try/except blocks
+4. **Run tests after changes** to verify nothing broke
+5. **Report test results** in the response to you
+6. **Fix any test failures** before considering the task complete
+7. **Add new tests** when creating new features or modifying critical functionality
+8. **Use appropriate test types**: Unit tests for business logic, integration tests for API endpoints, security tests for auth features
+
+### 🧪 Claude's Testing Protocol
+**For any significant change, Claude will:**
+- Run `./scripts/run_tests.sh fast` before and after changes
+- Add appropriate test files if creating new functionality:
+  - `tests/unit/` for business logic and data models
+  - `tests/integration/` for API endpoints and workflows  
+  - `tests/security/` for authentication and authorization
+- Ensure test coverage for new code meets project standards
+- Fix any test failures before completing the task
+- Report test results and coverage in the response
 
 ## Development Workflow
 
@@ -131,49 +205,293 @@ rm app-test-deploy.yaml
 - **Profile Icon Management**: Icons stored in Firebase Storage under `profile_icons/`
 - **Energy Type Icons**: Predefined URLs in `app/__init__.py` for energy type visualization
 
-## Testing Strategy
+## 🧪 Testing Strategy (CRITICAL - READ THIS!)
 
-### ALWAYS Run Tests Before Deployment
+### ⚡ Quick Reference - What to Run When
 
-To avoid deployment issues like Firebase emulator misconfigurations, ALWAYS run tests locally before making changes that affect:
-- Firebase initialization
-- Configuration classes
-- Environment variables
-- API endpoints
-- Authentication flow
+| Scenario | Command | Duration | Purpose |
+|----------|---------|----------|---------|
+| **Before ANY code changes** | `./scripts/run_tests.sh fast` | 1-3 sec | Baseline |
+| **After making changes** | `./scripts/run_tests.sh fast` | 1-3 sec | Verify |
+| **Before pushing to repo** | `./scripts/run_tests.sh fast` | 1-3 sec | Final check |
+| **Major feature complete** | `./scripts/run_tests.sh pre-prod` | 20-30 sec | Full validation |
+| **Debugging specific area** | `pytest -m unit -v` | Varies | Targeted testing |
+
+### 🔴 Test Failure Protocol
+**If tests fail after your changes:**
+1. **STOP** - Do not proceed with other tasks
+2. **IDENTIFY** - Run failing test individually: `pytest path/to/test.py::TestClass::test_method -v`
+3. **FIX** - Correct the issue in your code
+4. **VERIFY** - Run tests again until they pass
+5. **NEVER** skip tests or comment them out
+
+### 📋 Automatic Testing Checklist
+When working on any task, Claude should:
+- [ ] Run fast tests before starting work
+- [ ] Check if specific test files exist for the module being modified
+- [ ] Run tests after each significant change
+- [ ] Run full test suite before marking task complete
+- [ ] Include test results in response to user
 
 ### Quick Test Commands
 ```bash
-# Fast tests (like PRs) - catches most issues in ~3 seconds
-pytest -m "not real_data" -v
+# MOST COMMON - Use this 90% of the time:
+./scripts/run_tests.sh fast      # 1-3 seconds, catches most issues
 
-# Integration tests with emulator - catches Firebase issues
-pytest tests/integration/ -v
+# When working on specific areas:
+pytest tests/unit/ -v            # Unit tests only
+pytest tests/security/ -v        # Security tests
+pytest tests/performance/ -v     # Performance tests
+pytest -m "not slow" -v         # Skip slow tests
 
-# Full test suite - comprehensive validation  
-pytest -v
+# Before deployment or major changes:
+./scripts/run_tests.sh pre-prod  # Full suite with Firebase emulator
 
-# Specific test categories
-pytest -m security -v        # Security tests
-pytest -m performance -v     # Performance tests
-pytest -m unit -v           # Unit tests only
+# If you need to debug a specific test:
+pytest path/to/test.py -v --tb=short  # Verbose with short traceback
 ```
 
-### Test-Driven Development
-1. **Before changing configs**: Run `pytest tests/integration/test_api.py::TestInternalAPI::test_metrics_endpoint -v`
-2. **Before Firebase changes**: Run `pytest tests/integration/ -v` 
-3. **Before deployment**: Run full test suite `pytest -v`
-4. **After deployment**: Check logs for Firebase connection messages
-
 ### What Tests Catch
-- ✅ Missing configuration fields (like `minimal_data` removal)
-- ✅ Firebase emulator vs production connection issues  
-- ✅ API endpoint changes and authentication
-- ✅ Environment variable misconfigurations
-- ✅ Security vulnerabilities and rate limiting
+- ✅ Syntax errors and import failures
+- ✅ Missing configuration fields 
+- ✅ Firebase connection issues  
+- ✅ API endpoint breakages
+- ✅ Authentication problems
+- ✅ Security vulnerabilities
 - ✅ Performance regressions
+- ✅ Data model inconsistencies
+
+### Test Coverage Requirements
+- **Minimum coverage**: 30% (enforced in CI/CD)
+- **Target coverage**: 80% for critical modules
+- **New code**: Must include tests if modifying core functionality
+
+### 🆕 New Test Categories Added (2025)
+**Critical Areas Now Fully Tested:**
+- **Friends System**: Complete workflow tests (`tests/integration/test_friends_system.py`)
+  - Friend search, requests, acceptance, removal
+  - Privacy enforcement and transaction integrity
+  - Error handling and edge cases
+- **Deck Routes**: CRUD operations and privacy controls (`tests/integration/test_deck_routes.py`)
+  - Deck creation, deletion, privacy toggles
+  - Export functionality and authorization
+  - Business rule enforcement
+- **Admin Security**: Authorization and privilege escalation prevention (`tests/security/test_admin_access.py`)
+  - Admin authentication and access controls
+  - Security header validation
+  - Data exposure prevention
+- **Deck Business Rules**: Pokemon TCG constraints (`tests/unit/test_deck_business_rules.py`)
+  - 20-card limit and 2-copy-per-name rules
+  - Basic Pokemon requirements
+  - Validation and edge cases
+- **Authentication Flows**: Complete lifecycle testing (`tests/integration/test_auth_flows.py`)
+  - OAuth flow, username setup, profile management
+  - Session security and URL validation
+  - Account deletion and error handling
+
+### When to Add Tests for New Features
+**ALWAYS add tests when creating:**
+- New API endpoints or routes
+- Authentication or authorization features
+- Database operations or transactions
+- Business logic or validation rules
+- User-facing forms or workflows
+- Admin or security features
 
 See `TESTING.md` and `TESTING_CHEAT_SHEET.md` for complete testing documentation.
+
+## 💡 Code Patterns & Best Practices
+
+### Writing Simple, Maintainable Code
+
+#### ✅ GOOD Examples:
+```python
+# Simple, clear function with error handling
+def get_user_decks(user_id):
+    """Fetch all decks for a user."""
+    try:
+        decks = db.collection('decks').where('owner_id', '==', user_id).get()
+        return [deck.to_dict() for deck in decks]
+    except Exception as e:
+        app.logger.error(f"Error fetching decks for user {user_id}: {e}")
+        return []
+
+# Clear variable names and simple logic
+def calculate_deck_cost(deck_cards):
+    """Calculate total pack cost for a deck."""
+    total_cost = 0
+    for card in deck_cards:
+        total_cost += card.get('pack_cost', 0)
+    return total_cost
+```
+
+#### ❌ BAD Examples:
+```python
+# Too clever, hard to understand
+def gd(u):
+    return [d.to_dict() for d in db.collection('decks').where('owner_id','==',u).get()]
+
+# No error handling, complex nested logic
+def process_data(data):
+    result = data['items'][0]['attributes']['value'] * 2
+    for item in data['items']:
+        if item['type'] == 'special':
+            result += item['attributes']['bonus']
+    return result  # Will crash if any key is missing!
+```
+
+### Common Patterns to Follow
+
+#### Database Operations
+```python
+# Always use try/except for Firestore operations
+try:
+    # Get with limit to prevent excessive reads
+    docs = db.collection('cards').limit(100).get()
+    return [doc.to_dict() for doc in docs]
+except Exception as e:
+    app.logger.error(f"Database error: {e}")
+    return []  # Safe fallback
+```
+
+#### API Endpoints
+```python
+@app.route('/api/endpoint')
+def api_endpoint():
+    # Input validation
+    if not request.args.get('param'):
+        return jsonify({'error': 'Missing parameter'}), 400
+    
+    try:
+        # Process request
+        result = process_request(request.args)
+        return jsonify(result), 200
+    except Exception as e:
+        app.logger.error(f"API error: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+```
+
+#### Caching Pattern
+```python
+# Check cache first, fallback to database
+def get_cards():
+    # Try cache
+    cached = cache_manager.get('cards')
+    if cached:
+        return cached
+    
+    # Fallback to database
+    try:
+        cards = fetch_from_database()
+        cache_manager.set('cards', cards, ttl=3600)
+        return cards
+    except Exception as e:
+        app.logger.error(f"Failed to fetch cards: {e}")
+        return []
+```
+
+### Performance Considerations
+- **Use batch operations** for multiple Firestore writes
+- **Implement caching** for frequently accessed data
+- **Limit query results** to prevent excessive reads
+- **Use pagination** for large datasets
+- **Profile before optimizing** - don't guess at performance issues
+
+### Security Best Practices
+- **Never trust user input** - Always validate and sanitize
+- **Use parameterized queries** - Prevent injection attacks
+- **Check authentication** - Verify user permissions
+- **Log security events** - Track failed auth attempts
+- **Keep secrets in Secret Manager** - Never hardcode credentials
+
+## 🚨 Troubleshooting & Debugging Guide
+
+### Test Failures - Common Issues & Solutions
+
+#### "ModuleNotFoundError" or Import Errors
+```bash
+# Check if running from correct directory
+pwd  # Should be in pokemon_tcg_pocket/
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run specific failing test
+pytest path/to/failing_test.py -v --tb=long
+```
+
+#### "Firebase Connection Failed"
+```bash
+# For local development - start emulator
+firebase emulators:start --only firestore,storage
+
+# For tests - use fast tests instead
+./scripts/run_tests.sh fast  # Uses mocked data
+```
+
+#### "Tests Pass Locally but Fail in CI"
+```bash
+# Run the exact same command as CI
+pytest tests/test_fast_development.py -v --tb=short --cov-fail-under=0
+
+# Check environment variables match CI
+echo $FLASK_CONFIG  # Should be 'testing'
+```
+
+### Code Issues - Debugging Steps
+
+#### "Function Not Working"
+1. **Add logging**: Use `app.logger.error()` to see what's happening
+2. **Check inputs**: Validate parameters are correct
+3. **Test in isolation**: Create simple test case
+4. **Check similar code**: Find working examples in codebase
+
+#### "Performance Issues"
+1. **Check caching**: Is data cached when it should be?
+2. **Database queries**: Are you fetching too much data?
+3. **Run performance tests**: `pytest -m performance -v`
+
+#### "Security Issues"
+1. **Input validation**: Are you sanitizing user input?
+2. **Authentication**: Are you checking user permissions?
+3. **Run security tests**: `pytest -m security -v`
+
+### Emergency Procedures
+
+#### "I Broke Something Critical"
+```bash
+# 1. STOP - Don't make more changes
+# 2. Run tests to see what's broken
+./scripts/run_tests.sh fast
+
+# 3. If many tests fail, check recent changes
+git diff HEAD~1
+
+# 4. If needed, revert last change
+git revert HEAD
+
+# 5. Run tests again to confirm fix
+./scripts/run_tests.sh fast
+```
+
+#### "Tests Won't Run"
+```bash
+# Check Python path
+which python3
+python3 --version  # Should be 3.11+
+
+# Reinstall test dependencies
+pip install pytest pytest-mock
+
+# Run single test to isolate issue
+python3 -m pytest tests/test_fast_development.py::TestBasicImports::test_core_modules_import -v
+```
+
+### Getting Help
+- **Test documentation**: See `TESTING.md` and `TESTING_CHEAT_SHEET.md`
+- **API documentation**: Check existing route handlers in `app/routes/`
+- **Database patterns**: Look at `app/services.py` for examples
+- **Error patterns**: Check `app/__init__.py` for error handling examples
 
 ## Development Commands
 

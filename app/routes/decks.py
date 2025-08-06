@@ -461,35 +461,32 @@ def get_all_cards():
                 card_obj.to_dict()
             )  # Card.to_dict() should return all necessary fields
             
-            # DEBUG: Log original set_release_order value
-            original_value = card_dict.get('set_release_order')
-            current_app.logger.info(f"DEBUG: Card {card_obj.name[:20]}... from {card_obj.set_name} has original set_release_order: {original_value}")
             
             # Fix missing set_release_order by looking it up from Firestore
             if card_dict.get('set_release_order') is None and card_obj.set_name:
                 debug_info["lookup_attempts"] += 1
                 
                 if card_obj.set_name not in set_release_orders:
-                    current_app.logger.info(f"DEBUG: Looking up release_order for set: {card_obj.set_name}")
+                    pass  # Looking up release_order for set
                     try:
                         from ..db_service import db_service
                         set_doc = db_service.get_document("cards", card_obj.set_name.replace(" ", "_"))
-                        current_app.logger.info(f"DEBUG: Set document for {card_obj.set_name}: {set_doc}")
+                        pass  # Retrieved set document
                         if set_doc:
                             release_order = set_doc.get("release_order")
                             set_release_orders[card_obj.set_name] = release_order
                             debug_info["successful_lookups"] += 1
-                            current_app.logger.info(f"DEBUG: Found release_order {release_order} for {card_obj.set_name}")
+                            pass  # Found release_order
                         else:
                             set_release_orders[card_obj.set_name] = None
-                            current_app.logger.warning(f"DEBUG: No set document found for {card_obj.set_name}")
+                            pass  # No set document found
                     except Exception as e:
                         set_release_orders[card_obj.set_name] = None
-                        current_app.logger.error(f"DEBUG: Exception looking up {card_obj.set_name}: {e}")
+                        pass  # Exception during lookup
                 
                 final_value = set_release_orders[card_obj.set_name]
                 card_dict['set_release_order'] = final_value
-                current_app.logger.info(f"DEBUG: Set set_release_order for {card_obj.set_name} to: {final_value}")
+                pass  # Set release_order
             
             # Track which sets we're seeing
             if card_obj.set_name not in debug_info["sets_found"]:
@@ -506,8 +503,7 @@ def get_all_cards():
             card_dicts.append(card_dict)
 
         # DEBUG: Log summary of what we found
-        current_app.logger.info(f"DEBUG: API Summary - Lookup attempts: {debug_info['lookup_attempts']}, Successful: {debug_info['successful_lookups']}")
-        current_app.logger.info(f"DEBUG: Sets found: {debug_info['sets_found']}")
+        # API Summary logged internally
         
         current_app.logger.info(
             f"Returning {len(card_dicts)} cards after filtering from CardCollection."
@@ -667,7 +663,7 @@ def get_cards_paginated():
         # Apply keyword-based rarity filter (takes precedence over URL parameter)
         if parsed_keywords['rarities']:
             if parsed_keywords.get('is_shiny_search', False):
-                current_app.logger.info(f"DEBUG: Shiny search detected in paginated endpoint, looking for Promo-A cards with IDs 50, 51")
+                pass  # Shiny search detected
                 # Special handling for "shiny" searches: include regular shiny cards plus specific Promo-A cards
                 promo_cards_found = []
                 for card in filtered_card_objects:
@@ -675,9 +671,9 @@ def get_cards_paginated():
                         promo_cards_found.append(f"CardNum:{card.card_number_str}, Name:{card.name}, Set:{card.set_name}")
                 
                 if promo_cards_found:
-                    current_app.logger.info(f"DEBUG: Found Promo-A cards in paginated: {promo_cards_found}")
+                    pass  # Found Promo-A cards
                 else:
-                    current_app.logger.info(f"DEBUG: No Promo-A cards with IDs 50,51 found in paginated")
+                    pass  # No Promo-A cards found
                 
                 filtered_card_objects = [
                     card for card in filtered_card_objects
