@@ -97,32 +97,44 @@ class CardService:
         This allows for automatic adaptation when new sets are released.
         """
         try:
+            current_app.logger.info(f"DEBUG SERVICES: Getting dynamic priority sets...")
             # Query Firestore for sets ordered by release_order descending
             db_client = db_service.get_db_client()
             if not db_client:
+                current_app.logger.info(f"DEBUG SERVICES: No DB client, falling back to hardcoded: {CardService.PRIORITY_SETS}")
                 # Fallback to hardcoded list if no DB connection
                 return CardService.PRIORITY_SETS
             
             # Get top 5 sets by release_order (highest numbers = newest sets)
             # Use db_service for metrics tracking
+            current_app.logger.info(f"DEBUG SERVICES: Querying cards collection for sets with release_order desc, limit 5")
             sets_data = db_service.query_collection(
                 "cards",
                 order_by="release_order desc",
                 limit=5
             )
+            current_app.logger.info(f"DEBUG SERVICES: Query returned {len(sets_data)} set documents")
             
             priority_sets = []
             for set_data in sets_data:
+                current_app.logger.info(f"DEBUG SERVICES: Processing set data: {set_data}")
                 if set_data and "set_name" in set_data:
+                    set_name = set_data["set_name"]
+                    release_order = set_data.get("release_order")
+                    current_app.logger.info(f"DEBUG SERVICES: Found set '{set_name}' with release_order {release_order}")
                     # Skip Promo-A from priority loading
-                    if set_data["set_name"] != "Promo-A":
-                        priority_sets.append(set_data["set_name"])
+                    if set_name != "Promo-A":
+                        priority_sets.append(set_name)
+                        current_app.logger.info(f"DEBUG SERVICES: Added '{set_name}' to priority sets")
+                    else:
+                        current_app.logger.info(f"DEBUG SERVICES: Skipping Promo-A from priority loading")
             
             # If we got sets from DB, use them; otherwise fallback
             if priority_sets:
-                current_app.logger.debug(f"Dynamic priority sets: {priority_sets}")
+                current_app.logger.info(f"DEBUG SERVICES: Dynamic priority sets: {priority_sets}")
                 return priority_sets
             else:
+                current_app.logger.info(f"DEBUG SERVICES: No priority sets from DB, using fallback: {CardService.PRIORITY_SETS}")
                 return CardService.PRIORITY_SETS
                 
         except Exception as e:
@@ -208,12 +220,14 @@ class CardService:
         
         try:
             priority_sets = CardService.get_dynamic_priority_sets()
+            current_app.logger.info(f"DEBUG SERVICES: Priority sets to load: {priority_sets}")
             collection = CardCollection()
             
             total_loaded = 0
             max_cards_per_set = 100  # Limit cards per set to reduce Firebase reads
             
             for set_name in priority_sets:
+                current_app.logger.info(f"DEBUG SERVICES: Starting to load priority set: '{set_name}'")
                 loaded_count = CardService._load_cards_from_set(db_client, collection, set_name, max_cards_per_set)
                 total_loaded += loaded_count
                 
@@ -255,16 +269,34 @@ class CardService:
                 set_id = set_data.get('id')
                 set_release_order = set_data.get("release_order", None)
                 
+                # Debug logging to see what we're getting (always log in production)
+                set_name_from_data = set_data.get("set_name", "Unknown")
+                current_app.logger.info(f"DEBUG SERVICES: Processing set document: {set_id}")
+                current_app.logger.info(f"DEBUG SERVICES: Set name: '{set_name_from_data}', target: '{set_name}', release_order: {set_release_order}")
+                current_app.logger.info(f"DEBUG SERVICES: Full set_data keys: {list(set_data.keys()) if set_data else 'None'}")
+                current_app.logger.info(f"DEBUG SERVICES: Set data values: {dict(list(set_data.items())[:5]) if set_data else 'None'}")
+                
+                # Check if this is the set we're looking for
+                if set_name_from_data != set_name:
+                    current_app.logger.info(f"DEBUG SERVICES: Skipping set '{set_name_from_data}' - not target '{set_name}'")
+                    continue
+                
                 # Load cards from this set's subcollection
                 # Note: subcollections need special handling - using direct Firestore for now
                 # TODO: Add subcollection support to db_service
                 cards_subcollection_ref = db_client.collection("cards").document(set_id).collection("set_cards")
+                current_app.logger.info(f"DEBUG SERVICES: Loading cards from subcollection: cards/{set_id}/set_cards")
+                
                 # Apply limit if specified to reduce Firebase reads
                 if max_cards and max_cards > 0:
+                    current_app.logger.info(f"DEBUG SERVICES: Applying limit of {max_cards} cards")
                     query = cards_subcollection_ref.limit(max_cards)
                     card_docs = list(query.stream())
                 else:
+                    current_app.logger.info(f"DEBUG SERVICES: Loading all cards from set (no limit)")
                     card_docs = list(cards_subcollection_ref.stream())
+                
+                current_app.logger.info(f"DEBUG SERVICES: Found {len(card_docs)} card documents in subcollection")
                 
                 # Manually track the reads
                 if card_docs:
@@ -275,14 +307,23 @@ class CardService:
                         pass
                 
                 set_loaded_count = 0
+                cards_processed = 0
+                cards_skipped_no_data = 0
+                cards_skipped_wrong_set = 0
+                cards_skipped_no_id = 0
+                
                 for card_doc in card_docs:
+                    cards_processed += 1
                     card_data = card_doc.to_dict()
                     if card_data is None:
+                        cards_skipped_no_data += 1
                         continue
                     
                     # Check if this card belongs to our target set
                     card_set_name = card_data.get("set_name", "")
                     if card_set_name != set_name:
+                        cards_skipped_wrong_set += 1
+                        current_app.logger.info(f"DEBUG SERVICES: Skipping card - wrong set '{card_set_name}' vs target '{set_name}'")
                         continue
                     
                     # Check if we've hit the max_cards limit
@@ -293,7 +334,14 @@ class CardService:
                     try:
                         card_pk_id = card_data.get("id")
                         if card_pk_id is None:
+                            cards_skipped_no_id += 1
+                            current_app.logger.info(f"DEBUG SERVICES: Skipping card - no ID field")
                             continue
+
+                        # Ensure set_release_order is properly set - debug logging (always log in production)
+                        card_name = card_data.get("name", "Unknown")[:20]
+                        current_app.logger.info(f"DEBUG SERVICES: Creating card {card_name}... with set_release_order: {set_release_order}")
+                        current_app.logger.info(f"DEBUG SERVICES: Card data keys: {list(card_data.keys())[:10]}")
 
                         card = Card(
                             id=int(card_pk_id),
@@ -326,20 +374,24 @@ class CardService:
                         if current_app and current_app.debug:
                             print(f"Error initializing Card from {set_doc.id}/{card_doc.id}: {e_card_init}")
                 
-                # Progress update for this set document
+                # Log detailed statistics for this set
+                current_app.logger.info(f"DEBUG SERVICES: SET SUMMARY for '{set_name}':")
+                current_app.logger.info(f"  - Processed {cards_processed} card documents")
+                current_app.logger.info(f"  - Skipped {cards_skipped_no_data} (no data)")
+                current_app.logger.info(f"  - Skipped {cards_skipped_wrong_set} (wrong set)")
+                current_app.logger.info(f"  - Skipped {cards_skipped_no_id} (no ID)")
+                current_app.logger.info(f"  - Successfully loaded {set_loaded_count} cards")
+                current_app.logger.info(f"  - Set found: {set_found}")
+                
                 if set_loaded_count > 0:
-                    # Debug info for card loading
-                    if current_app and current_app.debug:
-                        print(f"Found {set_loaded_count} cards from set '{set_name}' in document {set_doc.id}")
+                    current_app.logger.info(f"✅ Found {set_loaded_count} cards from set '{set_name}'")
+                break  # We found our target set, no need to continue
             
             if not set_found:
-                # Warning only in debug mode
-                if current_app and current_app.debug:
-                    print(f"WARNING: No cards found for set '{set_name}' - may need to update PRIORITY_SETS")
-            else:
-                # Success message only in debug mode
-                if current_app and current_app.debug:
-                    print(f"Successfully loaded {loaded_count} cards from set '{set_name}'")
+                current_app.logger.info(f"⚠️ No matching set found for '{set_name}' - may need to check set names")
+            
+            # Final summary
+            current_app.logger.info(f"DEBUG SERVICES: FINAL RESULT - loaded {loaded_count} total cards")
             
             return loaded_count
             

@@ -265,6 +265,8 @@
 <body>
     {% include 'navbar.html' %}
 
+    {% block hero_section %}{% endblock %}
+
     {# Main content area - use container-fluid for full width #}
     <div class="container-fluid py-4">
         {% with messages = get_flashed_messages(with_categories=true) %}

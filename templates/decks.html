@@ -2758,81 +2758,76 @@
     // Initialize filters data on first load
     async function initializeFiltersData() {
         try {
-            // Fetch first page just to get set data for dropdowns
-            const response = await fetch('/api/cards/paginated?page=1&limit=100');
+            // Fetch sets data from dedicated API endpoint
+            const response = await fetch('/api/sets');
             const data = await response.json();
             
-            if (data && data.cards && data.cards.length > 0) {
-                const uniqueSetsData = [];
-                const encounteredSetCodes = new Set();
-
-                data.cards.forEach(card => {
-                    if (card.set_name && card.set_name.trim() !== "" && card.set_code && card.set_code.trim() !== "") {
-                        const setName = card.set_name.trim();
-                        const setCode = card.set_code.trim();
-                        if (!encounteredSetCodes.has(setCode)) {
-                            encounteredSetCodes.add(setCode);
-                            uniqueSetsData.push({ name: setName, code: setCode });
-                        }
-                    }
-                });
-
-                function parseSetCode(code) {
-                    const promoMatch = code.match(/^P[A-Z]*-([A-Z0-9]+(?:[a-z]?))$/i) || code.match(/^P-([A-Z0-9]+(?:[a-z]?))$/i) || code.match(/^P([A-Z0-9]+(?:[a-z]?))$/i);
-                    if (promoMatch) {
-                        return { isPromo: true, prefix: "P", suffix: promoMatch[1] || code, original: code };
-                    }
-                    const match = code.match(/^([A-Z]+)([0-9A-Za-z].*)$/);
-                    if (match) {
-                        return { isPromo: false, prefix: match[1], suffix: match[2], original: code };
-                    }
-                    return { isPromo: false, prefix: "", suffix: code, original: code };
-                }
-
-                // Define set order - higher numbers = newer sets (can infinitely increase)
-                const setReleaseOrder = {
-                    "Genetic Apex": 1,          // Oldest set
-                    "Mythical Island": 2,
-                    "Space-Time Smackdown": 3,
-                    "Triumphant Light": 4,
-                    "Shining Revelry": 5,
-                    "Celestial Guardians": 6,
-                    "Extradimensional Crisis": 7,
-                    "Eevee Grove": 8,           // Most recent known set
-                    "Promo-A": -1               // Special set - always appears last
-                };
+            if (data && data.success && data.sets && data.sets.length > 0) {
+                const setsData = data.sets;
                 
-                // Assign automatic priorities to new sets (higher than current max)
-                const maxKnownPriority = Math.max(...Object.values(setReleaseOrder).filter(p => p > 0));
-                let nextNewSetPriority = maxKnownPriority + 1;
+                // Sets are already sorted by release_order (descending - newest first) from the API
+                // Extract set names for dropdown and sorting
+                orderedSetNamesForSort = setsData.map(set => set.name);
                 
-                uniqueSetsData.forEach(setData => {
-                    if (!setReleaseOrder[setData.name] && setData.name !== "Promo-A") {
-                        setReleaseOrder[setData.name] = nextNewSetPriority;
-                        nextNewSetPriority++; // Next new set gets even higher number
-                    }
-                });
-                
-                uniqueSetsData.sort((a, b) => {
-                    const orderA = setReleaseOrder[a.name] || 0;
-                    const orderB = setReleaseOrder[b.name] || 0;
-                    
-                    // Handle Promo-A special case (always last)
-                    if (orderA === -1) return 1;
-                    if (orderB === -1) return -1;
-                    
-                    // Sort by priority descending (higher numbers first = newer sets first)
-                    return orderB - orderA;
-                });
-                
-                orderedSetNamesForSort = uniqueSetsData.map(setObj => setObj.name);
+                // Populate the dropdown
                 populateDropdown('set-dropdown', ['All', ...orderedSetNamesForSort]);
                 const setBtn = document.getElementById('setDropdown');
                 if (setBtn && setBtn.querySelector('.btn-text')) {
                     setBtn.querySelector('.btn-text').textContent = 'All';
                 }
+                
+                console.log(`Loaded ${setsData.length} sets dynamically from /api/sets`);
+                console.log('Set order (newest first):', orderedSetNamesForSort);
+                
+            } else {
+                console.error('Failed to load sets from /api/sets:', data);
+                // Fallback: try to get sets from cards if sets API fails
+                await initializeFiltersDataFallback();
             }
         } catch (error) {
+            console.error('Error fetching sets:', error);
+            // Fallback: try to get sets from cards if sets API fails
+            await initializeFiltersDataFallback();
+        }
+    }
+
+    // Fallback method to extract sets from cards data (only used if /api/sets fails)
+    async function initializeFiltersDataFallback() {
+        console.warn('Using fallback method to extract sets from cards data');
+        try {
+            // Fetch first page just to get set data for dropdowns
+            const response = await fetch('/api/cards/paginated?page=1&limit=100');
+            const data = await response.json();
+            
+            if (data && data.cards && data.cards.length > 0) {
+                const setReleaseOrder = {};
+                
+                // Extract set release order from cards
+                data.cards.forEach(card => {
+                    if (card.set_name && card.set_release_order !== null && card.set_release_order !== undefined) {
+                        setReleaseOrder[card.set_name] = card.set_release_order;
+                    }
+                });
+                
+                // Create unique sets data and sort by release order
+                const uniqueSetsData = Object.keys(setReleaseOrder).map(setName => ({
+                    name: setName,
+                    release_order: setReleaseOrder[setName]
+                }));
+                
+                uniqueSetsData.sort((a, b) => b.release_order - a.release_order);
+                
+                orderedSetNamesForSort = uniqueSetsData.map(setData => setData.name);
+                populateDropdown('set-dropdown', ['All', ...orderedSetNamesForSort]);
+                const setBtn = document.getElementById('setDropdown');
+                if (setBtn && setBtn.querySelector('.btn-text')) {
+                    setBtn.querySelector('.btn-text').textContent = 'All';
+                }
+                
+                console.log('Fallback: extracted sets from cards data');
+            }
+        } catch (error) {
+            console.error('Fallback method also failed:', error);
         }
     }
 
@@ -4820,8 +4815,12 @@
                     // This ensures shimmer is visible even for cached images
                 }
                 
-                img.src = imageToLoad; // Load immediately instead of lazy loading
-                // img.setAttribute('data-src', card.display_image_path); // Commented out lazy loading for now
+                img.src = imageToLoad;
+                img.loading = 'lazy'; // Add native lazy loading
+                // Add fetchpriority for first 12 cards (visible above fold)
+                if (!isAppend && index < 12) {
+                    img.fetchPriority = 'high';
+                }
                 img.setAttribute('data-original-src', card.display_image_path); // Store for mobile loading
                 
                 // Mark as high-res if we loaded the cached version
@@ -4831,11 +4830,8 @@
                 
                 // Add loading handlers to remove loading state with minimum delay
                 img.onload = () => {
-                    // Ensure shimmer is visible for at least 200ms
-                    setTimeout(() => {
-                        cardContainer.classList.remove('is-loading');
-                        cardContainer.classList.add('is-loaded');
-                    }, 200);
+                    cardContainer.classList.remove('is-loading');
+                    cardContainer.classList.add('is-loaded');
                 };
                 img.onerror = () => {
                     cardContainer.classList.remove('is-loading');
@@ -4881,10 +4877,8 @@
                                         
                                         // When image loads, remove shimmer state
                                         newImg.onload = () => {
-                                            setTimeout(() => {
-                                                existingContainer.classList.remove('is-loading');
-                                                existingContainer.classList.add('is-loaded');
-                                            }, 200);
+                                            existingContainer.classList.remove('is-loading');
+                                            existingContainer.classList.add('is-loaded');
                                         };
                                         newImg.onerror = () => {
                                             existingContainer.classList.remove('is-loading');

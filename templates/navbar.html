@@ -48,7 +48,7 @@
                     <a class="nav-link nav-tab {{ 'active' if request.endpoint and request.endpoint.startswith('decks.') else '' }}" href="{{ url_for('decks.list_decks') }}">Deck Builder</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link nav-tab {{ 'active' if request.endpoint and request.endpoint.startswith('collection_bp.') else '' }}" href="{{ url_for('collection_bp.view_collection') }}">My Collection</a>
+                    <a class="nav-link nav-tab {{ 'active' if request.endpoint and request.endpoint.startswith('collection_bp.') else '' }}" href="{{ url_for('collection_bp.view_collection') }}">Collection</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link nav-tab {{ 'active' if request.endpoint and request.endpoint.startswith('battle.') else '' }}" href="{{ url_for('battle.battle') }}">Battle Simulator</a>
