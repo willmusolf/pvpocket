@@ -365,6 +365,7 @@ class TestDeckTypes:
             card.is_pokemon = True
             card.is_basic = True if i < 3 else False
             card.is_trainer = False
+            card.attacks = [{"name": "Thunder Shock", "cost": ["L", "C"], "damage": "30"}]
             
             deck.add_card(card)
         
@@ -386,6 +387,7 @@ class TestDeckTypes:
             card.is_pokemon = True
             card.is_basic = True
             card.is_trainer = False
+            card.attacks = [{"name": "Thunder Shock", "cost": ["L", "C"], "damage": "30"}]
             
             deck.add_card(card)
         
@@ -398,6 +400,7 @@ class TestDeckTypes:
             card.is_pokemon = True
             card.is_basic = True
             card.is_trainer = False
+            card.attacks = [{"name": "Ember", "cost": ["R", "C"], "damage": "30"}]
             
             deck.add_card(card)
         
@@ -484,24 +487,23 @@ class TestDeckValidationEdgeCases:
         """Test validation detects excess copies even if artificially created."""
         deck = Deck("Excess Copies Test")
         
-        # Manually create invalid state (this shouldn't happen in normal usage)
-        card = Mock(spec=Card)
-        card.id = 1
-        card.name = "Pikachu"
-        card.is_pokemon = True
-        card.is_basic = True
-        card.is_trainer = False
+        # Create a deck with enough cards to pass the card count check
+        for i in range(20):
+            card = Mock(spec=Card)
+            card.id = i
+            card.name = f"Card_{i}"
+            card.is_pokemon = True
+            card.is_basic = True
+            card.is_trainer = False
+            deck.add_card(card)
         
-        # Add normally
-        deck.add_card(card)
-        
-        # Artificially inflate count (simulating a bug)
-        deck.card_counts["Pikachu"] = 3  # More than MAX_COPIES
+        # Artificially inflate count for one card (simulating a bug)
+        deck.card_counts["Card_0"] = 3  # More than MAX_COPIES
         
         is_valid, message = deck.is_valid()
         
         assert is_valid is False
-        assert "Too many copies of Pikachu (3/2)" in message
+        assert "Too many copies of Card_0 (3/2)" in message
 
     def test_deck_name_case_insensitive_storage(self):
         """Test that deck names are stored in lowercase for querying."""
