@@ -451,10 +451,50 @@ def get_all_cards():
         # or we add it explicitly if to_dict() doesn't include properties.
 
         card_dicts = []
+        
+        # Cache for set release orders to avoid repeated lookups
+        set_release_orders = {}
+        debug_info = {"sets_found": {}, "lookup_attempts": 0, "successful_lookups": 0}
+        
         for card_obj in filtered_card_objects:
             card_dict = (
                 card_obj.to_dict()
             )  # Card.to_dict() should return all necessary fields
+            
+            # DEBUG: Log original set_release_order value
+            original_value = card_dict.get('set_release_order')
+            current_app.logger.info(f"DEBUG: Card {card_obj.name[:20]}... from {card_obj.set_name} has original set_release_order: {original_value}")
+            
+            # Fix missing set_release_order by looking it up from Firestore
+            if card_dict.get('set_release_order') is None and card_obj.set_name:
+                debug_info["lookup_attempts"] += 1
+                
+                if card_obj.set_name not in set_release_orders:
+                    current_app.logger.info(f"DEBUG: Looking up release_order for set: {card_obj.set_name}")
+                    try:
+                        from ..db_service import db_service
+                        set_doc = db_service.get_document("cards", card_obj.set_name.replace(" ", "_"))
+                        current_app.logger.info(f"DEBUG: Set document for {card_obj.set_name}: {set_doc}")
+                        if set_doc:
+                            release_order = set_doc.get("release_order")
+                            set_release_orders[card_obj.set_name] = release_order
+                            debug_info["successful_lookups"] += 1
+                            current_app.logger.info(f"DEBUG: Found release_order {release_order} for {card_obj.set_name}")
+                        else:
+                            set_release_orders[card_obj.set_name] = None
+                            current_app.logger.warning(f"DEBUG: No set document found for {card_obj.set_name}")
+                    except Exception as e:
+                        set_release_orders[card_obj.set_name] = None
+                        current_app.logger.error(f"DEBUG: Exception looking up {card_obj.set_name}: {e}")
+                
+                final_value = set_release_orders[card_obj.set_name]
+                card_dict['set_release_order'] = final_value
+                current_app.logger.info(f"DEBUG: Set set_release_order for {card_obj.set_name} to: {final_value}")
+            
+            # Track which sets we're seeing
+            if card_obj.set_name not in debug_info["sets_found"]:
+                debug_info["sets_found"][card_obj.set_name] = {"count": 0, "release_order": card_dict.get('set_release_order')}
+            debug_info["sets_found"][card_obj.set_name]["count"] += 1
             
             # Process URL for CDN conversion on server side
             card_dict['display_image_path'] = url_service.process_firebase_to_cdn_url(card_obj.display_image_path)
@@ -465,6 +505,10 @@ def get_all_cards():
                 
             card_dicts.append(card_dict)
 
+        # DEBUG: Log summary of what we found
+        current_app.logger.info(f"DEBUG: API Summary - Lookup attempts: {debug_info['lookup_attempts']}, Successful: {debug_info['successful_lookups']}")
+        current_app.logger.info(f"DEBUG: Sets found: {debug_info['sets_found']}")
+        
         current_app.logger.info(
             f"Returning {len(card_dicts)} cards after filtering from CardCollection."
         )
@@ -487,6 +531,18 @@ def get_cards_paginated():
     """API endpoint to get cards with pagination and server-side filtering."""
     # Use get_full_card_collection to ensure all cards are available for search
     card_collection = card_service.get_full_card_collection()
+    
+    current_app.logger.info(f"DEBUG DECKS: Loaded {len(card_collection.cards) if card_collection else 0} total cards for paginated API")
+    
+    # Log set distribution
+    if card_collection and hasattr(card_collection, "cards"):
+        set_counts = {}
+        for card in card_collection.cards:
+            set_name = card.set_name
+            set_counts[set_name] = set_counts.get(set_name, 0) + 1
+        
+        current_app.logger.info(f"DEBUG DECKS: Cards per set: {dict(sorted(set_counts.items(), key=lambda x: x[1], reverse=True))}")
+        current_app.logger.info(f"DEBUG DECKS: Total unique sets: {len(set_counts)}")
 
     if not card_collection or not hasattr(card_collection, "cards"):
         current_app.logger.error(
@@ -810,8 +866,27 @@ def get_cards_paginated():
 
         # Convert Card objects to dictionaries for JSON response
         card_dicts = []
+        
+        # Cache for set release orders to avoid repeated lookups
+        set_release_orders = {}
+        
         for card_obj in paginated_cards:
             card_dict = card_obj.to_dict()
+            
+            # Fix missing set_release_order by looking it up from Firestore
+            if card_dict.get('set_release_order') is None and card_obj.set_name:
+                if card_obj.set_name not in set_release_orders:
+                    try:
+                        from ..db_service import db_service
+                        set_doc = db_service.get_document("cards", card_obj.set_name.replace(" ", "_"))
+                        if set_doc:
+                            set_release_orders[card_obj.set_name] = set_doc.get("release_order")
+                        else:
+                            set_release_orders[card_obj.set_name] = None
+                    except Exception:
+                        set_release_orders[card_obj.set_name] = None
+                
+                card_dict['set_release_order'] = set_release_orders[card_obj.set_name]
             
             # Process URL for CDN conversion on server side
             card_dict['display_image_path'] = url_service.process_firebase_to_cdn_url(card_obj.display_image_path)
@@ -1947,3 +2022,81 @@ def view_public_deck(deck_id):
         owner=owner_info,
         is_owner=is_owner
     )
+
+
+@decks_bp.route("/api/sets", methods=["GET"])
+@rate_limit_api()
+def get_all_sets():
+    """API endpoint to get all sets with their metadata including release order."""
+    try:
+        db = get_db()
+        if not db:
+            current_app.logger.error("Database connection not available for /api/sets")
+            return jsonify({
+                "error": "Database is currently unavailable. Please try again later.",
+                "success": False,
+                "sets": []
+            }), 503
+
+        # Query the sets collection directly from Firebase
+        sets_ref = db.collection('cards')
+        sets_docs = list(sets_ref.stream())
+        
+        if not sets_docs:
+            current_app.logger.warning("No sets found in database for /api/sets")
+            return jsonify({
+                "error": "No sets found in database.",
+                "success": False,
+                "sets": []
+            }), 404
+
+        sets_data = []
+        for doc in sets_docs:
+            try:
+                set_data = doc.to_dict()
+                set_name = set_data.get('set_name')
+                release_order = set_data.get('release_order')
+                
+                if not set_name:
+                    current_app.logger.warning(f"Set document {doc.id} missing set_name")
+                    continue
+                
+                # Get card count from subcollection
+                cards_ref = doc.reference.collection('set_cards')
+                try:
+                    # Use a more efficient count query if available, otherwise get all docs
+                    cards_docs = list(cards_ref.stream())
+                    card_count = len(cards_docs)
+                except Exception as e:
+                    current_app.logger.warning(f"Could not count cards for set {set_name}: {e}")
+                    card_count = 0
+                
+                sets_data.append({
+                    "name": set_name,
+                    "code": set_data.get('set_code', ''),
+                    "release_order": release_order if release_order is not None else 0,
+                    "card_count": card_count
+                })
+                
+            except Exception as e:
+                current_app.logger.error(f"Error processing set document {doc.id}: {e}")
+                continue
+
+        # Sort by release_order (descending - newest first)
+        sets_data.sort(key=lambda x: x['release_order'], reverse=True)
+        
+        current_app.logger.info(f"Successfully retrieved {len(sets_data)} sets for /api/sets")
+        
+        return jsonify({
+            "success": True,
+            "sets": sets_data,
+            "count": len(sets_data)
+        })
+
+    except Exception as e:
+        current_app.logger.error(f"Error in /api/sets endpoint: {e}")
+        return jsonify({
+            "error": "An unexpected error occurred while retrieving sets.",
+            "success": False,
+            "sets": []
+        }), 500
