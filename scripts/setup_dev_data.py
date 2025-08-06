@@ -100,8 +100,10 @@ def create_sample_data():
     # the emulator with just enough data for development
     sample_data_script = '''
 import os
+import sys
 import firebase_admin
 from firebase_admin import credentials, firestore
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from Card import Card
 
 # Connect to emulator

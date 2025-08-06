@@ -105,8 +105,6 @@ def create_app(config_name="default"):
     profanity.load_censor_words()
 
     # Initialize Firebase (critical for database access)
-    print(f"🔍 DEBUG: firebase_admin._apps = {firebase_admin._apps}")
-    print(f"🔍 DEBUG: FIRESTORE_EMULATOR_HOST = {os.environ.get('FIRESTORE_EMULATOR_HOST')}")
     
     if not firebase_admin._apps:
         try:
@@ -132,10 +130,7 @@ def create_app(config_name="default"):
                 print("🔥 FIREBASE: Using Firebase Emulator (FREE - no production costs!)")
                 print(f"🔗 Emulator Host: {os.environ.get('FIRESTORE_EMULATOR_HOST', 'localhost:8080')}")
                 print(f"📋 Project ID: {emulator_project_id} (matching REST API seeding)")
-                print(f"🔍 FIRESTORE_EMULATOR_HOST: {os.environ.get('FIRESTORE_EMULATOR_HOST')}")
-                print(f"🔍 RUN_INTEGRATION_TESTS: {os.environ.get('RUN_INTEGRATION_TESTS')}")
-                print(f"🔍 FORCE_EMULATOR_MODE: {os.environ.get('FORCE_EMULATOR_MODE')}")
-                print(f"🔍 FLASK_CONFIG: {config_name}")
+                # Emulator mode detected
                 
                 # Set environment variable to ensure consistent project ID
                 os.environ['GCLOUD_PROJECT'] = emulator_project_id
@@ -161,9 +156,7 @@ def create_app(config_name="default"):
                 else:
                     print("🔧 GOOGLE_APPLICATION_CREDENTIALS already not set")
                 
-                print(f"🔧 Set GCLOUD_PROJECT: {os.environ.get('GCLOUD_PROJECT')}")
-                print(f"🔧 Set FIREBASE_PROJECT_ID: {os.environ.get('FIREBASE_PROJECT_ID')}")
-                print(f"🔧 Set FIRESTORE_EMULATOR_HOST: {os.environ.get('FIRESTORE_EMULATOR_HOST')}")
+                # Environment variables configured for emulator
                 
                 try:
                     # Try to initialize without credentials first (emulator mode)
@@ -182,10 +175,7 @@ def create_app(config_name="default"):
                                                os.environ.get('FORCE_EMULATOR_MODE')):
                 # Running in cloud environment but emulator variables are set - ignore them
                 print("🚨 FIREBASE: Emulator variables detected in cloud environment - ignoring for production safety")
-                print(f"🔍 GAE_ENV: {os.environ.get('GAE_ENV')}")
-                print(f"🔍 GAE_APPLICATION: {os.environ.get('GAE_APPLICATION')}")
-                print(f"🔍 SERVER_SOFTWARE: {os.environ.get('SERVER_SOFTWARE')}")
-                print(f"🔍 FIRESTORE_EMULATOR_HOST: {os.environ.get('FIRESTORE_EMULATOR_HOST')}")
+                # Cloud environment detected with emulator variables - ignoring
                 
                 # Clear any emulator environment variables to ensure production Firestore connection
                 if 'FIRESTORE_EMULATOR_HOST' in os.environ:
@@ -231,28 +221,7 @@ def create_app(config_name="default"):
     db_client = firestore.client()
     app.config["FIRESTORE_DB"] = db_client
     
-    # Debug: Test if the client is actually connected to emulator - ALWAYS show in testing/CI
-    if config_name in ['development', 'testing'] or os.environ.get('RUN_INTEGRATION_TESTS'):
-        try:
-            # Get the project ID from the client
-            project_id = db_client.project
-            print(f"🔍 DEBUG: Firestore client project: {project_id}")
-            
-            # Quick test to see if we can access collections
-            collections = list(db_client.collections())
-            print(f"🔍 DEBUG: Firestore client has {len(collections)} collections")
-            for col in collections:
-                print(f"🔍 DEBUG: Collection: {col.id}")
-                if col.id == 'cards':
-                    cards = list(col.stream())
-                    print(f"🔍 DEBUG: Cards collection has {len(cards)} documents")
-                    # List first few document IDs
-                    for i, card in enumerate(cards[:5]):
-                        print(f"🔍 DEBUG: Card document: {card.id}")
-                    if len(cards) > 5:
-                        print(f"🔍 DEBUG: ... and {len(cards) - 5} more cards")
-        except Exception as e:
-            print(f"🔍 DEBUG: Error testing Firestore client: {e}")
+    # Firestore client initialized
     login_manager.init_app(app)
     
     # Initialize security middleware (rate limiting, security headers)
