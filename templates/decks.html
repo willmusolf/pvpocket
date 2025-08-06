@@ -1645,6 +1645,9 @@
 {% endblock %}
 
 {% block extra_js %}
+{# CLIENT CACHE INTEGRATION #}
+<script src="{{ url_for('static', filename='js/client-cache.js') }}"></script>
+
 {# JAVASCRIPT #}
 <script>
     
@@ -2755,57 +2758,58 @@
         });
     }
 
-    // Initialize filters data on first load
+    // Initialize filters data from already loaded cards - optimized to avoid extra API call
     async function initializeFiltersData() {
         try {
-            // Fetch sets data from dedicated API endpoint
-            const response = await fetch('/api/sets');
-            const data = await response.json();
-            
-            if (data && data.success && data.sets && data.sets.length > 0) {
-                const setsData = data.sets;
-                
-                // Sets are already sorted by release_order (descending - newest first) from the API
-                // Extract set names for dropdown and sorting
-                orderedSetNamesForSort = setsData.map(set => set.name);
-                
-                // Populate the dropdown
-                populateDropdown('set-dropdown', ['All', ...orderedSetNamesForSort]);
-                const setBtn = document.getElementById('setDropdown');
-                if (setBtn && setBtn.querySelector('.btn-text')) {
-                    setBtn.querySelector('.btn-text').textContent = 'All';
-                }
-                
-                console.log(`Loaded ${setsData.length} sets dynamically from /api/sets`);
-                console.log('Set order (newest first):', orderedSetNamesForSort);
-                
-            } else {
-                console.error('Failed to load sets from /api/sets:', data);
-                // Fallback: try to get sets from cards if sets API fails
-                await initializeFiltersDataFallback();
-            }
-        } catch (error) {
-            console.error('Error fetching sets:', error);
-            // Fallback: try to get sets from cards if sets API fails
-            await initializeFiltersDataFallback();
-        }
-    }
+            // Use already loaded allCards instead of making another API call
+            if (allCards && allCards.length > 0) {
+                const uniqueSetsData = [];
+                const encounteredSetCodes = new Set();
 
-    // Fallback method to extract sets from cards data (only used if /api/sets fails)
-    async function initializeFiltersDataFallback() {
-        console.warn('Using fallback method to extract sets from cards data');
-        try {
-            // Fetch first page just to get set data for dropdowns
-            const response = await fetch('/api/cards/paginated?page=1&limit=100');
-            const data = await response.json();
-            
-            if (data && data.cards && data.cards.length > 0) {
-                const setReleaseOrder = {};
+                allCards.forEach(card => {
+                    if (card.set_name && card.set_name.trim() !== "" && card.set_code && card.set_code.trim() !== "") {
+                        const setName = card.set_name.trim();
+                        const setCode = card.set_code.trim();
+                        if (!encounteredSetCodes.has(setCode)) {
+                            encounteredSetCodes.add(setCode);
+                            uniqueSetsData.push({ name: setName, code: setCode });
+                        }
+                    }
+                });
+
+                function parseSetCode(code) {
+                    const promoMatch = code.match(/^P[A-Z]*-([A-Z0-9]+(?:[a-z]?))$/i) || code.match(/^P-([A-Z0-9]+(?:[a-z]?))$/i) || code.match(/^P([A-Z0-9]+(?:[a-z]?))$/i);
+                    if (promoMatch) {
+                        return { isPromo: true, prefix: "P", suffix: promoMatch[1] || code, original: code };
+                    }
+                    const match = code.match(/^([A-Z]+)([0-9A-Za-z].*)$/);
+                    if (match) {
+                        return { isPromo: false, prefix: match[1], suffix: match[2], original: code };
+                    }
+                    return { isPromo: false, prefix: "", suffix: code, original: code };
+                }
+
+                // Define set order - higher numbers = newer sets (can infinitely increase)
+                const setReleaseOrder = {
+                    "Genetic Apex": 1,          // Oldest set
+                    "Mythical Island": 2,
+                    "Space-Time Smackdown": 3,
+                    "Triumphant Light": 4,
+                    "Shining Revelry": 5,
+                    "Celestial Guardians": 6,
+                    "Extradimensional Crisis": 7,
+                    "Eevee Grove": 8,           // Most recent known set
+                    "Promo-A": -1               // Special set - always appears last
+                };
                 
-                // Extract set release order from cards
-                data.cards.forEach(card => {
-                    if (card.set_name && card.set_release_order !== null && card.set_release_order !== undefined) {
-                        setReleaseOrder[card.set_name] = card.set_release_order;
+                // Assign automatic priorities to new sets (higher than current max)
+                const maxKnownPriority = Math.max(...Object.values(setReleaseOrder).filter(p => p > 0));
+                let nextNewSetPriority = maxKnownPriority + 1;
+                
+                uniqueSetsData.forEach(setData => {
+                    if (!setReleaseOrder[setData.name] && setData.name !== "Promo-A") {
+                        setReleaseOrder[setData.name] = nextNewSetPriority;
+                        nextNewSetPriority++; // Next new set gets even higher number
                     }
                 });
                 
@@ -3306,33 +3310,86 @@
         addScrollListener();
     }
 
-    // Load ALL cards for deck building, then load first page for display
+    // Load ALL cards for deck building - optimized with client-side caching
     async function loadCards() {
         
         // Performance tracking
         if (window.perfDebug) window.perfDebug.mark('loadCards-start');
+        let cachedDataUsed = false;
         
-        // First load ALL cards for deck building
+        // First try to load cards from client-side cache
         try {
-            // Performance tracking for both dev and production
-            if (window.perfDebug) window.perfDebug.mark('fetch-cards-start');
-            if (window.perfTest) window.perfTest.mark('fetch-cards-start');
+            if (window.perfDebug) window.perfDebug.mark('cache-check-start');
             
-            const response = await fetch('/api/cards');
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            const data = await response.json();
-            if (window.perfDebug) window.perfDebug.measure('fetch-cards', 'fetch-cards-start');
-            if (window.perfTest) window.perfTest.measure('API /cards', 'fetch-cards-start');
-            
-            if (data && data.cards && data.cards.length > 0) {
-                allCards = data.cards;
+            const cachedCards = window.clientCache.getCachedCards();
+            if (cachedCards && cachedCards.length > 0) {
+                allCards = cachedCards;
+                cachedDataUsed = true;
+                if (window.perfDebug) {
+                    window.perfDebug.measure('cache-check', 'cache-check-start');
+                    console.log(`⚡ Using cached cards: ${cachedCards.length} cards loaded instantly!`);
+                }
             } else {
-                allCards = [];
+                if (window.perfDebug) {
+                    window.perfDebug.measure('cache-check', 'cache-check-start');
+                    console.log('📡 Cache miss - fetching cards from server...');
+                }
             }
         } catch (error) {
-            allCards = [];
+            // Cache error, proceed with server fetch
+            if (window.perfDebug) console.log('Cache error, falling back to server:', error);
+        }
+        
+        // If no cached data, fetch from server
+        let freshData = null;
+        if (!cachedDataUsed) {
+            try {
+                // Performance tracking for both dev and production
+                if (window.perfDebug) window.perfDebug.mark('fetch-cards-start');
+                if (window.perfTest) window.perfTest.mark('fetch-cards-start');
+                
+                const response = await fetch('/api/cards');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                const data = await response.json();
+                if (window.perfDebug) window.perfDebug.measure('fetch-cards', 'fetch-cards-start');
+                if (window.perfTest) window.perfTest.measure('API /cards', 'fetch-cards-start');
+                
+                if (data && data.cards && data.cards.length > 0) {
+                    allCards = data.cards;
+                    freshData = data.cards;
+                    // Cache the fresh data for next time
+                    window.clientCache.cacheCards(data.cards);
+                    if (window.perfDebug) console.log(`💾 Cached ${data.cards.length} cards for future use`);
+                } else {
+                    allCards = [];
+                }
+            } catch (error) {
+                allCards = [];
+                if (window.perfDebug) console.error('Failed to fetch cards:', error);
+            }
+        } else {
+            // We have cached data, but also fetch fresh data in background to update cache
+            // This ensures cache stays fresh without blocking the UI
+            setTimeout(async () => {
+                try {
+                    const response = await fetch('/api/cards');
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data && data.cards && data.cards.length > 0) {
+                            // Only update cache if data has changed
+                            if (JSON.stringify(data.cards) !== JSON.stringify(allCards)) {
+                                window.clientCache.cacheCards(data.cards);
+                                if (window.perfDebug) console.log('🔄 Background cache refresh completed');
+                            }
+                        }
+                    }
+                } catch (error) {
+                    // Silent background refresh failure
+                    if (window.perfDebug) console.log('Background refresh failed:', error);
+                }
+            }, 100); // Small delay to not block immediate UI
         }
         
         // Then initialize filters and load first page for display
