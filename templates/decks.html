@@ -2814,14 +2814,14 @@
                 });
                 
                 // Create unique sets data and sort by release order
-                const uniqueSetsData = Object.keys(setReleaseOrder).map(setName => ({
+                const sortedSetsData = Object.keys(setReleaseOrder).map(setName => ({
                     name: setName,
                     release_order: setReleaseOrder[setName]
                 }));
                 
-                uniqueSetsData.sort((a, b) => b.release_order - a.release_order);
+                sortedSetsData.sort((a, b) => b.release_order - a.release_order);
                 
-                orderedSetNamesForSort = uniqueSetsData.map(setData => setData.name);
+                orderedSetNamesForSort = sortedSetsData.map(setData => setData.name);
                 populateDropdown('set-dropdown', ['All', ...orderedSetNamesForSort]);
                 const setBtn = document.getElementById('setDropdown');
                 if (setBtn && setBtn.querySelector('.btn-text')) {
