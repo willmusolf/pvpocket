@@ -22,36 +22,37 @@ class TestFriendsPage:
     
     @patch('app.routes.friends._get_user_snapshot')
     @patch('flask_login.current_user')
-    def test_friends_page_loads(self, mock_current_user, mock_get_user, client):
+    def test_friends_page_loads(self, mock_current_user, mock_get_user, client, app):
         """Test that friends page loads and displays friends data."""
-        mock_current_user.id = "test_user_1"
-        mock_current_user.is_authenticated = True
-        
-        # Mock user snapshot
-        mock_get_user.side_effect = [
-            {"id": "friend_1", "username": "Friend1", "profile_icon": "icon1.png"},
-            {"id": "pending_1", "username": "PendingUser", "profile_icon": ""},
-            {"id": "received_1", "username": "ReceivedUser", "profile_icon": ""}
-        ]
-        
-        with patch('flask_login.login_required', lambda f: f):
-            with patch('app.routes.friends.current_app') as mock_app:
-                mock_db = Mock()
-                mock_app.config.get.return_value = mock_db
-                
-                # Mock friends collection
-                mock_friends = [Mock(id="friend_1")]
-                mock_db.collection.return_value.document.return_value.collection.return_value.stream.return_value = mock_friends
-                
-                # Mock friend requests  
-                mock_requests = [
-                    Mock(id="pending_1", to_dict=lambda: {"status": "sent"}),
-                    Mock(id="received_1", to_dict=lambda: {"status": "received"})
-                ]
-                mock_db.collection.return_value.document.return_value.collection.return_value.stream.return_value = mock_requests
-                
-                response = client.get('/friends/')
-                assert response.status_code == 200
+        with app.app_context():
+            mock_current_user.id = "test_user_1"
+            mock_current_user.is_authenticated = True
+            
+            # Mock user snapshot
+            mock_get_user.side_effect = [
+                {"id": "friend_1", "username": "Friend1", "profile_icon": "icon1.png"},
+                {"id": "pending_1", "username": "PendingUser", "profile_icon": ""},
+                {"id": "received_1", "username": "ReceivedUser", "profile_icon": ""}
+            ]
+            
+            with patch('flask_login.login_required', lambda f: f):
+                with patch('app.routes.friends.current_app') as mock_app:
+                    mock_db = Mock()
+                    mock_app.config.get.return_value = mock_db
+                    
+                    # Mock friends collection
+                    mock_friends = [Mock(id="friend_1")]
+                    mock_db.collection.return_value.document.return_value.collection.return_value.stream.return_value = mock_friends
+                    
+                    # Mock friend requests  
+                    mock_requests = [
+                        Mock(id="pending_1", to_dict=lambda: {"status": "sent"}),
+                        Mock(id="received_1", to_dict=lambda: {"status": "received"})
+                    ]
+                    mock_db.collection.return_value.document.return_value.collection.return_value.stream.return_value = mock_requests
+                    
+                    response = client.get('/friends/')
+                    assert response.status_code == 200
 
 
 @pytest.mark.integration
@@ -59,64 +60,67 @@ class TestFriendSearch:
     """Test friend search functionality."""
     
     @patch('flask_login.current_user')
-    def test_friend_search_valid_query(self, mock_current_user, client):
+    def test_friend_search_valid_query(self, mock_current_user, client, app):
         """Test searching for users with valid query."""
-        mock_current_user.id = "test_user_1"
-        mock_current_user.is_authenticated = True
-        
-        with patch('flask_login.login_required', lambda f: f):
-            with patch('app.routes.friends.current_app') as mock_app:
-                mock_db = Mock()
-                mock_app.config.get.return_value = mock_db
-                
-                # Mock search results
-                mock_docs = [
-                    Mock(id="user_2", to_dict=lambda: {"username": "testuser", "username_lowercase": "testuser"})
-                ]
-                mock_db.collection.return_value.where.return_value.where.return_value.limit.return_value.stream.return_value = mock_docs
-                
-                with patch('app.routes.friends._get_user_snapshot') as mock_snapshot:
-                    mock_snapshot.return_value = {"id": "user_2", "username": "testuser", "profile_icon": ""}
+        with app.app_context():
+            mock_current_user.id = "test_user_1"
+            mock_current_user.is_authenticated = True
+            
+            with patch('flask_login.login_required', lambda f: f):
+                with patch('app.routes.friends.current_app') as mock_app:
+                    mock_db = Mock()
+                    mock_app.config.get.return_value = mock_db
                     
-                    response = client.post('/friends/search',
-                                         json={'query': 'test'},
-                                         content_type='application/json')
+                    # Mock search results
+                    mock_docs = [
+                        Mock(id="user_2", to_dict=lambda: {"username": "testuser", "username_lowercase": "testuser"})
+                    ]
+                    mock_db.collection.return_value.where.return_value.where.return_value.limit.return_value.stream.return_value = mock_docs
                     
-                    assert response.status_code == 200
-                    data = json.loads(response.data)
-                    assert isinstance(data, list)
-                    assert len(data) >= 0
+                    with patch('app.routes.friends._get_user_snapshot') as mock_snapshot:
+                        mock_snapshot.return_value = {"id": "user_2", "username": "testuser", "profile_icon": ""}
+                        
+                        response = client.post('/friends/search',
+                                             json={'query': 'test'},
+                                             content_type='application/json')
+                        
+                        assert response.status_code == 200
+                        data = json.loads(response.data)
+                        assert isinstance(data, list)
+                        assert len(data) >= 0
 
     @patch('flask_login.current_user')
-    def test_friend_search_short_query(self, mock_current_user, client):
+    def test_friend_search_short_query(self, mock_current_user, client, app):
         """Test that short search queries are rejected."""
-        mock_current_user.id = "test_user_1"
-        mock_current_user.is_authenticated = True
-        
-        with patch('flask_login.login_required', lambda f: f):
-            response = client.post('/friends/search',
-                                 json={'query': 'ab'},  # Less than 3 characters
-                                 content_type='application/json')
+        with app.app_context():
+            mock_current_user.id = "test_user_1"
+            mock_current_user.is_authenticated = True
             
-            assert response.status_code == 400
-            data = json.loads(response.data)
-            assert 'error' in data
-            assert 'at least 3 characters' in data['error']
+            with patch('flask_login.login_required', lambda f: f):
+                response = client.post('/friends/search',
+                                     json={'query': 'ab'},  # Less than 3 characters
+                                     content_type='application/json')
+                
+                assert response.status_code == 400
+                data = json.loads(response.data)
+                assert 'error' in data
+                assert 'at least 3 characters' in data['error']
 
     @patch('flask_login.current_user')
-    def test_friend_search_empty_query(self, mock_current_user, client):
+    def test_friend_search_empty_query(self, mock_current_user, client, app):
         """Test that empty search queries are rejected."""
-        mock_current_user.id = "test_user_1"
-        mock_current_user.is_authenticated = True
-        
-        with patch('flask_login.login_required', lambda f: f):
-            response = client.post('/friends/search',
-                                 json={'query': ''},
-                                 content_type='application/json')
+        with app.app_context():
+            mock_current_user.id = "test_user_1"
+            mock_current_user.is_authenticated = True
             
-            assert response.status_code == 400
-            data = json.loads(response.data)
-            assert 'error' in data
+            with patch('flask_login.login_required', lambda f: f):
+                response = client.post('/friends/search',
+                                     json={'query': ''},
+                                     content_type='application/json')
+                
+                assert response.status_code == 400
+                data = json.loads(response.data)
+                assert 'error' in data
 
 
 @pytest.mark.integration
@@ -124,12 +128,13 @@ class TestFriendRequests:
     """Test friend request workflow."""
     
     @patch('flask_login.current_user')
-    def test_send_friend_request_success(self, mock_current_user, client):
+    def test_send_friend_request_success(self, mock_current_user, client, app):
         """Test successfully sending a friend request."""
-        mock_current_user.id = "user_1"
-        mock_current_user.is_authenticated = True
-        
-        with patch('flask_login.login_required', lambda f: f):
+        with app.app_context():
+            mock_current_user.id = "user_1"
+            mock_current_user.is_authenticated = True
+            
+            with patch('flask_login.login_required', lambda f: f):
             with patch('app.routes.friends.current_app') as mock_app:
                 mock_db = Mock()
                 mock_app.config.get.return_value = mock_db
@@ -152,12 +157,13 @@ class TestFriendRequests:
                 mock_batch.commit.assert_called_once()
 
     @patch('flask_login.current_user')
-    def test_send_friend_request_to_self(self, mock_current_user, client):
+    def test_send_friend_request_to_self(self, mock_current_user, client, app):
         """Test that users cannot send friend requests to themselves."""
-        mock_current_user.id = "user_1"
-        mock_current_user.is_authenticated = True
-        
-        with patch('flask_login.login_required', lambda f: f):
+        with app.app_context():
+            mock_current_user.id = "user_1"
+            mock_current_user.is_authenticated = True
+            
+            with patch('flask_login.login_required', lambda f: f):
             response = client.post('/friends/request',
                                  json={'recipient_id': 'user_1'},  # Same as sender
                                  content_type='application/json')
@@ -168,12 +174,13 @@ class TestFriendRequests:
             assert 'Invalid request' in data['error']
 
     @patch('flask_login.current_user')
-    def test_send_friend_request_invalid_recipient(self, mock_current_user, client):
+    def test_send_friend_request_invalid_recipient(self, mock_current_user, client, app):
         """Test sending friend request with invalid recipient ID."""
-        mock_current_user.id = "user_1"
-        mock_current_user.is_authenticated = True
-        
-        with patch('flask_login.login_required', lambda f: f):
+        with app.app_context():
+            mock_current_user.id = "user_1"
+            mock_current_user.is_authenticated = True
+            
+            with patch('flask_login.login_required', lambda f: f):
             response = client.post('/friends/request',
                                  json={'recipient_id': ''},  # Empty recipient
                                  content_type='application/json')
@@ -184,12 +191,13 @@ class TestFriendRequests:
             assert 'Invalid request' in data['error']
 
     @patch('flask_login.current_user')
-    def test_accept_friend_request_success(self, mock_current_user, client):
+    def test_accept_friend_request_success(self, mock_current_user, client, app):
         """Test successfully accepting a friend request."""
-        mock_current_user.id = "user_2"
-        mock_current_user.is_authenticated = True
-        
-        with patch('flask_login.login_required', lambda f: f):
+        with app.app_context():
+            mock_current_user.id = "user_2"
+            mock_current_user.is_authenticated = True
+            
+            with patch('flask_login.login_required', lambda f: f):
             with patch('app.routes.friends.current_app') as mock_app:
                 mock_db = Mock()
                 mock_app.config.get.return_value = mock_db
@@ -217,12 +225,13 @@ class TestFriendRequests:
                     assert data['friend']['id'] == 'user_1'
 
     @patch('flask_login.current_user')
-    def test_decline_friend_request_success(self, mock_current_user, client):
+    def test_decline_friend_request_success(self, mock_current_user, client, app):
         """Test successfully declining a friend request."""
-        mock_current_user.id = "user_2"
-        mock_current_user.is_authenticated = True
-        
-        with patch('flask_login.login_required', lambda f: f):
+        with app.app_context():
+            mock_current_user.id = "user_2"
+            mock_current_user.is_authenticated = True
+            
+            with patch('flask_login.login_required', lambda f: f):
             with patch('app.routes.friends.current_app') as mock_app:
                 mock_db = Mock()
                 mock_app.config.get.return_value = mock_db
@@ -246,12 +255,13 @@ class TestFriendManagement:
     """Test friend management operations."""
     
     @patch('flask_login.current_user')
-    def test_remove_friend_success(self, mock_current_user, client):
+    def test_remove_friend_success(self, mock_current_user, client, app):
         """Test successfully removing a friend."""
-        mock_current_user.id = "user_1"
-        mock_current_user.is_authenticated = True
-        
-        with patch('flask_login.login_required', lambda f: f):
+        with app.app_context():
+            mock_current_user.id = "user_1"
+            mock_current_user.is_authenticated = True
+            
+            with patch('flask_login.login_required', lambda f: f):
             with patch('app.routes.friends.current_app') as mock_app:
                 mock_db = Mock()
                 mock_app.config.get.return_value = mock_db
@@ -270,12 +280,13 @@ class TestFriendManagement:
                 assert 'Friend removed' in data['message']
 
     @patch('flask_login.current_user')
-    def test_get_friends_api_with_pagination(self, mock_current_user, client):
+    def test_get_friends_api_with_pagination(self, mock_current_user, client, app):
         """Test getting friends list with pagination."""
-        mock_current_user.id = "user_1"
-        mock_current_user.is_authenticated = True
-        
-        with patch('flask_login.login_required', lambda f: f):
+        with app.app_context():
+            mock_current_user.id = "user_1"
+            mock_current_user.is_authenticated = True
+            
+            with patch('flask_login.login_required', lambda f: f):
             with patch('app.routes.friends.current_app') as mock_app:
                 mock_db = Mock()
                 mock_app.config.get.return_value = mock_db
@@ -302,12 +313,13 @@ class TestFriendManagement:
                     assert data['pagination']['current_page'] == 1
 
     @patch('flask_login.current_user')
-    def test_get_friends_api_invalid_pagination(self, mock_current_user, client):
+    def test_get_friends_api_invalid_pagination(self, mock_current_user, client, app):
         """Test friends API with invalid pagination parameters."""
-        mock_current_user.id = "user_1"
-        mock_current_user.is_authenticated = True
-        
-        with patch('flask_login.login_required', lambda f: f):
+        with app.app_context():
+            mock_current_user.id = "user_1"
+            mock_current_user.is_authenticated = True
+            
+            with patch('flask_login.login_required', lambda f: f):
             response = client.get('/friends/api/friends?page=invalid&limit=bad')
             
             assert response.status_code == 400
@@ -321,12 +333,13 @@ class TestFriendDeckViewing:
     """Test friend deck viewing functionality and privacy controls."""
     
     @patch('flask_login.current_user')
-    def test_view_friend_decks_authorized(self, mock_current_user, client):
+    def test_view_friend_decks_authorized(self, mock_current_user, client, app):
         """Test viewing friend's decks when authorized."""
-        mock_current_user.id = "user_1"
-        mock_current_user.is_authenticated = True
-        
-        with patch('flask_login.login_required', lambda f: f):
+        with app.app_context():
+            mock_current_user.id = "user_1"
+            mock_current_user.is_authenticated = True
+            
+            with patch('flask_login.login_required', lambda f: f):
             with patch('app.routes.friends.current_app') as mock_app:
                 mock_db = Mock()
                 mock_app.config.get.return_value = mock_db
@@ -354,12 +367,13 @@ class TestFriendDeckViewing:
                         assert response.status_code == 200
 
     @patch('flask_login.current_user')
-    def test_view_friend_decks_unauthorized(self, mock_current_user, client):
+    def test_view_friend_decks_unauthorized(self, mock_current_user, client, app):
         """Test that non-friends cannot view decks."""
-        mock_current_user.id = "user_1"
-        mock_current_user.is_authenticated = True
-        
-        with patch('flask_login.login_required', lambda f: f):
+        with app.app_context():
+            mock_current_user.id = "user_1"
+            mock_current_user.is_authenticated = True
+            
+            with patch('flask_login.login_required', lambda f: f):
             with patch('app.routes.friends.current_app') as mock_app:
                 mock_db = Mock()
                 mock_app.config.get.return_value = mock_db
@@ -380,12 +394,13 @@ class TestFriendsErrorHandling:
     """Test error handling in friends system."""
     
     @patch('flask_login.current_user')
-    def test_friend_request_database_error(self, mock_current_user, client):
+    def test_friend_request_database_error(self, mock_current_user, client, app):
         """Test handling of database errors during friend requests."""
-        mock_current_user.id = "user_1"
-        mock_current_user.is_authenticated = True
-        
-        with patch('flask_login.login_required', lambda f: f):
+        with app.app_context():
+            mock_current_user.id = "user_1"
+            mock_current_user.is_authenticated = True
+            
+            with patch('flask_login.login_required', lambda f: f):
             with patch('app.routes.friends.current_app') as mock_app:
                 mock_db = Mock()
                 mock_app.config.get.return_value = mock_db
@@ -409,12 +424,13 @@ class TestFriendsErrorHandling:
                 mock_app.logger.error.assert_called()
 
     @patch('flask_login.current_user')
-    def test_get_friends_api_database_error(self, mock_current_user, client):
+    def test_get_friends_api_database_error(self, mock_current_user, client, app):
         """Test handling of database errors in friends API."""
-        mock_current_user.id = "user_1"
-        mock_current_user.is_authenticated = True
-        
-        with patch('flask_login.login_required', lambda f: f):
+        with app.app_context():
+            mock_current_user.id = "user_1"
+            mock_current_user.is_authenticated = True
+            
+            with patch('flask_login.login_required', lambda f: f):
             with patch('app.routes.friends.current_app') as mock_app:
                 mock_db = Mock()
                 mock_app.config.get.return_value = mock_db
@@ -437,12 +453,13 @@ class TestFriendTransactionIntegrity:
     """Test that friend operations maintain transaction integrity."""
     
     @patch('flask_login.current_user')
-    def test_accept_request_transaction_rollback(self, mock_current_user, client):
+    def test_accept_request_transaction_rollback(self, mock_current_user, client, app):
         """Test that failed friend acceptance rolls back properly."""
-        mock_current_user.id = "user_2"
-        mock_current_user.is_authenticated = True
-        
-        with patch('flask_login.login_required', lambda f: f):
+        with app.app_context():
+            mock_current_user.id = "user_2"
+            mock_current_user.is_authenticated = True
+            
+            with patch('flask_login.login_required', lambda f: f):
             with patch('app.routes.friends.current_app') as mock_app:
                 mock_db = Mock()
                 mock_app.config.get.return_value = mock_db
