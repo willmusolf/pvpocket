@@ -11,8 +11,17 @@
     <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-fixes.css') }}">
     
-    <!-- Preconnect to CDN for faster image loading -->
-    <link rel="preconnect" href="https://cdn.pvpocket.xyz">
+    <!-- DNS prefetch and preconnect to CDN for faster image loading -->
+    <link rel="dns-prefetch" href="https://cdn.pvpocket.xyz">
+    <link rel="preconnect" href="https://cdn.pvpocket.xyz" crossorigin>
+    
+    <!-- Preload critical energy icons for faster deck builder performance -->
+    <link rel="preload" href="https://cdn.pvpocket.xyz/energy_icons/grass.png" as="image">
+    <link rel="preload" href="https://cdn.pvpocket.xyz/energy_icons/fire.png" as="image">
+    <link rel="preload" href="https://cdn.pvpocket.xyz/energy_icons/water.png" as="image">
+    <link rel="preload" href="https://cdn.pvpocket.xyz/energy_icons/electric.png" as="image">
+    <link rel="preload" href="https://cdn.pvpocket.xyz/energy_icons/psychic.png" as="image">
+    <link rel="preload" href="https://cdn.pvpocket.xyz/energy_icons/colorless.png" as="image">
     
     <!-- Universal CDN Image Utils - Load early so other scripts can use it -->
     <script src="{{ url_for('static', filename='js/image-utils.js') }}"></script>
