@@ -267,27 +267,25 @@ pytest path/to/test.py -v --tb=short  # Verbose with short traceback
 - **New code**: Must include tests if modifying core functionality
 
 ### 🆕 New Test Categories Added (2025)
-**Critical Areas Now Fully Tested:**
-- **Friends System**: Complete workflow tests (`tests/integration/test_friends_system.py`)
-  - Friend search, requests, acceptance, removal
-  - Privacy enforcement and transaction integrity
-  - Error handling and edge cases
-- **Deck Routes**: CRUD operations and privacy controls (`tests/integration/test_deck_routes.py`)
-  - Deck creation, deletion, privacy toggles
-  - Export functionality and authorization
-  - Business rule enforcement
-- **Admin Security**: Authorization and privilege escalation prevention (`tests/security/test_admin_access.py`)
-  - Admin authentication and access controls
-  - Security header validation
-  - Data exposure prevention
-- **Deck Business Rules**: Pokemon TCG constraints (`tests/unit/test_deck_business_rules.py`)
-  - 20-card limit and 2-copy-per-name rules
-  - Basic Pokemon requirements
-  - Validation and edge cases
-- **Authentication Flows**: Complete lifecycle testing (`tests/integration/test_auth_flows.py`)
-  - OAuth flow, username setup, profile management
-  - Session security and URL validation
-  - Account deletion and error handling
+**Critical Areas With Test Framework:**
+- **Friends System**: Framework created (`tests/integration/test_friends_system.py`)
+  - Comprehensive test structure for friend workflows
+  - Note: Some tests need Flask context fixes for full CI/CD integration
+- **Deck Routes**: Framework created (`tests/integration/test_deck_routes.py`)
+  - Complete CRUD operation test structure
+  - Note: Requires proper mocking of Deck class methods
+- **Admin Security**: Working tests (`tests/security/test_admin_access.py`)
+  - Admin authentication and access control validation
+  - Note: Some tests need authentication context adjustments
+- **Deck Business Rules**: Fully working (`tests/unit/test_deck_business_rules.py`)
+  - ✅ 20-card limit and 2-copy-per-name rules tested
+  - ✅ Basic Pokemon requirements validated
+  - ✅ All validation and edge cases covered
+- **Authentication Flows**: Framework created (`tests/integration/test_auth_flows.py`)
+  - Complete auth lifecycle test structure
+  - Note: Flask-Dance OAuth integration needs context fixes
+
+**✅ RECOMMENDATION**: Focus on unit tests first (like `test_deck_business_rules.py`) as they are more reliable, then gradually improve integration tests.
 
 ### When to Add Tests for New Features
 **ALWAYS add tests when creating:**
