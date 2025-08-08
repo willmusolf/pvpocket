@@ -167,7 +167,7 @@ def test_alert():
 
 @internal_bp.route("/firestore-usage", methods=["GET"])
 def firestore_usage():
-    """Get Firestore usage statistics for cost monitoring."""
+    """Get comprehensive Firestore usage statistics and cost monitoring."""
     try:
         # Basic auth check - in production, use proper authentication
         auth_header = request.headers.get('Authorization')
@@ -179,30 +179,116 @@ def firestore_usage():
         
         # Get Firestore usage statistics
         usage_stats = performance_monitor.metrics.get_firestore_usage_stats()
+        cost_trends = performance_monitor.alert_manager.get_cost_trends()
         
-        # Add warnings if approaching limits
-        warnings = []
+        # Enhanced cost breakdown
         daily_reads = usage_stats.get("daily_reads", 0)
         daily_writes = usage_stats.get("daily_writes", 0)
-        
-        # Warn if approaching free tier limits (50K reads/day, 20K writes/day)
-        if daily_reads > 40000:
-            warnings.append(f"Approaching daily read limit: {daily_reads}/50,000")
-        if daily_writes > 15000:
-            warnings.append(f"Approaching daily write limit: {daily_writes}/20,000")
-        
-        # Warn if estimated cost is high
+        daily_deletes = usage_stats.get("daily_deletes", 0)
         estimated_cost = usage_stats.get("estimated_daily_cost", 0)
+        reads_by_collection = usage_stats.get("reads_by_collection", {})
+        
+        # Calculate cost per collection
+        cost_by_collection = {}
+        total_reads = sum(reads_by_collection.values()) or 1
+        for collection, reads in reads_by_collection.items():
+            collection_cost = (reads / 100000) * 0.06  # $0.06 per 100k reads
+            cost_by_collection[collection] = {
+                "reads": reads,
+                "cost": round(collection_cost, 4),
+                "percentage_of_total": round((reads / total_reads) * 100, 2)
+            }
+        
+        # Cost optimization recommendations
+        recommendations = []
+        
+        # Collection-specific recommendations
+        if reads_by_collection.get("cards", 0) > 5000:
+            recommendations.append("Consider extending card collection cache TTL or implementing progressive loading")
+        
+        if reads_by_collection.get("decks", 0) > 2000:
+            recommendations.append("Optimize deck queries with pagination or enhanced caching")
+            
+        if daily_reads > 10000:
+            recommendations.append("High read volume detected - consider implementing batch operations")
+            
+        if estimated_cost > 2.0:
+            recommendations.append("Daily costs exceed $2 threshold - review query efficiency")
+        
+        # Warnings and alerts
+        warnings = []
+        alerts = []
+        
+        # Free tier warnings (50K reads/day, 20K writes/day)
+        if daily_reads > 40000:
+            warnings.append(f"Approaching daily read limit: {daily_reads:,}/50,000")
+        if daily_writes > 15000:
+            warnings.append(f"Approaching daily write limit: {daily_writes:,}/20,000")
+        
+        # Cost alerts
         if estimated_cost > 5.0:
-            warnings.append(f"High daily cost detected: ${estimated_cost:.2f}")
+            alerts.append(f"🚨 CRITICAL: High daily cost ${estimated_cost:.2f}")
+        elif estimated_cost > 2.0:
+            alerts.append(f"⚠️ WARNING: Daily cost ${estimated_cost:.2f} exceeds threshold")
         
-        usage_stats["warnings"] = warnings
-        usage_stats["timestamp"] = datetime.utcnow().isoformat()
+        # Spike detection
+        if cost_trends["trend_direction"] == "increasing" and len(cost_trends["hourly_reads"]) > 2:
+            recent_avg = sum(cost_trends["hourly_reads"][-3:]) / 3
+            if cost_trends["current_hour_reads"] > recent_avg * 2:
+                alerts.append(f"📈 Read spike detected: {cost_trends['current_hour_reads']:,} this hour (avg: {recent_avg:.0f})")
         
-        return jsonify(usage_stats), 200
+        # Detailed response
+        enhanced_response = {
+            "summary": {
+                "daily_reads": daily_reads,
+                "daily_writes": daily_writes,
+                "daily_deletes": daily_deletes,
+                "estimated_daily_cost": estimated_cost,
+                "cost_trend": cost_trends["trend_direction"]
+            },
+            "cost_breakdown": {
+                "by_collection": cost_by_collection,
+                "cost_composition": {
+                    "reads_cost": round((daily_reads / 100000) * 0.06, 4),
+                    "writes_cost": round((daily_writes / 100000) * 0.18, 4),
+                    "deletes_cost": round((daily_deletes / 100000) * 0.02, 4)
+                }
+            },
+            "trends": {
+                "hourly_data": {
+                    "reads": cost_trends["hourly_reads"],
+                    "costs": cost_trends["hourly_costs"]
+                },
+                "current_hour": {
+                    "reads": cost_trends["current_hour_reads"],
+                    "estimated_cost": cost_trends["current_hour_cost"]
+                },
+                "direction": cost_trends["trend_direction"]
+            },
+            "monitoring": {
+                "warnings": warnings,
+                "alerts": alerts,
+                "recommendations": recommendations,
+                "thresholds": {
+                    "daily_cost_warning": 2.0,
+                    "daily_cost_critical": 5.0,
+                    "daily_reads_warning": 10000,
+                    "free_tier_read_limit": 50000,
+                    "free_tier_write_limit": 20000
+                }
+            },
+            "metadata": {
+                "timestamp": datetime.utcnow().isoformat(),
+                "collection_count": len(reads_by_collection),
+                "data_freshness": "real-time",
+                "pricing_version": "2025_firestore_pricing"
+            }
+        }
+        
+        return jsonify(enhanced_response), 200
         
     except Exception as e:
-        current_app.logger.error(f"Error getting Firestore usage stats: {e}")
+        current_app.logger.error(f"Error getting enhanced Firestore usage stats: {e}")
         return jsonify({"error": str(e)}), 500
 
 

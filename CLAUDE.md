@@ -102,18 +102,46 @@ git push
 - **Usage Monitoring**: Track Firestore operations at `/internal/firestore-usage`
 - **Cost Alerts**: Automatic warnings when approaching daily limits or high costs
 
-### How to Deploy
-```bash
-# Deploy to production
-python deploy_secrets.py --environment production
-gcloud app deploy app-production-deploy.yaml
-rm app-production-deploy.yaml
+### How to Deploy (GitHub Actions)
 
-# Deploy to test environment
-python deploy_secrets.py --environment test
-gcloud app deploy app-test-deploy.yaml
-rm app-test-deploy.yaml
+#### Automated Deployment via GitHub
+Your app uses GitHub Actions for continuous deployment:
+
+**Production Deployment:**
+```bash
+# Push to main branch triggers production deployment
+git checkout main
+git merge development  # or your feature branch
+git push origin main
 ```
+
+**Test Environment Deployment:**
+```bash
+# Push to development branch triggers test deployment  
+git checkout development
+git push origin development
+```
+
+#### Manual Deployment (if needed)
+```bash
+# Generate deployment config with secrets
+python3 deploy_secrets.py --project-id pvpocket-dd286 --environment production
+gcloud app deploy app.yaml --project=pvpocket-dd286
+rm app.yaml  # Clean up temporary file with secrets
+
+# For test environment
+python3 deploy_secrets.py --project-id pvpocket-dd286 --environment test  
+gcloud app deploy app-test.yaml --project=pvpocket-dd286
+rm app-test.yaml
+```
+
+#### Environment Variables (Automatically Configured in GitHub Actions)
+- ✅ `ADMIN_EMAILS` - Admin access control (stored in Google Secret Manager)
+- ✅ `TASK_AUTH_TOKEN` - Secure background task authentication  
+- ✅ `SECRET_KEY` - Flask secret key
+- ✅ `REFRESH_SECRET_KEY` - API refresh key
+- ✅ `GOOGLE_OAUTH_CLIENT_ID/SECRET` - OAuth authentication
+- ✅ All alert system credentials
 
 ### Firebase Emulator Strategy
 

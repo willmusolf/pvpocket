@@ -1,0 +1,175 @@
+<!-- Simple Clean Footer -->
+<footer class="pvpocket-footer py-4 mt-auto">
+    <div class="container-fluid px-5">
+        <div class="row align-items-center">
+            <!-- Left: Brand and Copyright -->
+            <div class="col-md-4">
+                <h5 class="fw-bold mb-1">PvPocket</h5>
+                <small class="text-muted d-block">
+                    &copy; 2025 PvPocket. Pokemon TCG companion.
+                </small>
+                <small class="text-muted d-block mt-1">
+                    Not affiliated with Pokemon, Nintendo, or Creatures Inc.
+                </small>
+            </div>
+            
+            <!-- Center: Links -->
+            <div class="col-md-4 text-center my-3 my-md-0">
+                <div class="footer-links">
+                    <a href="{{ url_for('main.about') }}" class="footer-link mx-2">About</a>
+                    <span class="text-muted">•</span>
+                    <a href="{{ url_for('main.faq') }}" class="footer-link mx-2">FAQ</a>
+                    <span class="text-muted">•</span>
+                    <a href="{{ url_for('main.privacy_policy') }}" class="footer-link mx-2">Privacy</a>
+                    <span class="text-muted">•</span>
+                    <a href="{{ url_for('main.terms_of_service') }}" class="footer-link mx-2">Terms</a>
+                    <span class="text-muted">•</span>
+                    <a href="{{ url_for('main.support') }}" class="footer-link mx-2">Support</a>
+                </div>
+            </div>
+            
+            <!-- Right: Dark Mode Toggle -->
+            <div class="col-md-4 text-md-end">
+                <div class="form-check form-switch d-inline-block">
+                    <input class="form-check-input" type="checkbox" role="switch" id="footerDarkModeToggle">
+                    <label class="form-check-label ms-2" for="footerDarkModeToggle">
+                        <i class="fas fa-moon me-1"></i>Dark Mode
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- Footer Styles - Optimized for Ads -->
+<style>
+.pvpocket-footer {
+    background-color: var(--card-bg);
+    border-top: 2px solid var(--border-color);
+    margin-top: 0;
+    width: 100%;
+    position: relative;
+    z-index: 10;
+}
+
+.pvpocket-footer h5 {
+    color: var(--text-color);
+}
+
+.pvpocket-footer .footer-link {
+    color: var(--text-color);
+    text-decoration: none;
+    transition: color 0.2s ease;
+    font-size: 0.9rem;
+}
+
+.pvpocket-footer .footer-link:hover {
+    color: #0d6efd;
+    text-decoration: none;
+}
+
+.pvpocket-footer .form-check-label {
+    color: var(--text-color);
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+/* Ensure footer sticks to bottom properly */
+.pvpocket-footer {
+    flex-shrink: 0;
+}
+
+/* Full width layout */
+.pvpocket-footer .container-fluid {
+    width: 100%;
+    padding-left: 3rem;
+    padding-right: 3rem;
+}
+
+@media (max-width: 1200px) {
+    .pvpocket-footer .container-fluid {
+        padding-left: 2rem;
+        padding-right: 2rem;
+    }
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .pvpocket-footer .container-fluid {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+    
+    .pvpocket-footer .col-md-4 {
+        text-align: center !important;
+        margin-bottom: 1rem;
+    }
+    
+    .pvpocket-footer .footer-links {
+        font-size: 0.85rem;
+    }
+}
+
+/* Dark mode */
+[data-theme="dark"] .pvpocket-footer {
+    background-color: #1a1d21;
+    border-top-color: #495057;
+}
+
+[data-theme="dark"] .pvpocket-footer h5 {
+    color: #f8f9fa;
+}
+
+[data-theme="dark"] .pvpocket-footer .text-muted {
+    color: #adb5bd !important;
+}
+
+[data-theme="dark"] .pvpocket-footer .footer-link {
+    color: #e9ecef;
+}
+
+[data-theme="dark"] .pvpocket-footer .footer-link:hover {
+    color: #6ea8fe;
+}
+
+[data-theme="dark"] .pvpocket-footer .form-check-label {
+    color: #e9ecef;
+}
+</style>
+
+<!-- Simple Footer JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const footerDarkModeToggle = document.getElementById('footerDarkModeToggle');
+    
+    if (footerDarkModeToggle) {
+        // Default to dark mode if no theme preference is saved
+        const savedTheme = localStorage.getItem('theme');
+        const isDarkMode = savedTheme ? savedTheme === 'dark' : true; // Default to dark
+        
+        // Set theme if not already set
+        if (!savedTheme) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            localStorage.setItem('theme', 'dark');
+        }
+        
+        footerDarkModeToggle.checked = isDarkMode;
+        
+        // Handle toggle changes
+        footerDarkModeToggle.addEventListener('change', function() {
+            if (this.checked) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+                localStorage.setItem('theme', 'light');
+            }
+            
+            // Update navbar theme if function exists
+            if (typeof updateNavbarTheme === 'function') {
+                updateNavbarTheme();
+            }
+        });
+    }
+});
+</script>

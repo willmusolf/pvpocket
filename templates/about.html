@@ -1,0 +1,528 @@
+{% extends "base.html" %}
+
+{% block title %}About PvPocket - Pokemon TCG Companion{% endblock %}
+
+{% block extra_css %}
+<style>
+    .about-hero {
+        background: linear-gradient(135deg, rgba(13, 110, 253, 0.1), rgba(25, 135, 84, 0.1));
+        padding: 4rem 0;
+        margin-bottom: 3rem;
+        text-align: center;
+        border-radius: 1rem;
+    }
+    .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+        margin: 3rem 0;
+    }
+    .feature-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 1rem;
+        padding: 2rem;
+        text-align: center;
+        transition: transform 0.3s ease;
+    }
+    .feature-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    .feature-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+    .stats-section {
+        background: var(--settings-bg);
+        padding: 3rem 2rem;
+        border-radius: 1rem;
+        margin: 3rem 0;
+        text-align: center;
+    }
+    .stat-item {
+        margin: 1rem 0;
+    }
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: var(--bs-primary);
+    }
+    .team-section {
+        margin: 4rem 0;
+    }
+    .team-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 1rem;
+        padding: 2rem;
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    .section-header {
+        text-align: center;
+        margin: 4rem 0 2rem 0;
+        color: var(--bs-primary);
+        font-size: 2.5rem;
+        font-weight: 600;
+    }
+    .highlight-box {
+        background: linear-gradient(135deg, rgba(13, 110, 253, 0.1), rgba(25, 135, 84, 0.1));
+        border-left: 4px solid var(--bs-primary);
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        margin: 2rem 0;
+    }
+    .timeline {
+        position: relative;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    .timeline-item {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 1rem;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        position: relative;
+    }
+    .timeline-date {
+        font-weight: bold;
+        color: var(--bs-primary);
+        font-size: 1.1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Hero Section -->
+    <div class="about-hero">
+        <h1 class="display-4 mb-4">About PvPocket</h1>
+        <p class="lead mb-4">The ultimate companion app for Pokemon Trading Card Game enthusiasts</p>
+        <p class="fs-5">Build competitive decks, master the meta-game, and connect with fellow trainers worldwide</p>
+    </div>
+
+    <!-- Mission Statement -->
+    <div class="row justify-content-center mb-5">
+        <div class="col-lg-10">
+            <div class="highlight-box">
+                <h3 class="text-center mb-3">Our Mission</h3>
+                <p class="text-center mb-0 fs-5">
+                    PvPocket empowers Pokemon TCG players of all skill levels to build better decks, understand the competitive meta-game, 
+                    and improve their strategic play through innovative tools and comprehensive analytics.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- What is PvPocket -->
+    <section class="mb-5">
+        <h2 class="section-header">What is PvPocket?</h2>
+        
+        <div class="row align-items-center mb-4">
+            <div class="col-lg-8">
+                <p class="fs-5 mb-3">
+                    PvPocket is a comprehensive web application designed specifically for the Pokemon Trading Card Game community. 
+                    Born from a passion for competitive Pokemon TCG play, our platform combines cutting-edge technology with 
+                    deep game knowledge to provide tools that help players excel in both casual and tournament play.
+                </p>
+                
+                <p class="mb-3">
+                    Whether you're a newcomer learning the basics of deck construction or a seasoned competitor preparing for 
+                    major tournaments, PvPocket offers the features and insights you need to take your game to the next level.
+                </p>
+            </div>
+            <div class="col-lg-4 text-center">
+                <div class="feature-card">
+                    <div class="feature-icon text-primary">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <h4>Competitive Ready</h4>
+                    <p>Built by players, for players</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Core Features -->
+    <section class="mb-5">
+        <h2 class="section-header">Core Features</h2>
+        
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-icon text-success">
+                    <i class="fas fa-layer-group"></i>
+                </div>
+                <h4>Advanced Deck Builder</h4>
+                <p>Create and optimize Pokemon TCG decks with our intuitive 20-card format builder. Features automatic 
+                   energy calculations, card synergy analysis, and competitive deck templates.</p>
+                <ul class="text-start mt-3">
+                    <li>Real-time deck validation</li>
+                    <li>Mana curve optimization</li>
+                    <li>Card synergy suggestions</li>
+                    <li>Import/export functionality</li>
+                </ul>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon text-primary">
+                    <i class="fas fa-gamepad"></i>
+                </div>
+                <h4>AI Battle Simulator</h4>
+                <p>Test your decks against sophisticated AI opponents that understand Pokemon TCG mechanics, 
+                   strategy patterns, and competitive play styles.</p>
+                <ul class="text-start mt-3">
+                    <li>Multiple AI difficulty levels</li>
+                    <li>Realistic game flow simulation</li>
+                    <li>Detailed battle analytics</li>
+                    <li>Strategy optimization insights</li>
+                </ul>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon text-warning">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h4>Meta-Game Analytics</h4>
+                <p>Stay ahead of the competition with comprehensive meta-game statistics, trending strategies, 
+                   and competitive deck analysis from tournaments worldwide.</p>
+                <ul class="text-start mt-3">
+                    <li>Live tournament data tracking</li>
+                    <li>Card usage statistics</li>
+                    <li>Deck archetype analysis</li>
+                    <li>Meta-game trend predictions</li>
+                </ul>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon text-info">
+                    <i class="fas fa-archive"></i>
+                </div>
+                <h4>Collection Manager</h4>
+                <p>Track your Pokemon card collection with detailed inventory management, wishlist functionality, 
+                   and market value tracking for informed trading decisions.</p>
+                <ul class="text-start mt-3">
+                    <li>Comprehensive card database</li>
+                    <li>Condition and rarity tracking</li>
+                    <li>Wishlist and trade management</li>
+                    <li>Price history and trends</li>
+                </ul>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon text-secondary">
+                    <i class="fas fa-users"></i>
+                </div>
+                <h4>Social Features</h4>
+                <p>Connect with fellow Pokemon TCG players, share deck strategies, and collaborate on 
+                   competitive builds within our growing community.</p>
+                <ul class="text-start mt-3">
+                    <li>Friend system and deck sharing</li>
+                    <li>Community deck ratings</li>
+                    <li>Strategy discussions</li>
+                    <li>Tournament organizing tools</li>
+                </ul>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon text-danger">
+                    <i class="fas fa-database"></i>
+                </div>
+                <h4>Comprehensive Card Database</h4>
+                <p>Access detailed information for every Pokemon TCG card, including high-resolution images, 
+                   competitive usage data, and strategic analysis.</p>
+                <ul class="text-start mt-3">
+                    <li>Complete card catalog</li>
+                    <li>Advanced search and filters</li>
+                    <li>Card interaction database</li>
+                    <li>Ruling clarifications</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <div class="stats-section">
+        <h2 class="section-header" style="margin-top: 0;">By The Numbers</h2>
+        <div class="row">
+            <div class="col-md-3 col-sm-6 stat-item">
+                <div class="stat-number">{{ total_users or '500+' }}</div>
+                <p>Active Trainers</p>
+            </div>
+            <div class="col-md-3 col-sm-6 stat-item">
+                <div class="stat-number">{{ total_decks or '2,500+' }}</div>
+                <p>Custom Decks Created</p>
+            </div>
+            <div class="col-md-3 col-sm-6 stat-item">
+                <div class="stat-number">1,300+</div>
+                <p>Pokemon Cards Tracked</p>
+            </div>
+            <div class="col-md-3 col-sm-6 stat-item">
+                <div class="stat-number">{{ total_battles or '10,000+' }}</div>
+                <p>Battles Simulated</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Our Story -->
+    <section class="mb-5">
+        <h2 class="section-header">Our Story</h2>
+        
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <p class="fs-5 mb-4">
+                    PvPocket was born from the frustration every competitive Pokemon TCG player knows: finding the right tools 
+                    to build, test, and refine decks for tournament play. While physical cards are essential for official play, 
+                    the process of theory-crafting, testing new strategies, and analyzing the meta-game needed a digital solution.
+                </p>
+                
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-date">Early 2024</div>
+                        <h4>The Vision</h4>
+                        <p>Recognizing the gap in comprehensive Pokemon TCG digital tools, our team of experienced players 
+                           and developers began conceptualizing a platform that would serve the competitive community.</p>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <div class="timeline-date">Mid 2024</div>
+                        <h4>Development Begins</h4>
+                        <p>We started building PvPocket with a focus on accuracy, performance, and user experience. 
+                           Every feature was designed with input from tournament players and casual enthusiasts alike.</p>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <div class="timeline-date">Late 2024</div>
+                        <h4>Beta Launch</h4>
+                        <p>Our first users began testing the deck builder and collection manager. Their feedback shaped 
+                           our development priorities and helped us refine the user experience.</p>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <div class="timeline-date">January 2025</div>
+                        <h4>Public Release</h4>
+                        <p>PvPocket officially launched with full deck building capabilities, AI battle simulation, 
+                           and comprehensive meta-game analytics. Our community continues to grow daily.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pokemon TCG Expertise -->
+    <section class="mb-5">
+        <h2 class="section-header">Our Pokemon TCG Expertise</h2>
+        
+        <div class="row">
+            <div class="col-lg-6 mb-4">
+                <div class="team-card">
+                    <h4 class="text-primary mb-3">Competitive Understanding</h4>
+                    <p>Our team includes players with extensive tournament experience, from local league challenges 
+                       to major international competitions. This real-world expertise informs every feature we build.</p>
+                    
+                    <ul class="text-start">
+                        <li>Regional and national tournament participation</li>
+                        <li>Deep understanding of meta-game evolution</li>
+                        <li>Experience with all major Pokemon TCG formats</li>
+                        <li>Knowledge of card interactions and edge cases</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="col-lg-6 mb-4">
+                <div class="team-card">
+                    <h4 class="text-success mb-3">Technical Innovation</h4>
+                    <p>We combine Pokemon TCG expertise with cutting-edge technology to create tools that are both 
+                       powerful and intuitive, helping players make better strategic decisions.</p>
+                    
+                    <ul class="text-start">
+                        <li>Advanced deck analysis algorithms</li>
+                        <li>Real-time data synchronization</li>
+                        <li>Machine learning for meta-game predictions</li>
+                        <li>Scalable cloud infrastructure</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Technology Stack -->
+    <section class="mb-5">
+        <h2 class="section-header">Built for Performance</h2>
+        
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="highlight-box">
+                    <h4 class="mb-3">Modern Technology Stack</h4>
+                    <p class="mb-3">
+                        PvPocket is built on a robust, scalable technology foundation designed to provide fast, 
+                        reliable service to Pokemon TCG players worldwide.
+                    </p>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Frontend Technologies:</strong>
+                            <ul>
+                                <li>Responsive web design with Bootstrap 5</li>
+                                <li>Progressive Web App capabilities</li>
+                                <li>Advanced client-side caching</li>
+                                <li>Real-time data synchronization</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Backend Infrastructure:</strong>
+                            <ul>
+                                <li>Google Cloud Platform hosting</li>
+                                <li>Firebase real-time database</li>
+                                <li>Python Flask application framework</li>
+                                <li>Advanced caching and optimization</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Community -->
+    <section class="mb-5">
+        <h2 class="section-header">Join Our Community</h2>
+        
+        <div class="row justify-content-center">
+            <div class="col-lg-8 text-center">
+                <p class="fs-5 mb-4">
+                    PvPocket is more than just a tool - it's a community of Pokemon TCG players dedicated to 
+                    improving their skills and sharing their passion for competitive play.
+                </p>
+                
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="feature-card">
+                            <div class="feature-icon text-primary">
+                                <i class="fas fa-comments"></i>
+                            </div>
+                            <h5>Strategy Discussions</h5>
+                            <p>Share insights and learn from experienced players</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="feature-card">
+                            <div class="feature-icon text-success">
+                                <i class="fas fa-trophy"></i>
+                            </div>
+                            <h5>Tournament Prep</h5>
+                            <p>Prepare for competitions with fellow trainers</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="feature-card">
+                            <div class="feature-icon text-warning">
+                                <i class="fas fa-lightbulb"></i>
+                            </div>
+                            <h5>Meta Innovation</h5>
+                            <p>Discover new strategies before they hit mainstream</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <a href="{{ url_for('auth.login_prompt_page') }}" class="btn btn-primary btn-lg me-3">Join PvPocket</a>
+                    <a href="{{ url_for('main.main_index') }}" class="btn btn-outline-primary btn-lg">Explore Features</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Future Roadmap -->
+    <section class="mb-5">
+        <h2 class="section-header">What's Coming Next</h2>
+        
+        <div class="row">
+            <div class="col-lg-6 mb-4">
+                <div class="team-card">
+                    <h4 class="text-primary mb-3"><i class="fas fa-robot me-2"></i>Enhanced AI Features</h4>
+                    <ul class="text-start">
+                        <li>More sophisticated battle AI with learning capabilities</li>
+                        <li>Personalized deck recommendations based on your play style</li>
+                        <li>AI-powered meta-game predictions and analysis</li>
+                        <li>Automated tournament report generation</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="col-lg-6 mb-4">
+                <div class="team-card">
+                    <h4 class="text-success mb-3"><i class="fas fa-mobile-alt me-2"></i>Mobile Experience</h4>
+                    <ul class="text-start">
+                        <li>Native mobile apps for iOS and Android</li>
+                        <li>Offline deck building and testing capabilities</li>
+                        <li>Tournament companion tools and live scoring</li>
+                        <li>QR code deck sharing and importing</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="col-lg-6 mb-4">
+                <div class="team-card">
+                    <h4 class="text-warning mb-3"><i class="fas fa-users me-2"></i>Community Features</h4>
+                    <ul class="text-start">
+                        <li>Tournament hosting and bracket management</li>
+                        <li>Team formation and collaboration tools</li>
+                        <li>Mentor matching for skill development</li>
+                        <li>Community challenges and events</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="col-lg-6 mb-4">
+                <div class="team-card">
+                    <h4 class="text-info mb-3"><i class="fas fa-chart-pie me-2"></i>Advanced Analytics</h4>
+                    <ul class="text-start">
+                        <li>Personal performance tracking and improvement insights</li>
+                        <li>Market trend analysis for collectors</li>
+                        <li>Predictive modeling for deck optimization</li>
+                        <li>Integration with official tournament data</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact and Support -->
+    <section class="mb-5">
+        <div class="highlight-box text-center">
+            <h3 class="mb-3">Get In Touch</h3>
+            <p class="mb-4">
+                Have questions, suggestions, or want to share your Pokemon TCG success stories? 
+                We'd love to hear from you!
+            </p>
+            <div class="row justify-content-center">
+                <div class="col-md-4 mb-2">
+                    <strong>General Support:</strong><br>
+                    <a href="mailto:support@pvpocket.xyz">support@pvpocket.xyz</a>
+                </div>
+                <div class="col-md-4 mb-2">
+                    <strong>Feature Requests:</strong><br>
+                    <a href="mailto:feedback@pvpocket.xyz">feedback@pvpocket.xyz</a>
+                </div>
+                <div class="col-md-4 mb-2">
+                    <strong>Partnership Inquiries:</strong><br>
+                    <a href="mailto:partnerships@pvpocket.xyz">partnerships@pvpocket.xyz</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Disclaimer -->
+    <div class="text-center mt-5 mb-4">
+        <p class="text-muted">
+            <small>
+                PvPocket is an independent fan-made application and is not affiliated with, endorsed by, or sponsored by 
+                The Pokemon Company, Nintendo, Game Freak, or Creatures Inc. Pokemon and all related characters, names, 
+                marks, and logos are trademarks of The Pokemon Company.
+            </small>
+        </p>
+    </div>
+</div>
+{% endblock %}

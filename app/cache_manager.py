@@ -113,7 +113,7 @@ class CacheManager:
                 pass
             return None
     
-    def set_card_collection(self, collection: CardCollection, cache_key: str = "global_cards", ttl_hours: int = 24) -> bool:
+    def set_card_collection(self, collection: CardCollection, cache_key: str = "global_cards", ttl_hours: int = 72) -> bool:
         """Cache card collection with TTL."""
         try:
             pickled_data = pickle.dumps(collection)
@@ -208,7 +208,7 @@ class CacheManager:
                 print(f"Error retrieving user collection from cache: {e}")
             return None
     
-    def set_user_collection(self, user_id: str, collection_data: Dict, ttl_hours: int = 6) -> bool:
+    def set_user_collection(self, user_id: str, collection_data: Dict, ttl_hours: int = 12) -> bool:
         """Cache user's personal collection."""
         try:
             serializable_data = self._make_serializable(collection_data)
@@ -236,7 +236,7 @@ class CacheManager:
                 print(f"Error retrieving user decks from cache: {e}")
             return None
     
-    def set_user_decks(self, user_id: str, decks_data: List[Dict], ttl_hours: int = 2) -> bool:
+    def set_user_decks(self, user_id: str, decks_data: List[Dict], ttl_hours: int = 4) -> bool:
         """Cache user decks."""
         try:
             serializable_data = self._make_serializable(decks_data)
@@ -287,6 +287,62 @@ class CacheManager:
             return True
         except Exception:
             return False
+    
+    def prewarm_cache(self) -> bool:
+        """Prewarm cache with frequently accessed data to improve hit rates and reduce costs."""
+        try:
+            from .services import CardService
+            
+            # Only prewarm in production to avoid unnecessary Firebase reads in development
+            from flask import current_app
+            if current_app.config.get("FLASK_ENV") == "development":
+                if current_app and current_app.debug:
+                    current_app.logger.debug("Skipping cache prewarming in development")
+                return True
+            
+            # Check if cache already has data to avoid redundant prewarming
+            existing_collection = self.get_card_collection()
+            if existing_collection and len(existing_collection.cards) > 100:
+                if current_app and current_app.debug:
+                    current_app.logger.debug(f"Cache already warmed with {len(existing_collection.cards)} cards")
+                return True
+            
+            # Prewarm with priority collection (cost-efficient approach)
+            if current_app and current_app.debug:
+                current_app.logger.debug("Prewarming cache with priority card collection...")
+            
+            priority_collection = CardService._get_priority_card_collection()
+            if priority_collection and len(priority_collection.cards) > 0:
+                # Cache with extended TTL for better cost efficiency
+                self.set_card_collection(priority_collection, cache_key="global_cards_priority", ttl_hours=168)  # 1 week
+                if current_app and current_app.debug:
+                    current_app.logger.debug(f"Cache prewarmed with {len(priority_collection.cards)} priority cards")
+                return True
+            
+            return False
+        except Exception as e:
+            if current_app and current_app.debug:
+                print(f"Error prewarming cache: {e}")
+            return False
+    
+    def get_cache_stats(self) -> dict:
+        """Get cache performance statistics for monitoring."""
+        try:
+            # Get basic cache info
+            info = self.client.info() if hasattr(self.client, 'info') else {}
+            
+            # Calculate cache efficiency metrics
+            stats = {
+                "memory_usage": info.get("used_memory_human", "unknown"),
+                "hit_rate": "calculated_by_monitoring_system",
+                "key_count": len(self.client._data) if hasattr(self.client, '_data') else "unknown",
+                "cache_type": "in_memory" if hasattr(self.client, '_data') else "redis",
+                "cost_savings": "high_ttl_reduces_firebase_reads"
+            }
+            
+            return stats
+        except Exception as e:
+            return {"error": str(e), "cache_type": "unknown"}
 
 
 # Global cache manager instance

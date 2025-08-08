@@ -125,3 +125,23 @@ def alert_site_down():
         error_type="SITE DOWN",
         extra_info="The entire website appears to be unreachable"
     )
+
+def alert_high_firestore_cost(daily_cost, daily_reads, reads_by_collection):
+    """Alert when Firestore costs exceed thresholds."""
+    collection_breakdown = "\n".join([f"- {collection}: {reads:,} reads" for collection, reads in reads_by_collection.items()])
+    
+    send_critical_alert(
+        error_message=f"Daily Firestore cost: ${daily_cost:.2f}\nDaily reads: {daily_reads:,}",
+        error_type="HIGH FIRESTORE COST",
+        extra_info=f"Cost breakdown by collection:\n{collection_breakdown}\n\nCheck /internal/firestore-usage for details"
+    )
+
+def alert_firestore_read_spike(hourly_reads, recent_avg, reads_by_collection):
+    """Alert for unusual spikes in Firestore reads."""
+    collection_breakdown = "\n".join([f"- {collection}: {reads:,} reads" for collection, reads in reads_by_collection.items()])
+    
+    send_critical_alert(
+        error_message=f"Read spike: {hourly_reads:,} reads this hour (normal: {recent_avg:.0f})",
+        error_type="FIRESTORE READ SPIKE",
+        extra_info=f"This may indicate:\n- Deployment issues\n- Cache failures\n- Scraping job problems\n\nReads by collection:\n{collection_breakdown}"
+    )

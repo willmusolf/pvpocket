@@ -4,12 +4,47 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}PvPocket{% endblock %}</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="{% block meta_description %}PvPocket - The ultimate Pokemon Trading Card Game companion app. Build competitive decks, track collections, simulate battles, and analyze the meta-game with fellow trainers worldwide.{% endblock %}">
+    <meta name="keywords" content="{% block meta_keywords %}Pokemon TCG, Pokemon Trading Card Game, deck builder, battle simulator, meta game, card collection, competitive Pokemon, deck strategy, Pokemon cards, TCG companion{% endblock %}">
+    <meta name="author" content="PvPocket Team">
+    <meta name="robots" content="index, follow">
+    <meta name="googlebot" content="index, follow">
+    
+    <!-- Google AdSense Account Verification -->
+    <meta name="google-adsense-account" content="ca-pub-6306891304675674">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="{% block og_title %}{{ self.title() }}{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}{{ self.meta_description() }}{% endblock %}">
+    <meta property="og:image" content="{{ url_for('static', filename='hero-image.jpg', _external=True) }}">
+    <meta property="og:url" content="{{ request.url }}">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="PvPocket">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{% block twitter_title %}{{ self.title() }}{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}{{ self.meta_description() }}{% endblock %}">
+    <meta name="twitter:image" content="{{ url_for('static', filename='hero-image.jpg', _external=True) }}">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="{{ request.url }}">
+    
+    <!-- CSS Libraries -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"> 
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-fixes.css') }}">
+    
+    <!-- Google AdSense -->
+    {% if not config.FLASK_DEBUG %}
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6306891304675674"
+         crossorigin="anonymous"></script>
+    {% endif %}
     
     <!-- DNS prefetch and preconnect to CDN for faster image loading -->
     <link rel="dns-prefetch" href="https://cdn.pvpocket.xyz">
@@ -59,14 +94,22 @@
             --hover-shadow: rgba(255,255,255,0.1);
         }
         
+        html, body {
+            height: 100%;
+        }
+        
         body {
-            /* Add padding-top to the body to prevent content from being hidden by the fixed navbar */
-            /* Adjust this value based on the actual height of your fixed navbar with p-4 */
-            padding-top: 0px; /* Example value, you might need to fine-tune this */
-            padding-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            margin: 0;
+            padding: 0;
             background-color: var(--bg-color);
             color: var(--text-color);
             transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        .main-content {
+            flex: 1;
         }
         /* The .navbar margin-bottom: 0 is now redundant if you remove it from navbar.html */
         /* If you keep it in navbar.html, it's fine. */
@@ -258,6 +301,48 @@
         .deck-cover-cards-area {
             touch-action: manipulation;
         }
+
+        /* Ad Placement Styles */
+        .ad-container {
+            width: 100%;
+            margin: 0 auto;
+        }
+        .ad-placeholder {
+            min-height: 90px;
+            background-color: rgba(108, 117, 125, 0.1);
+            border: 1px dashed rgba(108, 117, 125, 0.3);
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(108, 117, 125, 0.7);
+            font-size: 0.875rem;
+        }
+        .ad-header .ad-placeholder {
+            max-width: 728px;
+            margin: 0 auto;
+        }
+        .ad-content .ad-placeholder {
+            max-width: 468px;
+            margin: 0 auto;
+        }
+        
+        /* Hide ad placeholders by default - show when ads are added */
+        .ad-container {
+            display: none !important;
+        }
+        
+        /* Responsive ad containers */
+        @media (max-width: 768px) {
+            .ad-header .ad-placeholder {
+                max-width: 320px;
+                min-height: 50px;
+            }
+            .ad-content .ad-placeholder {
+                max-width: 320px;
+                min-height: 50px;
+            }
+        }
         
     </style>
     {% block extra_css %}{% endblock %}
@@ -265,24 +350,47 @@
 <body>
     {% include 'navbar.html' %}
 
-    {% block hero_section %}{% endblock %}
+    <main class="main-content">
+        {% block hero_section %}{% endblock %}
 
-    {# Main content area - use container-fluid for full width #}
-    <div class="container-fluid py-4">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        {# Header Ad Placement - Top of content #}
+        <div class="ad-container ad-header" style="display: none;">
+            <div class="container-fluid text-center py-2">
+                <div id="header-ad" class="ad-placeholder">
+                    <!-- Google AdSense Header Banner - Add code here when ready -->
+                </div>
+            </div>
+        </div>
+
+        {# Main content area - use container-fluid for full width #}
+        <div class="container-fluid py-4">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+
+            {# Between Content Ad Placement - Bottom of main content #}
+            <div class="ad-container ad-content" style="display: none;">
+                <div class="text-center py-3">
+                    <div id="content-ad" class="ad-placeholder">
+                        <!-- Google AdSense Content Banner - Add code here when ready -->
                     </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
+                </div>
+            </div>
+        </div>
+        <div id="globalCustomToastElement" class="toast-notification"></div>
+    </main>
 
-        {% block content %}{% endblock %}
-    </div>
-    <div id="globalCustomToastElement" class="toast-notification"></div>
+    <!-- Include Footer -->
+    {% include 'footer.html' %}
 
     
 

@@ -174,12 +174,11 @@ class SecurityManager:
         if path.startswith('/admin/'):
             from flask_login import current_user
             if current_user.is_authenticated and hasattr(current_user, 'email'):
-                admin_emails = ["willmusolf@gmail.com"]
                 env_admins = os.environ.get("ADMIN_EMAILS", "")
                 if env_admins:
-                    admin_emails.extend(env_admins.split(","))
-                if current_user.email in admin_emails:
-                    return False  # Not suspicious for legitimate admin
+                    admin_emails = [email.strip() for email in env_admins.split(",") if email.strip()]
+                    if current_user.email in admin_emails:
+                        return False  # Not suspicious for legitimate admin
         
         # Check for other suspicious patterns (but not legitimate admin routes)
         for pattern in suspicious_patterns:
