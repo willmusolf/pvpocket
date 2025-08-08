@@ -193,6 +193,10 @@ def main_post_process():
     """
     print("\n=== POST-PROCESSOR STARTING ===")
     print(f"Time: {time.strftime('%Y-%m-%d %H:%M:%S')}")
+    
+    # Initialize db_firestore to avoid UnboundLocalError
+    db_firestore = None
+    
     # --- Firebase Initialization ---
     if not firebase_admin._apps:
         try:

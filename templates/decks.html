@@ -49,7 +49,7 @@
         display: flex;
         flex-direction: column;
         height: 100%;
-        min-height: 65vh;
+        min-height: 400px; /* Reduced from 65vh to prevent excessive empty space */
     }
     .col-md-8.mb-4 .card-body {
         flex-grow: 1;
@@ -301,7 +301,7 @@
     }
     .card-item {
         position: relative;
-        margin-bottom: 200px;
+        margin-bottom: 7px;
         will-change: transform;
     }
     .card-item img {
@@ -1020,7 +1020,7 @@
         .add-cards-wrapper .card,
         .current-deck-wrapper .card {
             height: auto;
-            min-height: 620px;
+            min-height: 400px; /* Reduced from 620px to prevent excessive empty space */
         }
         .current-deck-wrapper #current-deck {
             height: auto;
@@ -3213,15 +3213,16 @@
         const cardCollectionDiv = document.getElementById('card-collection');
         if (!cardCollectionDiv) return;
 
-        // Create or get the scroll sentinel - make it more prominent for fast scrolling
+        // Create or get the scroll sentinel - invisible but functional for scroll detection
         let sentinel = cardCollectionDiv.querySelector('.scroll-sentinel');
         if (!sentinel) {
             sentinel = document.createElement('div');
             sentinel.className = 'scroll-sentinel';
-            sentinel.style.height = '100px'; // Larger height to catch fast scrolls
+            sentinel.style.height = '1px'; // Minimal height, nearly invisible
             sentinel.style.margin = '0';
             sentinel.style.position = 'relative';
-            sentinel.style.zIndex = '1';
+            sentinel.style.visibility = 'hidden'; // Hide it visually but keep it in the DOM
+            sentinel.style.pointerEvents = 'none'; // Don't interfere with clicks
             cardCollectionDiv.appendChild(sentinel);
         }
 

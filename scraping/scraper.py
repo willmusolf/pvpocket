@@ -651,18 +651,25 @@ def run_set_scrape_and_post_process():
         # High-speed set check
         website_card_count = len(cards_in_current_set_numbers)
         firestore_card_count = 0
-        try:
-            query_ref = (
-                db.collection("cards")
-                .where("set_code", "==", set_code)
-                .limit(1)
-                .stream()
-            )
-            set_document = next(query_ref, None)
-            if set_document and set_document.exists:
-                firestore_card_count = set_document.to_dict().get("card_count", 0)
-        except Exception as e:
-            print(f"Warning: Could not query Firestore for set count check: {e}")
+        
+        # Special handling for promo set - always process to catch new cards
+        if set_code == "P-A":
+            print(f"⚡ Promo set (P-A) detected - always processing to catch new cards...")
+            firestore_card_count = 0  # Force processing
+        else:
+            try:
+                # Get the correct set document path
+                sanitized_set_name = sanitize_for_firestore_id(set_name_from_list)
+                set_doc_ref = db.collection("cards").document(sanitized_set_name)
+                set_document = set_doc_ref.get()
+                
+                if set_document.exists:
+                    firestore_card_count = set_document.to_dict().get("card_count", 0)
+                    print(f"Found set document '{sanitized_set_name}' with {firestore_card_count} cards")
+                else:
+                    print(f"Set document '{sanitized_set_name}' not found - will process all cards")
+            except Exception as e:
+                print(f"Warning: Could not query Firestore for set count check: {e}")
 
         if firestore_card_count > 0 and firestore_card_count >= website_card_count:
             print(
