@@ -373,18 +373,30 @@ def create_app(config_name="default"):
 
     @app.context_processor
     def inject_user_profile_icon():
+        context_vars = {}
+        
         if current_user.is_authenticated:
             user_data = getattr(current_user, "data", {})
             icon_filename = user_data.get("profile_icon")
             icon_urls = current_app.config.get("PROFILE_ICON_URLS", {})
             default_url = current_app.config.get("DEFAULT_PROFILE_ICON_URL", "")
             profile_icon_url = icon_urls.get(icon_filename, default_url)
-            return dict(current_user_profile_icon_url=profile_icon_url)
-        return dict(
-            current_user_profile_icon_url=current_app.config.get(
+            context_vars["current_user_profile_icon_url"] = profile_icon_url
+            
+            # Check if user is admin using ADMIN_EMAILS environment variable
+            env_admins = os.environ.get("ADMIN_EMAILS", "")
+            is_admin = False
+            if env_admins and hasattr(current_user, 'email'):
+                admin_emails = [email.strip() for email in env_admins.split(",") if email.strip()]
+                is_admin = current_user.email in admin_emails
+            context_vars["is_admin"] = is_admin
+        else:
+            context_vars["current_user_profile_icon_url"] = current_app.config.get(
                 "DEFAULT_PROFILE_ICON_URL", ""
             )
-        )
+            context_vars["is_admin"] = False
+        
+        return context_vars
 
     @app.template_filter('cdn_url')
     def cdn_url_filter(original_url):
