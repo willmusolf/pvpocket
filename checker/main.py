@@ -70,19 +70,76 @@ def get_card_sets():
             sets.append((set_name, set_code))
     return sets
 
+def get_cards_from_set(set_code: str) -> list:
+    """Get list of card numbers from a set page."""
+    url = f"https://pocket.limitlesstcg.com/cards/{set_code}"
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(response.text, "html.parser")
+        cards_in_set = []
+        for link_tag in soup.select(f"a[href^='/cards/{set_code}/']"):
+            card_number_str = link_tag["href"].split("/")[-1]
+            cards_in_set.append(card_number_str)
+        return cards_in_set
+    except Exception as e:
+        print(f"Error fetching cards from set {set_code}: {e}")
+        return []
+
 def _check_limitless_sets():
-    print("Checking for new sets on LimitlessTCG...")
+    print("Checking for new sets and card count changes on LimitlessTCG...")
     try:
         config_ref = db.collection("internal_config").document("sets_tracker")
-        website_set_codes = {s[1] for s in get_card_sets()}
+        website_sets = get_card_sets()  # Returns [(name, code), ...]
         doc = config_ref.get()
-        known_set_codes = set(doc.to_dict().get("known_codes", [])) if doc.exists else set()
+        stored_data = doc.to_dict() if doc.exists else {}
+        
+        known_set_codes = set(stored_data.get("known_codes", []))
+        known_set_counts = stored_data.get("set_card_counts", {})
+        
+        website_set_codes = {s[1] for s in website_sets}
+        current_set_counts = {}
+        changes_detected = False
+        
+        # Check each set for new sets or card count changes
+        for set_name, set_code in website_sets:
+            cards_in_set = get_cards_from_set(set_code)
+            current_card_count = len(cards_in_set)
+            current_set_counts[set_code] = current_card_count
             
-        if website_set_codes != known_set_codes:
+            # Check for new sets
+            if set_code not in known_set_codes:
+                print(f"  -> NEW SET DETECTED: {set_name} ({set_code}) with {current_card_count} cards")
+                changes_detected = True
+            else:
+                # Check for card count changes in existing sets
+                known_card_count = known_set_counts.get(set_code, 0)
+                if current_card_count > known_card_count:
+                    print(f"  -> CARD COUNT INCREASE: {set_name} ({set_code}) from {known_card_count} to {current_card_count} cards")
+                    changes_detected = True
+                elif current_card_count < known_card_count:
+                    print(f"  -> CARD COUNT DECREASE: {set_name} ({set_code}) from {known_card_count} to {current_card_count} cards")
+                    changes_detected = True
+        
+        # Special focus on promo set
+        promo_count = current_set_counts.get("P-A", 0)
+        known_promo_count = known_set_counts.get("P-A", 0)
+        if promo_count != known_promo_count:
+            print(f"  -> PROMO SET CHANGE: P-A cards changed from {known_promo_count} to {promo_count}")
+            changes_detected = True
+            
+        if changes_detected:
+            print("Changes detected - triggering scraping job...")
             _trigger_cloud_run_job("scrape_sets")
-            config_ref.set({"known_codes": list(website_set_codes)})
+            # Update stored data
+            config_ref.set({
+                "known_codes": list(website_set_codes),
+                "set_card_counts": current_set_counts,
+                "last_checked": db.SERVER_TIMESTAMP
+            })
         else:
-            print("No new sets found on LimitlessTCG.")
+            print("No changes detected in sets or card counts.")
     except Exception as e:
         print(f"ERROR: An exception occurred while checking sets: {e}")
         

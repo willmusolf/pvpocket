@@ -173,3 +173,10 @@ def test_cards_endpoint():
             "sample_size": 3
         }
     }), 200
+
+
+@admin_bp.route("/dashboard")
+@admin_required
+def admin_dashboard():
+    """Admin monitoring dashboard page."""
+    return render_template("admin_dashboard.html")

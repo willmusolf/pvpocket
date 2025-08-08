@@ -5,12 +5,15 @@ from flask import (
     request,
     jsonify,
     Response,
+    redirect,
+    url_for,
 ) 
 from flask_login import (
     current_user as flask_login_current_user,
 )
 import requests
 from datetime import datetime
+from ..services import database_service, card_service
 
 main_bp = Blueprint("main", __name__)
 
@@ -28,7 +31,6 @@ def index():
     db = current_app.config.get("FIRESTORE_DB")  # Get Firestore client
 
     # Get card collection from cache manager for better performance tracking
-    from ..services import card_service
     card_collection = card_service.get_card_collection()
     total_cards = len(card_collection) if card_collection else 0
 
@@ -176,7 +178,6 @@ def proxy_image():
 def test_scalability():
     """Test endpoint to verify scalability systems are working."""
     try:
-        from ..services import card_service
         from ..cache_manager import cache_manager
         from ..db_service import db_service
         
@@ -222,4 +223,229 @@ def test_scalability():
         if current_app.debug:
             current_app.logger.debug(f"❌ TEST ERROR: {e}")
         return jsonify({"error": str(e)}), 500
+
+
+@main_bp.route("/dashboard")
+def dashboard():
+    """Dashboard page."""
+    if not flask_login_current_user.is_authenticated:
+        return redirect(url_for('auth.login_prompt_page'))
+    return render_template("dashboard.html")
+
+
+@main_bp.route("/profile")
+def profile():
+    """Profile page."""
+    if not flask_login_current_user.is_authenticated:
+        return redirect(url_for('auth.login_prompt_page'))
+    return render_template("profile.html")
+
+
+@main_bp.route("/api/profile", methods=["GET"])
+def get_profile():
+    """Get user profile API."""
+    if not flask_login_current_user.is_authenticated:
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    try:
+        db = database_service.get_db()
+        user_doc = db.collection("users").document(flask_login_current_user.id).get()
+        
+        if not user_doc.exists:
+            return jsonify({"error": "User not found"}), 404
+        
+        user_data = user_doc.to_dict()
+        # Remove sensitive fields
+        safe_data = {k: v for k, v in user_data.items() 
+                    if k not in ['password', 'secret_key', 'api_key', 'token']}
+        
+        return jsonify(safe_data)
+    except Exception as e:
+        current_app.logger.error(f"Error getting profile: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@main_bp.route("/api/profile/update", methods=["POST"])
+def update_profile():
+    """Update user profile API."""
+    if not flask_login_current_user.is_authenticated:
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+        
+        # Validate profile icon URL
+        profile_icon = data.get('profile_icon')
+        if profile_icon and 'javascript:' in profile_icon.lower():
+            return jsonify({"error": "Invalid profile icon URL"}), 400
+        
+        db = database_service.get_db()
+        user_ref = db.collection("users").document(flask_login_current_user.id)
+        
+        # Only allow certain fields to be updated
+        allowed_fields = ['profile_icon', 'display_name']
+        update_data = {k: v for k, v in data.items() if k in allowed_fields}
+        
+        if update_data:
+            user_ref.update(update_data)
+            return jsonify({"success": True, "updated": update_data})
+        else:
+            return jsonify({"error": "No valid fields to update"}), 400
+    
+    except Exception as e:
+        current_app.logger.error(f"Error updating profile: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@main_bp.route("/api/search")
+def search_api():
+    """Global search API."""
+    if not flask_login_current_user.is_authenticated:
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    try:
+        query = request.args.get('q', '').strip()
+        search_type = request.args.get('type', 'cards')
+        
+        if not query:
+            return jsonify({"results": []})
+        
+        # Sanitize input
+        if '<script>' in query.lower() or 'javascript:' in query.lower():
+            return jsonify({"error": "Invalid search query"}), 400
+        
+        if search_type == 'cards':
+            card_collection = card_service.get_card_collection()
+            # Simple search implementation
+            results = []
+            return jsonify({"results": results})
+        
+        elif search_type == 'users':
+            from ..services import database_service
+            db = database_service.get_db()
+            
+            # Search users by username
+            users_query = db.collection("users").where("username_lowercase", ">=", query.lower()).limit(10)
+            users = []
+            for user_doc in users_query.stream():
+                user_data = user_doc.to_dict()
+                users.append({
+                    "id": user_doc.id,
+                    "username": user_data.get("username"),
+                    "profile_icon": user_data.get("profile_icon")
+                })
+            return jsonify({"results": users})
+        
+        else:
+            return jsonify({"error": "Invalid search type"}), 400
+    
+    except Exception as e:
+        current_app.logger.error(f"Error in search: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@main_bp.route("/api/activity/recent")
+def recent_activity():
+    """Get recent user activity."""
+    if not flask_login_current_user.is_authenticated:
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    try:
+        db = database_service.get_db()
+        
+        # Get recent activity for user
+        activity_query = (db.collection("users")
+                         .document(flask_login_current_user.id)
+                         .collection("activity")
+                         .order_by("timestamp", direction="DESCENDING")
+                         .limit(20))
+        
+        activities = []
+        for activity_doc in activity_query.stream():
+            activities.append(activity_doc.to_dict())
+        
+        return jsonify({"activities": activities})
+    
+    except Exception as e:
+        current_app.logger.error(f"Error getting recent activity: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@main_bp.route("/api/activity/history")
+def activity_history():
+    """Get activity history with pagination."""
+    if not flask_login_current_user.is_authenticated:
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    try:
+        page = int(request.args.get('page', 1))
+        limit = min(int(request.args.get('limit', 20)), 50)
+        
+        # Activity history implementation would go here
+        return jsonify({"activities": [], "pagination": {"page": page, "has_more": False}})
+    
+    except Exception as e:
+        current_app.logger.error(f"Error getting activity history: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@main_bp.route("/api/navbar/user-info")
+def navbar_user_info():
+    """Get user info for navbar."""
+    if not flask_login_current_user.is_authenticated:
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    try:
+        return jsonify({
+            "username": getattr(flask_login_current_user, 'username', 'User'),
+            "profile_icon": getattr(flask_login_current_user, 'profile_icon', ''),
+            "deck_count": len(getattr(flask_login_current_user, 'deck_ids', []))
+        })
+    
+    except Exception as e:
+        current_app.logger.error(f"Error getting navbar user info: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@main_bp.route("/api/dashboard/recent-decks")
+def dashboard_recent_decks():
+    """Get recent decks for dashboard."""
+    if not flask_login_current_user.is_authenticated:
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    try:
+        db = database_service.get_db()
+        
+        # Get user's recent decks
+        user_data = getattr(flask_login_current_user, 'data', {})
+        deck_ids = user_data.get('deck_ids', [])
+        
+        if not deck_ids:
+            return jsonify({"decks": []})
+        
+        # Get recent decks (limit to 5)
+        deck_refs = [db.collection("decks").document(deck_id) for deck_id in deck_ids[:5]]
+        deck_docs = db.get_all(deck_refs)
+        
+        decks = []
+        for deck_doc in deck_docs:
+            if deck_doc.exists:
+                deck_data = deck_doc.to_dict()
+                decks.append({
+                    "id": deck_doc.id,
+                    "name": deck_data.get("name"),
+                    "updated_at": deck_data.get("updated_at"),
+                    "is_public": deck_data.get("is_public", False)
+                })
+        
+        # Sort by updated_at
+        decks.sort(key=lambda x: x.get("updated_at") or datetime.min, reverse=True)
+        
+        return jsonify({"recent_decks": decks})
+    
+    except Exception as e:
+        current_app.logger.error(f"Error getting recent decks: {e}")
+        return jsonify({"error": "Internal server error"}), 500
 
