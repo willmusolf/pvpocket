@@ -18,6 +18,7 @@ import uuid
 from typing import Optional
 from Deck import Deck
 from ..services import card_service, database_service, url_service
+from ..security import rate_limit_api
 
 from firebase_admin import (
     firestore,
@@ -327,3 +328,292 @@ def get_user_decks_api():
 
         traceback.print_exc()
         return jsonify({"error": "An internal error occurred.", "decks": []}), 500
+
+
+@collection_bp.route("/api/collection")
+@login_required
+def get_user_collection():
+    """API endpoint to get user's collection."""
+    try:
+        db = get_db()
+        user_id = flask_login_current_user.id
+        
+        collection_ref = db.collection("collections").document(user_id)
+        collection_doc = collection_ref.get()
+        
+        if not collection_doc.exists:
+            return jsonify({
+                "card_counts": {},
+                "total_cards": 0,
+                "unique_cards": 0
+            })
+        
+        collection_data = collection_doc.to_dict()
+        return jsonify(collection_data)
+    
+    except Exception as e:
+        current_app.logger.error(f"Error getting user collection: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@collection_bp.route("/api/collection/add", methods=["POST"])
+@login_required
+@rate_limit_api()
+def add_card_to_collection():
+    """API endpoint to add cards to user's collection."""
+    try:
+        db = get_db()
+        user_id = flask_login_current_user.id
+        data = request.get_json()
+        
+        card_id = data.get("card_id")
+        quantity = data.get("quantity", 1)
+        
+        if not card_id:
+            return jsonify({"error": "Card ID is required"}), 400
+        
+        if quantity <= 0:
+            return jsonify({"error": "Quantity must be positive"}), 400
+        
+        # Verify card exists
+        card_collection = card_service.get_card_collection()
+        card = card_collection.get_card_by_id(int(card_id))
+        if not card:
+            return jsonify({"error": "Card not found"}), 404
+        
+        # Update collection in transaction
+        @firestore.transactional
+        def update_collection(transaction, collection_ref):
+            collection_doc = collection_ref.get(transaction=transaction)
+            
+            if collection_doc.exists:
+                collection_data = collection_doc.to_dict()
+                card_counts = collection_data.get("card_counts", {})
+                card_counts[str(card_id)] = card_counts.get(str(card_id), 0) + quantity
+            else:
+                card_counts = {str(card_id): quantity}
+            
+            # Recalculate totals
+            total_cards = sum(card_counts.values())
+            unique_cards = len(card_counts)
+            
+            updated_data = {
+                "card_counts": card_counts,
+                "total_cards": total_cards,
+                "unique_cards": unique_cards,
+                "last_updated": firestore.SERVER_TIMESTAMP
+            }
+            
+            transaction.set(collection_ref, updated_data, merge=True)
+            return updated_data
+        
+        collection_ref = db.collection("collections").document(user_id)
+        transaction = db.transaction()
+        updated_data = update_collection(transaction, collection_ref)
+        
+        return jsonify({"success": True, "collection": updated_data})
+    
+    except Exception as e:
+        current_app.logger.error(f"Error adding card to collection: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@collection_bp.route("/api/collection/remove", methods=["POST"])
+@login_required
+@rate_limit_api()
+def remove_card_from_collection():
+    """API endpoint to remove cards from user's collection."""
+    try:
+        db = get_db()
+        user_id = flask_login_current_user.id
+        data = request.get_json()
+        
+        card_id = data.get("card_id")
+        quantity = data.get("quantity", 1)
+        
+        if not card_id:
+            return jsonify({"error": "Card ID is required"}), 400
+        
+        if quantity <= 0:
+            return jsonify({"error": "Quantity must be positive"}), 400
+        
+        # Update collection in transaction
+        @firestore.transactional
+        def update_collection(transaction, collection_ref):
+            collection_doc = collection_ref.get(transaction=transaction)
+            
+            if not collection_doc.exists:
+                return None
+            
+            collection_data = collection_doc.to_dict()
+            card_counts = collection_data.get("card_counts", {})
+            
+            current_count = card_counts.get(str(card_id), 0)
+            if current_count < quantity:
+                raise ValueError("Insufficient cards to remove")
+            
+            new_count = current_count - quantity
+            if new_count <= 0:
+                del card_counts[str(card_id)]
+            else:
+                card_counts[str(card_id)] = new_count
+            
+            # Recalculate totals
+            total_cards = sum(card_counts.values())
+            unique_cards = len(card_counts)
+            
+            updated_data = {
+                "card_counts": card_counts,
+                "total_cards": total_cards,
+                "unique_cards": unique_cards,
+                "last_updated": firestore.SERVER_TIMESTAMP
+            }
+            
+            transaction.set(collection_ref, updated_data, merge=True)
+            return updated_data
+        
+        collection_ref = db.collection("collections").document(user_id)
+        transaction = db.transaction()
+        
+        try:
+            updated_data = update_collection(transaction, collection_ref)
+            if updated_data is None:
+                return jsonify({"error": "Collection not found"}), 404
+            return jsonify({"success": True, "collection": updated_data})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+    
+    except Exception as e:
+        current_app.logger.error(f"Error removing card from collection: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@collection_bp.route("/api/collection/search")
+@login_required
+def search_collection():
+    """API endpoint to search user's collection."""
+    try:
+        query = request.args.get("q", "").strip()
+        if not query:
+            return jsonify({"results": []})
+        
+        card_collection = card_service.get_card_collection()
+        # Simple search implementation
+        results = []
+        # This would need to be implemented based on your card collection structure
+        return jsonify({"results": results})
+    
+    except Exception as e:
+        current_app.logger.error(f"Error searching collection: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@collection_bp.route("/api/collection/filter")
+@login_required
+def filter_collection():
+    """API endpoint to filter user's collection."""
+    try:
+        filter_type = request.args.get("type")
+        rarity = request.args.get("rarity")
+        
+        # Filter implementation would go here
+        return jsonify({"results": []})
+    
+    except Exception as e:
+        current_app.logger.error(f"Error filtering collection: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@collection_bp.route("/api/collection/stats")
+@login_required
+def get_collection_stats():
+    """API endpoint to get collection statistics."""
+    try:
+        db = get_db()
+        user_id = flask_login_current_user.id
+        
+        collection_ref = db.collection("collections").document(user_id)
+        collection_doc = collection_ref.get()
+        
+        if not collection_doc.exists:
+            return jsonify({
+                "total_cards": 0,
+                "unique_cards": 0,
+                "completion_percentage": 0
+            })
+        
+        collection_data = collection_doc.to_dict()
+        return jsonify({
+            "total_cards": collection_data.get("total_cards", 0),
+            "unique_cards": collection_data.get("unique_cards", 0),
+            "completion_percentage": collection_data.get("completion_percentage", 0)
+        })
+    
+    except Exception as e:
+        current_app.logger.error(f"Error getting collection stats: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@collection_bp.route("/api/collection/progress", methods=["GET"])
+@login_required
+def get_completion_progress():
+    """API endpoint to get collection completion progress."""
+    try:
+        db = get_db()
+        user_id = flask_login_current_user.id
+        
+        collection_ref = db.collection("collections").document(user_id)
+        collection_doc = collection_ref.get()
+        
+        if not collection_doc.exists:
+            return jsonify({
+                "completion_percentage": 0,
+                "total_possible": 1327,  # Total cards in game
+                "owned": 0,
+                "missing": 1327
+            })
+        
+        collection_data = collection_doc.to_dict()
+        owned_count = collection_data.get("unique_cards", 0)
+        total_possible = 1327  # Total cards available
+        completion_percentage = (owned_count / total_possible) * 100 if total_possible > 0 else 0
+        
+        return jsonify({
+            "completion_percentage": round(completion_percentage, 2),
+            "total_possible": total_possible,
+            "owned": owned_count,
+            "missing": total_possible - owned_count
+        })
+    
+    except Exception as e:
+        current_app.logger.error(f"Error getting collection progress: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@collection_bp.route("/api/collection/sync", methods=["POST"])
+@login_required
+@rate_limit_api()
+def sync_collection():
+    """API endpoint to sync user's collection."""
+    try:
+        # Sync implementation would go here
+        return jsonify({"success": True, "message": "Collection synced"})
+    
+    except Exception as e:
+        current_app.logger.error(f"Error syncing collection: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@collection_bp.route("/api/collection/backup", methods=["POST"])
+@login_required
+@rate_limit_api()
+def backup_collection():
+    """API endpoint to backup user's collection."""
+    try:
+        # Backup implementation would go here
+        backup_id = str(uuid.uuid4())
+        return jsonify({"success": True, "backup_id": backup_id})
+    
+    except Exception as e:
+        current_app.logger.error(f"Error backing up collection: {e}")
+        return jsonify({"error": "Internal server error"}), 500

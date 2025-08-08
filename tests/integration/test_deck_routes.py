@@ -98,7 +98,7 @@ class TestDeckCreation:
         mock_current_user.data = {'deck_ids': []}  # User has no existing decks
         
         with patch('flask_login.login_required', lambda f: f):
-            with patch('app.routes.decks.rate_limit_heavy', lambda: lambda f: f):
+            with patch('app.security.rate_limit_heavy', lambda: lambda f: f):
                 with patch('app.routes.decks.get_db') as mock_get_db:
                     mock_db = Mock()
                     mock_get_db.return_value = mock_db
@@ -141,7 +141,7 @@ class TestDeckCreation:
         mock_current_user.data = {'deck_ids': deck_ids}
         
         with patch('flask_login.login_required', lambda f: f):
-            with patch('app.routes.decks.rate_limit_heavy', lambda: lambda f: f):
+            with patch('app.security.rate_limit_heavy', lambda: lambda f: f):
                 deck_data = {
                     'name': 'One Too Many',
                     'card_ids': [1, 2, 3]
@@ -165,7 +165,7 @@ class TestDeckCreation:
         mock_current_user.data = {'deck_ids': []}
         
         with patch('flask_login.login_required', lambda f: f):
-            with patch('app.routes.decks.rate_limit_heavy', lambda: lambda f: f):
+            with patch('app.security.rate_limit_heavy', lambda: lambda f: f):
                 response = client.post('/api/decks',
                                      json=None,  # No data
                                      content_type='application/json')
@@ -184,7 +184,7 @@ class TestDeckCreation:
         mock_current_user.data = {'deck_ids': []}
         
         with patch('flask_login.login_required', lambda f: f):
-            with patch('app.routes.decks.rate_limit_heavy', lambda: lambda f: f):
+            with patch('app.security.rate_limit_heavy', lambda: lambda f: f):
                 with patch('app.routes.decks.get_db') as mock_get_db:
                     mock_get_db.return_value = Mock()
                     
@@ -591,7 +591,7 @@ class TestDeckErrorHandling:
         mock_current_user.data = {'deck_ids': []}
         
         with patch('flask_login.login_required', lambda f: f):
-            with patch('app.routes.decks.rate_limit_heavy', lambda: lambda f: f):
+            with patch('app.security.rate_limit_heavy', lambda: lambda f: f):
                 with patch('app.routes.decks.get_db') as mock_get_db:
                     mock_db = Mock()
                     mock_get_db.return_value = mock_db

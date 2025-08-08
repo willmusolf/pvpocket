@@ -156,7 +156,7 @@ def sync_emulator_data():
         
         if force_sync:
             needs_sync = True
-            sync_reason = "Force sync requested"
+            sync_reason = "Force sync requested - bypassing all cache checks"
         elif card_count == 0:
             needs_sync = True
             sync_reason = "Emulator is empty"
@@ -191,6 +191,15 @@ def sync_emulator_data():
             from shared_utils import sync_to_local_emulator
             sync_to_local_emulator()
             
+            # Clear app cache so fresh data is loaded
+            try:
+                from app.cache_manager import cache_manager
+                cache_manager.invalidate_card_cache()
+                print("🗑️ Cleared app cache - fresh data will be loaded on next request")
+            except Exception as cache_error:
+                print(f"⚠️ Could not clear app cache: {cache_error}")
+                print("   You may need to refresh your browser to see updated cards")
+            
             # Update sync timestamp
             sync_metadata_doc = {
                 'last_sync_timestamp': datetime.now().isoformat(),
@@ -202,7 +211,7 @@ def sync_emulator_data():
             if card_count == 0:
                 print("✅ Initial sync complete! All production data now available locally.")
             else:
-                print("✅ Smart sync complete!")
+                print("✅ Smart sync complete! Fresh data ready.")
             
     except Exception as e:
         print(f"⚠️  Sync check failed: {e}")
@@ -214,9 +223,14 @@ if not is_cloud_environment:
     emulator_started = start_emulator_if_needed()
     
     # Sync production data to emulator if needed
+    # Skip sync on Flask auto-restart (when WERKZEUG_RUN_MAIN is set)
     if emulator_started and os.environ.get('FIRESTORE_EMULATOR_HOST'):
         if os.environ.get('SKIP_EMULATOR_SYNC') != '1':
-            sync_emulator_data()
+            # Only sync on initial run, not on Flask restart
+            if not os.environ.get('WERKZEUG_RUN_MAIN'):
+                sync_emulator_data()
+            else:
+                print("🔄 Skipping sync on Flask auto-restart (already synced)")
 else:
     emulator_started = False
     print("🚨 CLOUD: Skipping emulator startup (production environment)")
@@ -237,6 +251,8 @@ if config_name == "development" and os.environ.get('WERKZEUG_RUN_MAIN'):
         print("📊 Data Source: Firebase Emulator (FREE)")
         print("✅ Smart sync: Only syncs when data is stale (>24h old)")
         print("🔄 Force fresh sync: python3 run.py --force-sync")
+        print("💡 Force sync automatically clears app cache for instant refresh")
+        print("⚡ Sync runs only once (skipped on Flask auto-restart)")
     else:
         print("📊 Data Source: Production Firestore (COSTS MONEY)")
         print("⚠️  Install Firebase CLI for free emulator:")

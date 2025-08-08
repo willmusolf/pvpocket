@@ -394,8 +394,12 @@ def sync_to_local_emulator():
                     unchanged += 1
             
             # Remove documents that no longer exist in production
+            # (but preserve sync metadata - it's only for local development)
             for doc_id in emulator_docs:
                 if doc_id not in prod_docs:
+                    # Don't remove sync metadata - it's local-only
+                    if collection_id == 'internal_config' and doc_id == 'sync_metadata':
+                        continue
                     emulator_collection.document(doc_id).delete()
                     removed += 1
             

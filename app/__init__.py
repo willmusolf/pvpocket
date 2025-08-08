@@ -123,8 +123,8 @@ def create_app(config_name="default"):
                 (os.environ.get('FIRESTORE_EMULATOR_HOST') or 
                  os.environ.get('RUN_INTEGRATION_TESTS') or 
                  os.environ.get('FORCE_EMULATOR_MODE'))):
-                # Use emulator configuration - ensure exact same project ID as REST API seeding
-                emulator_project_id = 'demo-test-project'  # Must match REST API exactly
+                # Use emulator configuration - match sync process project ID 
+                emulator_project_id = os.environ.get('GCP_PROJECT_ID', 'demo-test-project')
                 
                 # ALWAYS show this debug info in CI/testing
                 print("🔥 FIREBASE: Using Firebase Emulator (FREE - no production costs!)")
