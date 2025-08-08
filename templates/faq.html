@@ -109,23 +109,25 @@
         color: var(--bs-primary);
         transform: translateX(10px);
     }
-    .search-box {
-        margin-bottom: 2rem;
-        position: relative;
-    }
-    .search-box input {
-        padding-right: 3rem;
-    }
-    .search-icon {
-        position: absolute;
-        right: 1rem;
-        top: 50%;
-        transform: translateY(-50%);
-        color: var(--bs-secondary);
-    }
     @keyframes fadeIn {
         from { opacity: 0; transform: translateY(-10px); }
         to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Dark mode styles */
+    [data-theme="dark"] .text-muted {
+        color: #adb5bd !important;
+    }
+    [data-theme="dark"] .faq-hero h1,
+    [data-theme="dark"] .faq-hero p {
+        color: var(--text-color);
+    }
+    [data-theme="dark"] .category-header h3 {
+        color: var(--text-color);
+    }
+    [data-theme="dark"] .faq-question,
+    [data-theme="dark"] .faq-answer {
+        color: var(--text-color);
     }
 </style>
 {% endblock %}
@@ -138,11 +140,6 @@
         <p class="lead">Everything you need to know about PvPocket and Pokemon TCG</p>
     </div>
 
-    <!-- Search Box -->
-    <div class="search-box">
-        <input type="text" class="form-control form-control-lg" id="faqSearch" placeholder="Search for answers...">
-        <i class="fas fa-search search-icon"></i>
-    </div>
 
     <!-- Quick Links -->
     <div class="quick-links">
@@ -683,42 +680,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Search Functionality
-    const searchInput = document.getElementById('faqSearch');
-    const faqItems = document.querySelectorAll('.faq-item');
-    
-    searchInput.addEventListener('input', function() {
-        const searchTerm = this.value.toLowerCase();
-        
-        faqItems.forEach(item => {
-            const question = item.querySelector('.faq-question').textContent.toLowerCase();
-            const answer = item.querySelector('.faq-answer').textContent.toLowerCase();
-            
-            if (question.includes(searchTerm) || answer.includes(searchTerm)) {
-                item.style.display = 'block';
-                
-                // If searching, open the matching FAQ
-                if (searchTerm && (question.includes(searchTerm) || answer.includes(searchTerm))) {
-                    const answerDiv = item.querySelector('.faq-answer');
-                    const icon = item.querySelector('.faq-icon');
-                    answerDiv.classList.add('show');
-                    icon.classList.add('rotate');
-                }
-            } else {
-                item.style.display = 'none';
-            }
-        });
-        
-        // If search is cleared, close all FAQs
-        if (!searchTerm) {
-            document.querySelectorAll('.faq-answer.show').forEach(answer => {
-                answer.classList.remove('show');
-            });
-            document.querySelectorAll('.faq-icon.rotate').forEach(icon => {
-                icon.classList.remove('rotate');
-            });
-        }
-    });
     
     // Smooth scroll for quick links
     document.querySelectorAll('.quick-link-item[href^="#"]').forEach(link => {
