@@ -284,12 +284,14 @@ jobs:
         # Install Firebase Admin SDK for seeding
         pip install firebase-admin || echo "Firebase Admin SDK already installed"
         
-        # Seed test data for integration tests
+        # Seed test data for integration tests (cost-optimized)
         if [ -f "scripts/create_test_data.py" ]; then
-          echo "🌱 Seeding Firebase emulator with test data..."
+          echo "🌱 Seeding Firebase emulator with minimal test data..."
+          # COST OPTIMIZATION: Set environment variable to limit test data size
+          export USE_MINIMAL_TEST_DATA=true
           python scripts/create_test_data.py
           if [ $? -eq 0 ]; then
-            echo "✅ Test data seeded successfully!"
+            echo "✅ Minimal test data seeded successfully!"
           else
             echo "⚠️ Test data seeding failed, but continuing with tests..."
           fi
@@ -297,7 +299,13 @@ jobs:
           echo "⚠️ Test data script not found, running tests without seed data..."
         fi
         
+        # COST PROTECTION: Set environment variables to prevent expensive operations during testing
+        export USE_MINIMAL_DATA=true
+        export LAZY_LOAD_CARDS=true
+        export FLASK_CONFIG=testing
+        
         # Run comprehensive test suite (30% coverage requirement)
+        echo "🧪 Running tests with cost optimizations enabled..."
         python -m pytest tests/ -v --tb=short --cov=app --cov-report=json --cov-fail-under=30
         
         # Stop emulators

@@ -233,14 +233,32 @@ class AlertManager:
             "error_rate": 5.0,  # 5% error rate
             "cache_hit_rate": 70.0,  # Below 70% hit rate
             "memory_usage_mb": 1024,  # 1GB memory usage
+            "daily_cost_usd": 2.0,  # $2 daily cost threshold
+            "hourly_cost_usd": 0.2,  # $0.20 hourly cost spike threshold
+            "daily_reads": 10000,  # 10k reads per day warning
+            "hourly_reads": 1000,  # 1k reads per hour spike warning
         }
         self.active_alerts = {}
         self.alert_cooldown = timedelta(minutes=15)  # Don't spam alerts
+        self.cost_tracking = {
+            "hourly_reads": deque(maxlen=24),  # Track reads per hour for 24 hours
+            "hourly_costs": deque(maxlen=24),  # Track costs per hour for 24 hours
+            "last_hour_check": datetime.now().replace(minute=0, second=0, microsecond=0),
+            "current_hour_reads": 0,
+            "current_hour_cost": 0.0
+        }
     
     def check_alerts(self, metrics: PerformanceMetrics):
         """Check for alert conditions."""
         alerts = []
         current_time = datetime.utcnow()
+        
+        # Update hourly cost tracking
+        self._update_hourly_tracking(metrics)
+        
+        # Check Firestore cost alerts
+        cost_alerts = self._check_cost_alerts(metrics, current_time)
+        alerts.extend(cost_alerts)
         
         # Check response time
         avg_response = metrics.get_average_response_time()
@@ -297,6 +315,111 @@ class AlertManager:
             return True
         
         return False
+    
+    def _update_hourly_tracking(self, metrics: PerformanceMetrics):
+        """Update hourly cost and read tracking."""
+        current_time = datetime.now().replace(minute=0, second=0, microsecond=0)
+        
+        # Check if we need to roll over to a new hour
+        if current_time > self.cost_tracking["last_hour_check"]:
+            # Save the completed hour's data
+            if self.cost_tracking["current_hour_reads"] > 0 or self.cost_tracking["current_hour_cost"] > 0:
+                self.cost_tracking["hourly_reads"].append(self.cost_tracking["current_hour_reads"])
+                self.cost_tracking["hourly_costs"].append(self.cost_tracking["current_hour_cost"])
+            
+            # Reset for new hour
+            self.cost_tracking["current_hour_reads"] = 0
+            self.cost_tracking["current_hour_cost"] = 0.0
+            self.cost_tracking["last_hour_check"] = current_time
+        
+        # Add current metrics to running totals
+        usage_stats = metrics.get_firestore_usage_stats()
+        self.cost_tracking["current_hour_cost"] = usage_stats["estimated_daily_cost"]
+        self.cost_tracking["current_hour_reads"] = usage_stats["daily_reads"]
+    
+    def _check_cost_alerts(self, metrics: PerformanceMetrics, current_time: datetime) -> list:
+        """Check for cost-related alerts."""
+        alerts = []
+        usage_stats = metrics.get_firestore_usage_stats()
+        
+        # Daily cost threshold alert
+        daily_cost = usage_stats["estimated_daily_cost"]
+        if daily_cost > self.alert_thresholds["daily_cost_usd"]:
+            alert_key = "high_daily_cost"
+            if self._should_alert(alert_key, current_time):
+                alerts.append({
+                    "type": "high_daily_cost",
+                    "message": f"High daily Firestore cost: ${daily_cost:.2f} (threshold: ${self.alert_thresholds['daily_cost_usd']:.2f})",
+                    "severity": "critical",
+                    "timestamp": current_time.isoformat(),
+                    "cost_details": {
+                        "daily_reads": usage_stats["daily_reads"],
+                        "daily_writes": usage_stats["daily_writes"],
+                        "reads_by_collection": usage_stats["reads_by_collection"]
+                    }
+                })
+        
+        # Daily reads threshold alert (early warning)
+        daily_reads = usage_stats["daily_reads"]
+        if daily_reads > self.alert_thresholds["daily_reads"]:
+            alert_key = "high_daily_reads"
+            if self._should_alert(alert_key, current_time):
+                alerts.append({
+                    "type": "high_daily_reads",
+                    "message": f"High daily Firestore reads: {daily_reads:,} (threshold: {self.alert_thresholds['daily_reads']:,})",
+                    "severity": "warning",
+                    "timestamp": current_time.isoformat(),
+                    "cost_details": {
+                        "estimated_cost": daily_cost,
+                        "reads_by_collection": usage_stats["reads_by_collection"]
+                    }
+                })
+        
+        # Hourly spike detection (if we have historical data)
+        if len(self.cost_tracking["hourly_reads"]) > 1:
+            recent_avg = sum(list(self.cost_tracking["hourly_reads"])[-3:]) / min(3, len(self.cost_tracking["hourly_reads"]))
+            current_hour = self.cost_tracking["current_hour_reads"]
+            
+            # Alert if current hour is 3x higher than recent average
+            if current_hour > recent_avg * 3 and current_hour > self.alert_thresholds["hourly_reads"]:
+                alert_key = "read_spike"
+                if self._should_alert(alert_key, current_time):
+                    alerts.append({
+                        "type": "read_spike",
+                        "message": f"Unusual Firestore read spike: {current_hour:,} reads this hour (avg: {recent_avg:.0f})",
+                        "severity": "warning",
+                        "timestamp": current_time.isoformat(),
+                        "cost_details": {
+                            "hourly_reads": current_hour,
+                            "recent_average": recent_avg,
+                            "reads_by_collection": usage_stats["reads_by_collection"]
+                        }
+                    })
+        
+        return alerts
+    
+    def get_cost_trends(self) -> dict:
+        """Get cost trend data for monitoring dashboard."""
+        return {
+            "hourly_reads": list(self.cost_tracking["hourly_reads"]),
+            "hourly_costs": list(self.cost_tracking["hourly_costs"]),
+            "current_hour_reads": self.cost_tracking["current_hour_reads"],
+            "current_hour_cost": self.cost_tracking["current_hour_cost"],
+            "trend_direction": self._calculate_cost_trend()
+        }
+    
+    def _calculate_cost_trend(self) -> str:
+        """Calculate if costs are trending up, down, or stable."""
+        if len(self.cost_tracking["hourly_costs"]) < 3:
+            return "insufficient_data"
+        
+        recent_costs = list(self.cost_tracking["hourly_costs"])[-3:]
+        if recent_costs[-1] > recent_costs[-2] > recent_costs[-3]:
+            return "increasing"
+        elif recent_costs[-1] < recent_costs[-2] < recent_costs[-3]:
+            return "decreasing" 
+        else:
+            return "stable"
 
 
 class PerformanceMonitor:
@@ -338,7 +461,7 @@ class PerformanceMonitor:
                 # Check for alerts
                 alerts = self.alert_manager.check_alerts(self.metrics)
                 
-                # Log alerts (in production, send to alerting system)
+                # Log alerts and send critical alerts to external systems
                 for alert in alerts:
                     severity = alert.get('severity', 'info')
                     message = alert.get('message', 'Unknown alert')
@@ -347,6 +470,8 @@ class PerformanceMonitor:
                     try:
                         if severity == 'critical':
                             current_app.logger.error(f"🚨 ALERT [{alert_type.upper()}]: {message}")
+                            # Send critical cost alerts via email/SMS
+                            self._send_critical_cost_alert(alert)
                         elif severity == 'warning':
                             current_app.logger.warning(f"⚠️ ALERT [{alert_type.upper()}]: {message}")
                         else:
@@ -371,8 +496,32 @@ class PerformanceMonitor:
             "health_summary": self.metrics.get_health_summary(),
             "top_endpoints": self.metrics.get_top_endpoints(),
             "cache_stats": self.metrics.cache_stats,
-            "active_alerts": len(self.alert_manager.active_alerts)
+            "active_alerts": len(self.alert_manager.active_alerts),
+            "cost_trends": self.alert_manager.get_cost_trends()
         }
+    
+    def _send_critical_cost_alert(self, alert: dict):
+        """Send critical cost alerts via external alerting system."""
+        try:
+            from app.alerts import alert_high_firestore_cost, alert_firestore_read_spike
+            
+            alert_type = alert.get('type')
+            cost_details = alert.get('cost_details', {})
+            
+            if alert_type == 'high_daily_cost':
+                alert_high_firestore_cost(
+                    daily_cost=cost_details.get('daily_reads', 0) / 100000 * 0.06,  # Recalculate cost
+                    daily_reads=cost_details.get('daily_reads', 0),
+                    reads_by_collection=cost_details.get('reads_by_collection', {})
+                )
+            elif alert_type == 'read_spike':
+                alert_firestore_read_spike(
+                    hourly_reads=cost_details.get('hourly_reads', 0),
+                    recent_avg=cost_details.get('recent_average', 0),
+                    reads_by_collection=cost_details.get('reads_by_collection', {})
+                )
+        except Exception as e:
+            print(f"Failed to send critical cost alert: {e}")
 
 
 # Global monitor instance

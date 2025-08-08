@@ -224,7 +224,7 @@ class CardService:
             collection = CardCollection()
             
             total_loaded = 0
-            max_cards_per_set = 100  # Limit cards per set to reduce Firebase reads
+            max_cards_per_set = 50  # COST OPTIMIZATION: Reduced from 100 to 50 to cut reads by 50%
             
             for set_name in priority_sets:
                 current_app.logger.info(f"DEBUG SERVICES: Starting to load priority set: '{set_name}'")
@@ -455,7 +455,12 @@ class CardService:
                 limit_msg = f" (limited to {max_cards} cards)" if max_cards else ""
                 current_app.logger.debug(f"Loading card collection from Firestore{limit_msg}... (Emulator: {emulator_host})")
             collection = CardCollection()
-            collection.load_from_firestore(db_client, max_cards=max_cards)
+            # COST OPTIMIZATION: Use priority sets when loading to reduce expensive collection_group queries
+            if max_cards and max_cards <= 1500:  # For limited loads, use priority sets approach
+                priority_sets = CardService.get_dynamic_priority_sets()[:5]  # Top 5 sets only
+                collection.load_from_firestore(db_client, max_cards=max_cards, priority_sets=priority_sets)
+            else:
+                collection.load_from_firestore(db_client, max_cards=max_cards)
             
             if cache_as_full:
                 # Cache as full collection with extended TTL (1 week) for cost savings
@@ -483,7 +488,8 @@ class CardService:
             # Debug info for collection fallback
             if current_app and current_app.debug:
                 print(f"Card {card_id} not found in priority collection. Loading full collection...")
-            full_collection = CardService._load_full_collection(cache_as_full=True)
+            # COST PROTECTION: Use limited collection load for individual card lookup
+            full_collection = CardService._load_full_collection(cache_as_full=True, max_cards=1000)
             card = full_collection.get_card_by_id(card_id)
         
         return card
@@ -515,7 +521,8 @@ class CardService:
         # API loading message only in debug
         if current_app and current_app.debug:
             print("🔄 API request requires full collection. Loading immediately...")
-        full_collection = CardService._load_full_collection(cache_as_full=True)
+        # COST PROTECTION: Limit API-triggered full collection loads 
+        full_collection = CardService._load_full_collection(cache_as_full=True, max_cards=2000)
         return full_collection
     
     @staticmethod
@@ -531,11 +538,11 @@ class CardService:
             if not db_client:
                 return False
             
-            # Load priority collection
+            # Load priority collection with cost optimization
             priority_collection = CardCollection()
-            priority_sets = CardService.get_dynamic_priority_sets()
+            priority_sets = CardService.get_dynamic_priority_sets()[:3]  # COST OPTIMIZATION: Only top 3 sets during refresh
             for set_name in priority_sets:
-                CardService._load_cards_from_set(db_client, priority_collection, set_name, max_cards=50)
+                CardService._load_cards_from_set(db_client, priority_collection, set_name, max_cards=30)  # Reduced from 50 to 30
             
             # Cache priority collection with extended TTL
             cache_manager.set_card_collection(priority_collection, cache_key="global_cards_priority", ttl_hours=168)

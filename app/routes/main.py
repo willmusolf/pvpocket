@@ -511,6 +511,12 @@ def faq():
     return render_template("faq.html")
 
 
+@main_bp.route("/support")
+def support():
+    """Support contact page."""
+    return render_template("support.html")
+
+
 # Redirect old routes to new ones for SEO
 @main_bp.route("/privacy")
 def privacy_redirect():
