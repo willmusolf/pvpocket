@@ -349,6 +349,7 @@ jobs:
         GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
         GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
         TASK_AUTH_TOKEN: ${{ secrets.TASK_AUTH_TOKEN }}
+        ADMIN_EMAILS: ${{ secrets.ADMIN_EMAILS }}
       run: |
         cat > app-test-deploy.yaml << EOF
         runtime: python311
@@ -379,6 +380,7 @@ jobs:
           GOOGLE_OAUTH_CLIENT_ID: '${{ env.GOOGLE_OAUTH_CLIENT_ID }}'
           GOOGLE_OAUTH_CLIENT_SECRET: '${{ env.GOOGLE_OAUTH_CLIENT_SECRET }}'
           TASK_AUTH_TOKEN: '${{ env.TASK_AUTH_TOKEN }}'
+          ADMIN_EMAILS: '${{ env.ADMIN_EMAILS }}'
           USE_FIRESTORE_CACHE: 'false'
           CACHE_TTL_HOURS: '24'
           USER_CACHE_TTL_MINUTES: '30'
@@ -485,6 +487,7 @@ jobs:
         echo "ALERT_EMAIL_PASS=$(gcloud secrets versions access latest --secret=alert-email-pass)" >> $GITHUB_ENV
         echo "ALERT_EMAIL_TO=$(gcloud secrets versions access latest --secret=alert-email-to)" >> $GITHUB_ENV
         echo "ALERT_SMS_TO=$(gcloud secrets versions access latest --secret=alert-sms-to)" >> $GITHUB_ENV
+        echo "ADMIN_EMAILS=$(gcloud secrets versions access latest --secret=admin-emails)" >> $GITHUB_ENV
         
     - name: Create production deployment configuration
       run: |
@@ -522,6 +525,7 @@ jobs:
           ALERT_EMAIL_PASS: '${{ env.ALERT_EMAIL_PASS }}'
           ALERT_EMAIL_TO: '${{ env.ALERT_EMAIL_TO }}'
           ALERT_SMS_TO: '${{ env.ALERT_SMS_TO }}'
+          ADMIN_EMAILS: '${{ env.ADMIN_EMAILS }}'
           USE_FIRESTORE_CACHE: 'false'
           CACHE_TTL_HOURS: '24'
           USER_CACHE_TTL_MINUTES: '30'
