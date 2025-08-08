@@ -33,6 +33,7 @@ def set_deployment_secrets(project_id: str, environment: str = "production"):
         "GOOGLE_OAUTH_CLIENT_ID": "google-oauth-client-id",
         "GOOGLE_OAUTH_CLIENT_SECRET": "google-oauth-client-secret",
         "TASK_AUTH_TOKEN": "task-auth-token",
+        "ADMIN_EMAILS": "admin-emails",  # Admin access control
         # Alert system configuration
         "ALERT_EMAIL_USER": "alert-email-user",
         "ALERT_EMAIL_PASS": "alert-email-pass",

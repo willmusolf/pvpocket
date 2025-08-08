@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+
+{% block title %}Privacy Policy - PvPocket{% endblock %}
+
+{% block extra_css %}
+<style>
+    .legal-content {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+    .section-header {
+        color: var(--bs-primary);
+        margin-top: 2.5rem;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid var(--border-color);
+    }
+    .legal-content h1 {
+        text-align: center;
+        margin-bottom: 2rem;
+        color: var(--text-color);
+    }
+    .last-updated {
+        text-align: center;
+        color: var(--bs-secondary);
+        font-style: italic;
+        margin-bottom: 2rem;
+    }
+    .contact-info {
+        background-color: var(--card-bg);
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        border: 1px solid var(--border-color);
+        margin-top: 2rem;
+    }
+    .highlight-box {
+        background-color: var(--settings-bg);
+        padding: 1rem;
+        border-radius: 0.5rem;
+        border-left: 4px solid var(--bs-primary);
+        margin: 1rem 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="legal-content">
+    <h1>Privacy Policy</h1>
+    <p class="last-updated">Last Updated: January 8, 2025</p>
+    
+    <p>At PvPocket, we are committed to protecting your privacy and ensuring transparency about how we collect, use, and safeguard your personal information. This Privacy Policy explains our practices regarding data collection and usage when you use our Pokemon Trading Card Game (TCG) companion application.</p>
+
+    <h2 class="section-header">1. Information We Collect</h2>
+    
+    <h3>1.1 Account Information</h3>
+    <p>When you create an account with PvPocket, we collect:</p>
+    <ul>
+        <li><strong>Google Account Information:</strong> We use Google OAuth for authentication, collecting your name, email address, and profile picture</li>
+        <li><strong>Username:</strong> You create a unique username for your PvPocket profile</li>
+        <li><strong>Profile Preferences:</strong> Theme settings (dark/light mode) and other customization options</li>
+    </ul>
+
+    <h3>1.2 Game Data</h3>
+    <p>To provide our Pokemon TCG services, we store:</p>
+    <ul>
+        <li><strong>Deck Information:</strong> Custom decks you create, including card selections and deck names</li>
+        <li><strong>Collection Data:</strong> Pokemon cards you've marked as owned or wanted</li>
+        <li><strong>Battle History:</strong> Results from battles with our AI battle simulator</li>
+        <li><strong>Friend Connections:</strong> Your friend list and shared deck access permissions</li>
+        <li><strong>Usage Statistics:</strong> Anonymized data about feature usage and popular deck archetypes</li>
+    </ul>
+
+    <h3>1.3 Technical Information</h3>
+    <p>We automatically collect certain technical information:</p>
+    <ul>
+        <li><strong>Device Information:</strong> Browser type, operating system, screen resolution</li>
+        <li><strong>Usage Analytics:</strong> Pages visited, time spent on features, click patterns</li>
+        <li><strong>Performance Data:</strong> Load times, errors, and app performance metrics</li>
+        <li><strong>IP Address:</strong> For security and analytics purposes</li>
+    </ul>
+
+    <div class="highlight-box">
+        <strong>Pokemon TCG Focus:</strong> PvPocket is specifically designed for Pokemon Trading Card Game enthusiasts. All game data relates to Pokemon cards, deck strategies, and competitive play analysis.
+    </div>
+
+    <h2 class="section-header">2. How We Use Your Information</h2>
+    
+    <h3>2.1 Core App Functionality</h3>
+    <ul>
+        <li>Provide deck building tools and save your custom Pokemon TCG decks</li>
+        <li>Enable battle simulation against AI opponents</li>
+        <li>Track your Pokemon card collection and wishlist</li>
+        <li>Connect you with friends for deck sharing and collaboration</li>
+        <li>Display meta-game statistics and popular deck trends</li>
+    </ul>
+
+    <h3>2.2 Service Improvement</h3>
+    <ul>
+        <li>Analyze usage patterns to improve our Pokemon TCG features</li>
+        <li>Optimize app performance and loading speeds</li>
+        <li>Develop new features based on community needs</li>
+        <li>Provide customer support and troubleshooting</li>
+    </ul>
+
+    <h3>2.3 Communications</h3>
+    <ul>
+        <li>Send important service updates and maintenance notices</li>
+        <li>Notify you about new Pokemon TCG set releases and updates</li>
+        <li>Respond to your support requests and feedback</li>
+        <li>Share Pokemon TCG strategy tips and community highlights (with your consent)</li>
+    </ul>
+
+    <h2 class="section-header">3. Information Sharing and Disclosure</h2>
+    
+    <h3>3.1 With Other Users</h3>
+    <p>Certain information is shared to enable social features:</p>
+    <ul>
+        <li><strong>Public Profile:</strong> Your username and profile picture are visible to other users</li>
+        <li><strong>Shared Decks:</strong> Decks you choose to share publicly or with friends</li>
+        <li><strong>Leaderboards:</strong> Your ranking in battles or tournaments (anonymized or with consent)</li>
+    </ul>
+
+    <h3>3.2 Service Providers</h3>
+    <p>We work with trusted third-party services:</p>
+    <ul>
+        <li><strong>Google Cloud Platform:</strong> For secure hosting and data storage</li>
+        <li><strong>Firebase:</strong> For real-time data sync and authentication</li>
+        <li><strong>Google Analytics:</strong> For anonymized usage analytics (you can opt-out)</li>
+    </ul>
+
+    <h3>3.3 Legal Requirements</h3>
+    <p>We may disclose information when required by law or to:</p>
+    <ul>
+        <li>Protect the safety and security of our users</li>
+        <li>Prevent fraud or abuse of our services</li>
+        <li>Comply with legal processes and law enforcement requests</li>
+        <li>Protect our intellectual property rights</li>
+    </ul>
+
+    <h2 class="section-header">4. Data Security and Storage</h2>
+    
+    <h3>4.1 Security Measures</h3>
+    <p>We implement industry-standard security practices:</p>
+    <ul>
+        <li><strong>Encryption:</strong> All data is encrypted in transit and at rest</li>
+        <li><strong>Access Controls:</strong> Strict limitations on who can access your data</li>
+        <li><strong>Regular Audits:</strong> Periodic security assessments and updates</li>
+        <li><strong>Secure Authentication:</strong> Google OAuth integration with secure token management</li>
+    </ul>
+
+    <h3>4.2 Data Location</h3>
+    <p>Your data is primarily stored on Google Cloud Platform servers in the United States, with automatic backups for data protection and disaster recovery.</p>
+
+    <h2 class="section-header">5. Your Rights and Choices</h2>
+    
+    <h3>5.1 Account Control</h3>
+    <ul>
+        <li><strong>Access:</strong> View all your stored data through your profile settings</li>
+        <li><strong>Update:</strong> Modify your username, preferences, and deck information</li>
+        <li><strong>Delete:</strong> Remove specific decks, clear your collection, or delete your account</li>
+        <li><strong>Export:</strong> Download your deck data in standard formats</li>
+    </ul>
+
+    <h3>5.2 Privacy Settings</h3>
+    <ul>
+        <li>Control who can see your decks (private, friends-only, or public)</li>
+        <li>Opt out of analytics tracking (though this may limit some features)</li>
+        <li>Manage email notification preferences</li>
+        <li>Choose whether to appear in leaderboards or community features</li>
+    </ul>
+
+    <h3>5.3 Data Portability</h3>
+    <p>You can export your Pokemon TCG data at any time, including:</p>
+    <ul>
+        <li>Complete deck lists in various formats (text, JSON, CSV)</li>
+        <li>Collection tracking data</li>
+        <li>Battle history and statistics</li>
+        <li>Account preferences and settings</li>
+    </ul>
+
+    <h2 class="section-header">6. Cookies and Tracking Technologies</h2>
+    
+    <p>PvPocket uses cookies and similar technologies to enhance your experience:</p>
+    
+    <h3>6.1 Essential Cookies</h3>
+    <ul>
+        <li>Authentication tokens to keep you logged in</li>
+        <li>Theme preferences (dark/light mode)</li>
+        <li>Security tokens to prevent fraud</li>
+    </ul>
+
+    <h3>6.2 Performance Cookies</h3>
+    <ul>
+        <li>Analytics to understand how you use our Pokemon TCG features</li>
+        <li>Performance monitoring to optimize loading speeds</li>
+        <li>Error tracking to identify and fix bugs</li>
+    </ul>
+
+    <h3>6.3 Managing Cookies</h3>
+    <p>You can control cookies through your browser settings, though disabling essential cookies may affect app functionality.</p>
+
+    <h2 class="section-header">7. Children's Privacy</h2>
+    
+    <p>While Pokemon TCG is enjoyed by players of all ages, PvPocket is designed for users 13 and older. We do not knowingly collect personal information from children under 13. If you are a parent and believe your child has provided personal information, please contact us immediately.</p>
+
+    <h2 class="section-header">8. International Users</h2>
+    
+    <p>PvPocket is primarily intended for users in the United States. If you access our service from other countries, your data may be transferred to and processed in the United States, which may have different data protection laws than your country.</p>
+
+    <h2 class="section-header">9. Changes to This Privacy Policy</h2>
+    
+    <p>We may update this Privacy Policy periodically to reflect changes in our practices or legal requirements. We will notify you of significant changes through:</p>
+    <ul>
+        <li>Email notifications to registered users</li>
+        <li>Prominent notices on our homepage</li>
+        <li>In-app notifications when you next log in</li>
+    </ul>
+    
+    <p>Continued use of PvPocket after changes indicates your acceptance of the updated Privacy Policy.</p>
+
+    <h2 class="section-header">10. Third-Party Services</h2>
+    
+    <h3>10.1 Pokemon Company Integration</h3>
+    <p>PvPocket uses publicly available Pokemon TCG card data and images for educational and competitive analysis purposes. We are not affiliated with or endorsed by The Pokemon Company, Nintendo, Game Freak, or Creatures Inc.</p>
+
+    <h3>10.2 External Links</h3>
+    <p>Our app may contain links to Pokemon TCG resources, tournament sites, or card databases. These external sites have their own privacy policies, and we are not responsible for their practices.</p>
+
+    <div class="contact-info">
+        <h2 class="section-header" style="margin-top: 0;">11. Contact Us</h2>
+        
+        <p>If you have questions about this Privacy Policy or our data practices, please contact us:</p>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <strong>General Inquiries:</strong><br>
+                Email: privacy@pvpocket.xyz<br>
+                Response Time: 2-3 business days
+            </div>
+            <div class="col-md-6">
+                <strong>Data Protection Officer:</strong><br>
+                Email: dpo@pvpocket.xyz<br>
+                For GDPR/CCPA requests
+            </div>
+        </div>
+        
+        <p class="mt-3">
+            <strong>Mailing Address:</strong><br>
+            PvPocket Privacy Team<br>
+            [Your Company Address]<br>
+            [City, State, ZIP Code]
+        </p>
+        
+        <div class="highlight-box">
+            <strong>For Pokemon TCG Questions:</strong> If you have questions about Pokemon cards, deck strategies, or game rules, please visit our FAQ section or use our in-app help features.
+        </div>
+    </div>
+
+    <h2 class="section-header">12. Legal Basis for Processing (GDPR)</h2>
+    
+    <p>For users in the European Union, we process your personal data based on:</p>
+    <ul>
+        <li><strong>Consent:</strong> When you agree to use our services and create an account</li>
+        <li><strong>Contract Performance:</strong> To provide the Pokemon TCG features you've requested</li>
+        <li><strong>Legitimate Interest:</strong> To improve our services and prevent fraud</li>
+        <li><strong>Legal Obligation:</strong> When required by law or regulation</li>
+    </ul>
+
+    <p class="mt-4 text-center">
+        <small class="text-muted">
+            This Privacy Policy is effective as of January 8, 2025, and applies to all users of PvPocket.<br>
+            Pokemon and all related characters are trademarks of The Pokemon Company.
+        </small>
+    </p>
+</div>
+{% endblock %}
