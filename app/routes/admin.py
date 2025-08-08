@@ -19,13 +19,15 @@ def admin_required(f):
     @wraps(f)
     @login_required
     def decorated_function(*args, **kwargs):
-        # Check for admin users
-        admin_emails = ["willmusolf@gmail.com"]  # Your admin email
-        
-        # Add any additional admin emails from environment
+        # Get admin emails from environment variable
         env_admins = os.environ.get("ADMIN_EMAILS", "")
-        if env_admins:
-            admin_emails.extend(env_admins.split(","))
+        if not env_admins:
+            # No admins configured - deny all access
+            from flask import abort
+            abort(404)
+        
+        # Parse comma-separated admin emails
+        admin_emails = [email.strip() for email in env_admins.split(",") if email.strip()]
         
         # Check if current user is admin
         if not hasattr(current_user, 'email') or current_user.email not in admin_emails:

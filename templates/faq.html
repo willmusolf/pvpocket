@@ -1,0 +1,738 @@
+{% extends "base.html" %}
+
+{% block title %}Frequently Asked Questions - PvPocket{% endblock %}
+
+{% block meta_description %}Get answers to common questions about PvPocket, the Pokemon TCG companion app. Learn about deck building, battle simulation, collection tracking, and more.{% endblock %}
+
+{% block meta_keywords %}PvPocket FAQ, Pokemon TCG help, deck builder questions, battle simulator guide, Pokemon card collection help, TCG app support{% endblock %}
+
+{% block extra_css %}
+<style>
+    .faq-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+    .faq-hero {
+        text-align: center;
+        margin-bottom: 3rem;
+        padding: 3rem 0;
+        background: linear-gradient(135deg, rgba(13, 110, 253, 0.1), rgba(25, 135, 84, 0.1));
+        border-radius: 1rem;
+    }
+    .faq-category {
+        margin-bottom: 3rem;
+    }
+    .category-header {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        text-align: center;
+    }
+    .category-icon {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+    }
+    .faq-item {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    .faq-item:hover {
+        border-color: var(--bs-primary);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .faq-question {
+        background: var(--settings-bg);
+        padding: 1.25rem;
+        margin: 0;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        width: 100%;
+        text-align: left;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: var(--text-color);
+        transition: background-color 0.3s ease;
+    }
+    .faq-question:hover {
+        background: var(--border-color);
+    }
+    .faq-answer {
+        padding: 1.25rem;
+        border-top: 1px solid var(--border-color);
+        display: none;
+    }
+    .faq-answer.show {
+        display: block;
+        animation: fadeIn 0.3s ease-in-out;
+    }
+    .faq-icon {
+        transition: transform 0.3s ease;
+    }
+    .faq-icon.rotate {
+        transform: rotate(180deg);
+    }
+    .highlight-box {
+        background: linear-gradient(135deg, rgba(13, 110, 253, 0.1), rgba(25, 135, 84, 0.1));
+        border-left: 4px solid var(--bs-primary);
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        margin: 1.5rem 0;
+    }
+    .quick-links {
+        background: var(--settings-bg);
+        padding: 2rem;
+        border-radius: 1rem;
+        margin-bottom: 3rem;
+    }
+    .quick-link-item {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        border-radius: 0.5rem;
+        color: var(--text-color);
+        text-decoration: none;
+        transition: all 0.3s ease;
+    }
+    .quick-link-item:hover {
+        background: var(--card-bg);
+        color: var(--bs-primary);
+        transform: translateX(10px);
+    }
+    .search-box {
+        margin-bottom: 2rem;
+        position: relative;
+    }
+    .search-box input {
+        padding-right: 3rem;
+    }
+    .search-icon {
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--bs-secondary);
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="faq-container">
+    <!-- Hero Section -->
+    <div class="faq-hero">
+        <h1 class="display-5 mb-3">Frequently Asked Questions</h1>
+        <p class="lead">Everything you need to know about PvPocket and Pokemon TCG</p>
+    </div>
+
+    <!-- Search Box -->
+    <div class="search-box">
+        <input type="text" class="form-control form-control-lg" id="faqSearch" placeholder="Search for answers...">
+        <i class="fas fa-search search-icon"></i>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="quick-links">
+        <h4 class="mb-3"><i class="fas fa-rocket me-2 text-primary"></i>Quick Navigation</h4>
+        <div class="row">
+            <div class="col-md-6">
+                <a href="#getting-started" class="quick-link-item">
+                    <i class="fas fa-play-circle me-2 text-success"></i>
+                    Getting Started
+                </a>
+                <a href="#deck-building" class="quick-link-item">
+                    <i class="fas fa-layer-group me-2 text-primary"></i>
+                    Deck Building
+                </a>
+                <a href="#battle-simulator" class="quick-link-item">
+                    <i class="fas fa-gamepad me-2 text-warning"></i>
+                    Battle Simulator
+                </a>
+            </div>
+            <div class="col-md-6">
+                <a href="#collection" class="quick-link-item">
+                    <i class="fas fa-archive me-2 text-info"></i>
+                    Collection Tracking
+                </a>
+                <a href="#technical" class="quick-link-item">
+                    <i class="fas fa-cog me-2 text-secondary"></i>
+                    Technical Issues
+                </a>
+                <a href="#account" class="quick-link-item">
+                    <i class="fas fa-user me-2 text-danger"></i>
+                    Account & Privacy
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Getting Started -->
+    <div class="faq-category" id="getting-started">
+        <div class="category-header">
+            <div class="category-icon text-success">
+                <i class="fas fa-play-circle"></i>
+            </div>
+            <h3>Getting Started</h3>
+            <p class="text-muted mb-0">New to PvPocket? Start here to learn the basics.</p>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" type="button">
+                What is PvPocket and how does it help Pokemon TCG players?
+                <i class="fas fa-chevron-down faq-icon"></i>
+            </button>
+            <div class="faq-answer">
+                <p>PvPocket is a comprehensive companion app for Pokemon Trading Card Game players. It helps you:</p>
+                <ul>
+                    <li><strong>Build and test decks</strong> with our 20-card format builder</li>
+                    <li><strong>Track your collection</strong> of Pokemon cards with detailed inventory management</li>
+                    <li><strong>Simulate battles</strong> against AI opponents to refine your strategies</li>
+                    <li><strong>Analyze the meta-game</strong> with real-time tournament data and trends</li>
+                    <li><strong>Connect with friends</strong> to share decks and collaborate on strategies</li>
+                </ul>
+                <p>Whether you're a casual player or a competitive tournament participant, PvPocket provides tools to improve your game.</p>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" type="button">
+                How do I create an account?
+                <i class="fas fa-chevron-down faq-icon"></i>
+            </button>
+            <div class="faq-answer">
+                <p>Creating an account is simple and secure:</p>
+                <ol>
+                    <li>Click the "Login" button in the top right corner</li>
+                    <li>Choose "Sign in with Google" (we use Google OAuth for security)</li>
+                    <li>Authorize PvPocket to access your basic Google account info</li>
+                    <li>Choose a unique username for your profile</li>
+                    <li>Start building decks and tracking your collection!</li>
+                </ol>
+                <div class="highlight-box">
+                    <strong>Why Google OAuth?</strong> We use Google's authentication system so you don't need to create another password to remember. Your Google credentials are never stored on our servers.
+                </div>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" type="button">
+                Is PvPocket free to use?
+                <i class="fas fa-chevron-down faq-icon"></i>
+            </button>
+            <div class="faq-answer">
+                <p>Yes! PvPocket is completely free to use with all core features available at no cost:</p>
+                <ul>
+                    <li>Unlimited deck building and storage</li>
+                    <li>Complete Pokemon TCG card database access</li>
+                    <li>AI battle simulation</li>
+                    <li>Collection tracking and wishlist management</li>
+                    <li>Social features and deck sharing</li>
+                    <li>Meta-game analytics and statistics</li>
+                </ul>
+                <p>We believe in keeping Pokemon TCG tools accessible to all players. The app is supported by minimal, non-intrusive advertising.</p>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" type="button">
+                Do I need to own physical Pokemon cards to use PvPocket?
+                <i class="fas fa-chevron-down faq-icon"></i>
+            </button>
+            <div class="faq-answer">
+                <p>Not at all! PvPocket is designed for both digital and physical Pokemon TCG play:</p>
+                <ul>
+                    <li><strong>Theory-crafting:</strong> Test deck ideas before investing in physical cards</li>
+                    <li><strong>Strategy development:</strong> Practice battles and refine your gameplay</li>
+                    <li><strong>Meta analysis:</strong> Study popular decks and trends</li>
+                    <li><strong>Collection planning:</strong> Track which cards you want to acquire</li>
+                </ul>
+                <p>Many players use PvPocket to perfect their strategies digitally before building physical decks for tournaments.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Deck Building -->
+    <div class="faq-category" id="deck-building">
+        <div class="category-header">
+            <div class="category-icon text-primary">
+                <i class="fas fa-layer-group"></i>
+            </div>
+            <h3>Deck Building</h3>
+            <p class="text-muted mb-0">Master the art of Pokemon TCG deck construction.</p>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" type="button">
+                What is the 20-card format and how does it work?
+                <i class="fas fa-chevron-down faq-icon"></i>
+            </button>
+            <div class="faq-answer">
+                <p>PvPocket uses a streamlined 20-card format designed specifically for digital testing and quick battles:</p>
+                <ul>
+                    <li><strong>20 cards total:</strong> More focused than traditional 60-card decks</li>
+                    <li><strong>2-copy limit:</strong> Maximum of 2 copies of any single card (by name)</li>
+                    <li><strong>Basic Pokemon required:</strong> Must include at least 3 Basic Pokemon</li>
+                    <li><strong>Energy optimization:</strong> Automatic energy curve analysis</li>
+                </ul>
+                <p>This format maintains Pokemon TCG strategy depth while enabling faster testing and iteration. It's perfect for developing core deck concepts that can later be expanded to full 60-card tournament decks.</p>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" type="button">
+                How do I build my first deck?
+                <i class="fas fa-chevron-down faq-icon"></i>
+            </button>
+            <div class="faq-answer">
+                <p>Building your first deck is easy with our guided process:</p>
+                <ol>
+                    <li><strong>Go to Deck Builder:</strong> Click "Build Deck" from the main menu</li>
+                    <li><strong>Choose a strategy:</strong> Start with a Basic Pokemon you want to focus on</li>
+                    <li><strong>Add Pokemon:</strong> Include 3-6 Basic Pokemon and their evolutions</li>
+                    <li><strong>Add Trainer cards:</strong> Include draw support, search cards, and utility trainers</li>
+                    <li><strong>Add Energy:</strong> Usually 6-8 energy cards matching your Pokemon's types</li>
+                    <li><strong>Test and refine:</strong> Use the battle simulator to test your deck</li>
+                </ol>
+                <p>Our deck builder shows real-time validation and suggestions to help you create a balanced deck.</p>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" type="button">
+                Can I import decks from other sources or export my decks?
+                <i class="fas fa-chevron-down faq-icon"></i>
+            </button>
+            <div class="faq-answer">
+                <p>Yes! PvPocket supports various import/export options:</p>
+                <ul>
+                    <li><strong>Export formats:</strong> Text list, JSON data, CSV spreadsheet</li>
+                    <li><strong>Import sources:</strong> Text deck lists, other Pokemon TCG tools</li>
+                    <li><strong>Sharing:</strong> Direct deck sharing with other PvPocket users</li>
+                    <li><strong>Backup:</strong> Download all your decks for safekeeping</li>
+                </ul>
+                <p>This makes it easy to move between PvPocket and other Pokemon TCG platforms or share decks with friends who use different tools.</p>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" type="button">
+                What makes a good Pokemon TCG deck?
+                <i class="fas fa-chevron-down faq-icon"></i>
+            </button>
+            <div class="faq-answer">
+                <p>A strong Pokemon TCG deck typically includes:</p>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-primary">Pokemon (8-12 cards):</h6>
+                        <ul>
+                            <li>3-4 Basic Pokemon as attackers</li>
+                            <li>Evolution chains for your main strategy</li>
+                            <li>Support Pokemon with useful abilities</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-success">Trainer Cards (6-10 cards):</h6>
+                        <ul>
+                            <li>Draw support (Professor's Research, etc.)</li>
+                            <li>Search cards (Ultra Ball, etc.)</li>
+                            <li>Utility trainers for your strategy</li>
+                        </ul>
+                    </div>
+                </div>
+                <p><strong>Energy (6-8 cards):</strong> Match your Pokemon's energy requirements, usually focusing on 1-2 types.</p>
+                <div class="highlight-box">
+                    <strong>Pro Tip:</strong> Use our deck analyzer to check your energy curve and ensure you have the right balance of Pokemon, Trainers, and Energy.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Battle Simulator -->
+    <div class="faq-category" id="battle-simulator">
+        <div class="category-header">
+            <div class="category-icon text-warning">
+                <i class="fas fa-gamepad"></i>
+            </div>
+            <h3>Battle Simulator</h3>
+            <p class="text-muted mb-0">Test your decks against intelligent AI opponents.</p>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" type="button">
+                How does the AI battle simulator work?
+                <i class="fas fa-chevron-down faq-icon"></i>
+            </button>
+            <div class="faq-answer">
+                <p>Our AI battle simulator recreates Pokemon TCG gameplay with sophisticated decision-making:</p>
+                <ul>
+                    <li><strong>Rule accuracy:</strong> Follows official Pokemon TCG rules and card interactions</li>
+                    <li><strong>Strategic AI:</strong> Makes intelligent decisions about attacks, abilities, and resource management</li>
+                    <li><strong>Multiple difficulties:</strong> From beginner-friendly to tournament-level competition</li>
+                    <li><strong>Realistic scenarios:</strong> Simulates common game states and situations</li>
+                </ul>
+                <p>The AI analyzes board state, card advantage, damage potential, and long-term strategy to provide challenging, realistic battles that help you improve your gameplay skills.</p>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" type="button">
+                Can I battle against specific deck archetypes?
+                <i class="fas fa-chevron-down faq-icon"></i>
+            </button>
+            <div class="faq-answer">
+                <p>Yes! You can test against popular meta decks and archetypes:</p>
+                <ul>
+                    <li><strong>Meta decks:</strong> Battle against current tournament-winning strategies</li>
+                    <li><strong>Archetype testing:</strong> Face different play styles (aggro, control, combo)</li>
+                    <li><strong>Custom opponents:</strong> Battle against specific decks shared by other users</li>
+                    <li><strong>Historical meta:</strong> Test against past format champions</li>
+                </ul>
+                <p>This helps you understand how your deck performs against the current competitive landscape and identify areas for improvement.</p>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" type="button">
+                What information do I get from battle results?
+                <i class="fas fa-chevron-down faq-icon"></i>
+            </button>
+            <div class="faq-answer">
+                <p>Battle analytics provide detailed insights into your deck's performance:</p>
+                <ul>
+                    <li><strong>Win/loss tracking:</strong> Success rates against different opponents</li>
+                    <li><strong>Turn analysis:</strong> Average game length and key turning points</li>
+                    <li><strong>Card usage:</strong> Which cards perform best in different situations</li>
+                    <li><strong>Energy efficiency:</strong> How well your energy curve supports your strategy</li>
+                    <li><strong>Weakness identification:</strong> Common scenarios where your deck struggles</li>
+                </ul>
+                <p>Use this data to refine your deck, adjust your strategy, and improve your understanding of Pokemon TCG gameplay.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Collection Management -->
+    <div class="faq-category" id="collection">
+        <div class="category-header">
+            <div class="category-icon text-info">
+                <i class="fas fa-archive"></i>
+            </div>
+            <h3>Collection Tracking</h3>
+            <p class="text-muted mb-0">Organize and manage your Pokemon card collection.</p>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" type="button">
+                How do I track my Pokemon card collection?
+                <i class="fas fa-chevron-down faq-icon"></i>
+            </button>
+            <div class="faq-answer">
+                <p>PvPocket makes collection management simple and comprehensive:</p>
+                <ol>
+                    <li><strong>Browse cards:</strong> Use our complete database with search and filters</li>
+                    <li><strong>Mark ownership:</strong> Click cards to add them to your collection</li>
+                    <li><strong>Track quantities:</strong> Specify how many copies of each card you own</li>
+                    <li><strong>Note conditions:</strong> Track card condition for trading and value purposes</li>
+                    <li><strong>Create wishlists:</strong> Mark cards you want to acquire</li>
+                </ol>
+                <p>Your collection data helps with deck building by showing which cards you already own and suggesting alternatives.</p>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" type="button">
+                Can I track card values and market trends?
+                <i class="fas fa-chevron-down faq-icon"></i>
+            </button>
+            <div class="faq-answer">
+                <p>Yes! PvPocket includes market data and value tracking:</p>
+                <ul>
+                    <li><strong>Current prices:</strong> Real-time market values from major card retailers</li>
+                    <li><strong>Price history:</strong> Track how card values change over time</li>
+                    <li><strong>Collection value:</strong> Estimated total value of your collection</li>
+                    <li><strong>Investment tracking:</strong> See which cards are increasing in value</li>
+                    <li><strong>Trade planning:</strong> Identify good trade opportunities</li>
+                </ul>
+                <p>This information helps collectors make informed decisions about buying, selling, and trading Pokemon cards.</p>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" type="button">
+                How do I share my collection with friends?
+                <i class="fas fa-chevron-down faq-icon"></i>
+            </button>
+            <div class="faq-answer">
+                <p>Collection sharing enables collaboration and trading:</p>
+                <ul>
+                    <li><strong>Public profile:</strong> Make your collection visible to other users</li>
+                    <li><strong>Trade lists:</strong> Share cards you're willing to trade</li>
+                    <li><strong>Want lists:</strong> Let others know what you're looking for</li>
+                    <li><strong>Friend connections:</strong> Connect with other collectors</li>
+                    <li><strong>Export options:</strong> Generate trade binders and collection reports</li>
+                </ul>
+                <p>Privacy controls let you choose exactly what information to share and with whom.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Technical Issues -->
+    <div class="faq-category" id="technical">
+        <div class="category-header">
+            <div class="category-icon text-secondary">
+                <i class="fas fa-cog"></i>
+            </div>
+            <h3>Technical Support</h3>
+            <p class="text-muted mb-0">Troubleshooting and technical assistance.</p>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" type="button">
+                Why is PvPocket running slowly or not loading properly?
+                <i class="fas fa-chevron-down faq-icon"></i>
+            </button>
+            <div class="faq-answer">
+                <p>Performance issues can usually be resolved with these steps:</p>
+                <ol>
+                    <li><strong>Clear browser cache:</strong> Refresh cached files (Ctrl+F5 or Cmd+Shift+R)</li>
+                    <li><strong>Check internet connection:</strong> Ensure you have a stable connection</li>
+                    <li><strong>Update your browser:</strong> Use the latest version of Chrome, Firefox, Safari, or Edge</li>
+                    <li><strong>Disable browser extensions:</strong> Ad blockers or extensions might interfere</li>
+                    <li><strong>Try incognito/private mode:</strong> Test if the issue persists in private browsing</li>
+                </ol>
+                <p>If problems continue, please contact our support team with details about your browser and operating system.</p>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" type="button">
+                Does PvPocket work on mobile devices?
+                <i class="fas fa-chevron-down faq-icon"></i>
+            </button>
+            <div class="faq-answer">
+                <p>Yes! PvPocket is fully responsive and optimized for mobile use:</p>
+                <ul>
+                    <li><strong>Mobile browsers:</strong> Works on iOS Safari, Android Chrome, and other mobile browsers</li>
+                    <li><strong>Touch interface:</strong> Optimized touch controls for deck building and battles</li>
+                    <li><strong>Responsive design:</strong> Adapts to different screen sizes and orientations</li>
+                    <li><strong>Offline features:</strong> Some functionality works without an internet connection</li>
+                </ul>
+                <p>For the best mobile experience, we recommend adding PvPocket to your home screen as a Progressive Web App (PWA).</p>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" type="button">
+                My deck or collection data seems to be missing. What should I do?
+                <i class="fas fa-chevron-down faq-icon"></i>
+            </button>
+            <div class="faq-answer">
+                <p>Don't worry! Your data is safely backed up. Try these recovery steps:</p>
+                <ol>
+                    <li><strong>Refresh the page:</strong> Sometimes data loads after a refresh</li>
+                    <li><strong>Check your login:</strong> Ensure you're signed in to the correct Google account</li>
+                    <li><strong>Clear browser cache:</strong> Old cached data might be interfering</li>
+                    <li><strong>Wait a moment:</strong> Large collections might take time to load</li>
+                    <li><strong>Contact support:</strong> We can restore data from our backups if needed</li>
+                </ol>
+                <div class="highlight-box">
+                    <strong>Automatic Backups:</strong> PvPocket automatically backs up your data every 24 hours, so your progress is always protected.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Account and Privacy -->
+    <div class="faq-category" id="account">
+        <div class="category-header">
+            <div class="category-icon text-danger">
+                <i class="fas fa-user"></i>
+            </div>
+            <h3>Account & Privacy</h3>
+            <p class="text-muted mb-0">Your account security and privacy questions.</p>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" type="button">
+                What information does PvPocket collect and store?
+                <i class="fas fa-chevron-down faq-icon"></i>
+            </button>
+            <div class="faq-answer">
+                <p>PvPocket collects only the information necessary to provide our Pokemon TCG services:</p>
+                <ul>
+                    <li><strong>Google account info:</strong> Name, email, and profile picture (via OAuth)</li>
+                    <li><strong>Game data:</strong> Your decks, collection, battle history, and preferences</li>
+                    <li><strong>Usage analytics:</strong> Anonymized data about feature usage and performance</li>
+                    <li><strong>Technical data:</strong> Browser type, device info for optimization</li>
+                </ul>
+                <p>We never sell your data, and we use industry-standard encryption to protect your information. See our <a href="{{ url_for('main.privacy_policy') }}">Privacy Policy</a> for complete details.</p>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" type="button">
+                How do I change my username or profile information?
+                <i class="fas fa-chevron-down faq-icon"></i>
+            </button>
+            <div class="faq-answer">
+                <p>Updating your profile is easy:</p>
+                <ol>
+                    <li><strong>Go to Profile:</strong> Click your username in the top right corner</li>
+                    <li><strong>Edit information:</strong> Update your username, bio, or preferences</li>
+                    <li><strong>Choose profile icon:</strong> Select from our collection of Pokemon-themed icons</li>
+                    <li><strong>Privacy settings:</strong> Control who can see your decks and collection</li>
+                    <li><strong>Save changes:</strong> Your updates are saved automatically</li>
+                </ol>
+                <p>Your Google account information (name, email) comes from Google and can only be changed in your Google account settings.</p>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" type="button">
+                How do I delete my account and data?
+                <i class="fas fa-chevron-down faq-icon"></i>
+            </button>
+            <div class="faq-answer">
+                <p>You have full control over your data and can delete your account at any time:</p>
+                <ol>
+                    <li><strong>Export your data:</strong> Download your decks and collection data first (optional)</li>
+                    <li><strong>Go to Profile settings:</strong> Find the account deletion option</li>
+                    <li><strong>Confirm deletion:</strong> Follow the confirmation process</li>
+                    <li><strong>Data removal:</strong> All your data is permanently deleted within 30 days</li>
+                </ol>
+                <div class="highlight-box">
+                    <strong>Important:</strong> Account deletion is permanent and cannot be undone. Make sure to export any data you want to keep before deleting your account.
+                </div>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <button class="faq-question" type="button">
+                Can I use PvPocket without creating an account?
+                <i class="fas fa-chevron-down faq-icon"></i>
+            </button>
+            <div class="faq-answer">
+                <p>Limited functionality is available without an account:</p>
+                <ul>
+                    <li><strong>Browse cards:</strong> View the complete Pokemon TCG database</li>
+                    <li><strong>View public decks:</strong> See decks shared by other users</li>
+                    <li><strong>Read meta analysis:</strong> Access competitive statistics and trends</li>
+                    <li><strong>Use tools:</strong> Access calculators and reference materials</li>
+                </ul>
+                <p>However, to build decks, track your collection, save battles, and use social features, you'll need to create a free account with Google OAuth.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact Section -->
+    <div class="highlight-box text-center mt-5">
+        <h4 class="mb-3"><i class="fas fa-question-circle me-2 text-primary"></i>Still Have Questions?</h4>
+        <p class="mb-4">Can't find what you're looking for? Our support team is here to help!</p>
+        <div class="row justify-content-center">
+            <div class="col-md-4 mb-3">
+                <a href="mailto:support@pvpocket.xyz" class="btn btn-primary btn-lg w-100">
+                    <i class="fas fa-envelope me-2"></i>Email Support
+                </a>
+            </div>
+            <div class="col-md-4 mb-3">
+                <a href="#" class="btn btn-outline-primary btn-lg w-100">
+                    <i class="fab fa-discord me-2"></i>Join Discord
+                </a>
+            </div>
+            <div class="col-md-4 mb-3">
+                <a href="{{ url_for('main.about') }}" class="btn btn-outline-secondary btn-lg w-100">
+                    <i class="fas fa-info-circle me-2"></i>About PvPocket
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // FAQ Toggle Functionality
+    const faqQuestions = document.querySelectorAll('.faq-question');
+    
+    faqQuestions.forEach(question => {
+        question.addEventListener('click', function() {
+            const answer = this.nextElementSibling;
+            const icon = this.querySelector('.faq-icon');
+            
+            // Toggle this FAQ
+            if (answer.classList.contains('show')) {
+                answer.classList.remove('show');
+                icon.classList.remove('rotate');
+            } else {
+                answer.classList.add('show');
+                icon.classList.add('rotate');
+            }
+        });
+    });
+    
+    // Search Functionality
+    const searchInput = document.getElementById('faqSearch');
+    const faqItems = document.querySelectorAll('.faq-item');
+    
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        
+        faqItems.forEach(item => {
+            const question = item.querySelector('.faq-question').textContent.toLowerCase();
+            const answer = item.querySelector('.faq-answer').textContent.toLowerCase();
+            
+            if (question.includes(searchTerm) || answer.includes(searchTerm)) {
+                item.style.display = 'block';
+                
+                // If searching, open the matching FAQ
+                if (searchTerm && (question.includes(searchTerm) || answer.includes(searchTerm))) {
+                    const answerDiv = item.querySelector('.faq-answer');
+                    const icon = item.querySelector('.faq-icon');
+                    answerDiv.classList.add('show');
+                    icon.classList.add('rotate');
+                }
+            } else {
+                item.style.display = 'none';
+            }
+        });
+        
+        // If search is cleared, close all FAQs
+        if (!searchTerm) {
+            document.querySelectorAll('.faq-answer.show').forEach(answer => {
+                answer.classList.remove('show');
+            });
+            document.querySelectorAll('.faq-icon.rotate').forEach(icon => {
+                icon.classList.remove('rotate');
+            });
+        }
+    });
+    
+    // Smooth scroll for quick links
+    document.querySelectorAll('.quick-link-item[href^="#"]').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

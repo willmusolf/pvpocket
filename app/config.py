@@ -4,7 +4,10 @@ from datetime import timedelta
 class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY")
     REFRESH_SECRET_KEY = os.environ.get("REFRESH_SECRET_KEY")
-    TASK_AUTH_TOKEN = os.environ.get("TASK_AUTH_TOKEN", "dev-token-change-in-production")
+    # Critical: Must be set in production environment
+    TASK_AUTH_TOKEN = os.environ.get("TASK_AUTH_TOKEN")
+    if not TASK_AUTH_TOKEN and os.environ.get("FLASK_ENV") == "production":
+        raise ValueError("TASK_AUTH_TOKEN must be set in production environment")
 
     GOOGLE_OAUTH_CLIENT_ID = os.environ.get("GOOGLE_OAUTH_CLIENT_ID")
     GOOGLE_OAUTH_CLIENT_SECRET = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET")

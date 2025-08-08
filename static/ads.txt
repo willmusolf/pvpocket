@@ -1,0 +1,11 @@
+google.com, pub-6306891304675674, DIRECT, f08c47fec0942fa0
+
+# This file contains advertising system identifiers for PvPocket
+# Publisher ID: pub-6306891304675674
+# Customer ID: 3097901804
+
+# Format: <advertising-system>, <publisher-id>, <account-type>, <certification-authority-id>
+# advertising-system: The domain name of the advertising system
+# publisher-id: Your publisher ID from the advertising system  
+# account-type: DIRECT (direct relationship) or RESELLER (reseller relationship)
+# certification-authority-id: An ID that uniquely identifies the advertising system

@@ -449,3 +449,84 @@ def dashboard_recent_decks():
         current_app.logger.error(f"Error getting recent decks: {e}")
         return jsonify({"error": "Internal server error"}), 500
 
+
+# Legal and informational pages for Google Ads approval
+@main_bp.route("/about")
+def about():
+    """About page with substantial Pokemon TCG content."""
+    db = current_app.config.get("FIRESTORE_DB")
+    
+    # Get stats for the about page
+    total_users = 0
+    total_decks = 0
+    total_battles = 0
+    
+    if db:
+        try:
+            # Get user count
+            users_query = db.collection("users").select([]).stream()
+            total_users = len(list(users_query))
+            
+            # Get deck count
+            decks_query = db.collection("decks").select([]).stream()
+            total_decks = len(list(decks_query))
+            
+            # Get battle count (if we have it stored)
+            try:
+                meta_doc = db.collection("internal_config").document("meta_stats").get()
+                if meta_doc.exists:
+                    meta_stats = meta_doc.to_dict()
+                    total_battles = sum(deck_stats.get("total_battles", 0) 
+                                      for deck_stats in meta_stats.get("decks", {}).values())
+            except Exception as e:
+                current_app.logger.error(f"Error getting battle count: {e}")
+                total_battles = 0
+                
+        except Exception as e:
+            current_app.logger.error(f"Error getting stats for about page: {e}")
+    
+    return render_template(
+        "about.html",
+        total_users=total_users,
+        total_decks=total_decks,
+        total_battles=total_battles
+    )
+
+
+@main_bp.route("/privacy-policy")
+def privacy_policy():
+    """Privacy Policy page for legal compliance."""
+    return render_template("privacy_policy.html")
+
+
+@main_bp.route("/terms-of-service")
+def terms_of_service():
+    """Terms of Service page for legal compliance."""
+    return render_template("terms_of_service.html")
+
+
+@main_bp.route("/faq")
+def faq():
+    """Frequently Asked Questions page."""
+    return render_template("faq.html")
+
+
+# Redirect old routes to new ones for SEO
+@main_bp.route("/privacy")
+def privacy_redirect():
+    """Redirect old privacy URL to new one."""
+    return redirect(url_for("main.privacy_policy"), code=301)
+
+
+@main_bp.route("/terms")
+def terms_redirect():
+    """Redirect old terms URL to new one.""" 
+    return redirect(url_for("main.terms_of_service"), code=301)
+
+
+# Add alias for main index route
+@main_bp.route("/home")
+def main_index():
+    """Alias for the main index page."""
+    return redirect(url_for("main.index"), code=301)
+
