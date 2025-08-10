@@ -119,7 +119,7 @@
         <h2 class="h4 mb-3">Contact Support</h2>
         <p class="text-muted mb-4">Have a question or issue? Send us a message and we'll get back to you within 24-48 hours.</p>
         
-        <form action="https://formspree.io/f/YOUR_FORM_ID" method="POST">
+        <form id="supportForm" method="POST">
             <div class="form-group">
                 <label for="name" class="form-label">Name</label>
                 <input type="text" class="form-control" id="name" name="name" required>
@@ -149,7 +149,10 @@
                 <textarea class="form-control" id="message" name="message" rows="5" placeholder="Please describe your question or issue in detail..." required></textarea>
             </div>
             
-            <button type="submit" class="btn btn-primary">Send Message</button>
+            <button type="submit" class="btn btn-primary" id="submitBtn">
+                <span id="btnText">Send Message</span>
+                <span id="btnSpinner" class="spinner-border spinner-border-sm ms-2" style="display: none;"></span>
+            </button>
         </form>
     </div>
 
@@ -157,7 +160,76 @@
     <div class="support-info">
         <h3 class="h5 mb-3">Other Ways to Get Help</h3>
         <p class="mb-2"><strong>FAQ:</strong> Check our <a href="{{ url_for('main.faq') }}">Frequently Asked Questions</a> for quick answers.</p>
+        <div id="successMessage" class="alert alert-success" style="display: none;">
+            <i class="fas fa-check-circle me-2"></i>Thank you for your message! We'll get back to you soon.
+        </div>
+        <div id="errorMessage" class="alert alert-danger" style="display: none;">
+            <i class="fas fa-exclamation-circle me-2"></i>There was an error sending your message. Please try again.
+        </div>
         <p class="mb-0"><small class="text-muted">We typically respond to support requests within 24-48 hours during business days.</small></p>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('supportForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const btnText = document.getElementById('btnText');
+    const btnSpinner = document.getElementById('btnSpinner');
+    const successMessage = document.getElementById('successMessage');
+    const errorMessage = document.getElementById('errorMessage');
+    
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        // Show loading state
+        submitBtn.disabled = true;
+        btnText.textContent = 'Sending...';
+        btnSpinner.style.display = 'inline-block';
+        
+        // Hide previous messages
+        successMessage.style.display = 'none';
+        errorMessage.style.display = 'none';
+        
+        // Get form data
+        const formData = new FormData(form);
+        const data = {
+            name: formData.get('name'),
+            email: formData.get('email'),
+            subject: formData.get('subject'),
+            message: formData.get('message')
+        };
+        
+        try {
+            const response = await fetch('/api/support', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            });
+            
+            if (response.ok) {
+                successMessage.style.display = 'block';
+                form.reset();
+                // Scroll to success message
+                successMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else {
+                throw new Error('Failed to send message');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            errorMessage.style.display = 'block';
+            errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } finally {
+            // Reset button state
+            submitBtn.disabled = false;
+            btnText.textContent = 'Send Message';
+            btnSpinner.style.display = 'none';
+        }
+    });
+});
+</script>
 {% endblock %}

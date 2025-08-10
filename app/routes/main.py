@@ -536,3 +536,51 @@ def main_index():
     """Alias for the main index page."""
     return redirect(url_for("main.index"), code=301)
 
+
+@main_bp.route("/api/support", methods=["POST"])
+def submit_support_request():
+    """Handle support form submissions by storing them in Firestore."""
+    try:
+        db = current_app.config.get("FIRESTORE_DB")
+        if not db:
+            return jsonify({"error": "Database not available"}), 500
+            
+        # Get form data
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+            
+        # Validate required fields
+        required_fields = ["name", "email", "subject", "message"]
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({"error": f"Missing required field: {field}"}), 400
+        
+        # Basic email validation
+        email = data.get("email", "").strip()
+        if "@" not in email or "." not in email:
+            return jsonify({"error": "Invalid email address"}), 400
+            
+        # Prepare support ticket data
+        support_ticket = {
+            "name": data.get("name", "").strip()[:100],  # Limit length
+            "email": email[:100],
+            "subject": data.get("subject", "").strip()[:200],
+            "message": data.get("message", "").strip()[:2000],
+            "timestamp": datetime.utcnow(),
+            "status": "new",
+            "user_id": flask_login_current_user.get_id() if flask_login_current_user.is_authenticated else None,
+            "ip_address": request.remote_addr
+        }
+        
+        # Store in Firestore
+        doc_ref = db.collection("support_tickets").add(support_ticket)
+        
+        current_app.logger.info(f"Support ticket created: {doc_ref[1].id}")
+        
+        return jsonify({"success": True, "message": "Support request submitted successfully"}), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error submitting support request: {e}")
+        return jsonify({"error": "Failed to submit support request"}), 500
+
