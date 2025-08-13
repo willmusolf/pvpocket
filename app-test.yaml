@@ -1,0 +1,22 @@
+service: test-env
+
+runtime: python311
+entrypoint: gunicorn -b :$PORT run:app
+
+handlers:
+- url: /.*
+  script: auto
+  secure: always
+
+env_variables:
+  FLASK_CONFIG: 'staging'
+  FLASK_ENV: 'staging'
+  GCP_PROJECT_ID: "pvpocket-dd286"
+  FIREBASE_SECRET_NAME: "firebase-admin-sdk-json"
+  
+  # Scalability Configuration for Test Environment
+  USE_FIRESTORE_CACHE: 'false'
+  CACHE_TTL_HOURS: '24'
+  USER_CACHE_TTL_MINUTES: '30'
+  MAX_DB_CONNECTIONS: '10'  # Lower for test environment
+  MONITORING_ENABLED: 'true'
