@@ -42,6 +42,9 @@ rm app.yaml
 - `.gitignore` - Added deployment files with secrets  
 - `app-test.yaml.template` - Added as reference template
 - `app/security.py` - Fixed CSP for Google AdSense
+  * Added `ep2.adtrafficquality.google` and `csi.gstatic.com` to connect-src
+  * Added `ep2.adtrafficquality.google` to script-src
+  * Added `ep2.adtrafficquality.google` and `www.google.com` to frame-src
 
 ## Next Steps
 - Use `deploy_secrets.py` for all future deployments
