@@ -14,6 +14,7 @@ from google.cloud import secretmanager
 from google.api_core.exceptions import NotFound, PermissionDenied
 from .cache_manager import cache_manager
 from .security import init_security, security_manager
+from flask_mail import Mail
 
 from flask_login import (
     current_user,
@@ -126,10 +127,11 @@ def create_app(config_name="default"):
                 # Use emulator configuration - match sync process project ID 
                 emulator_project_id = os.environ.get('GCP_PROJECT_ID', 'demo-test-project')
                 
-                # ALWAYS show this debug info in CI/testing
-                print("🔥 FIREBASE: Using Firebase Emulator (FREE - no production costs!)")
-                print(f"🔗 Emulator Host: {os.environ.get('FIRESTORE_EMULATOR_HOST', 'localhost:8080')}")
-                print(f"📋 Project ID: {emulator_project_id} (matching REST API seeding)")
+                # Only show in main process
+                if os.environ.get('WERKZEUG_RUN_MAIN'):
+                    print("🔥 FIREBASE: Using Firebase Emulator (FREE - no production costs!)")
+                    print(f"🔗 Emulator Host: {os.environ.get('FIRESTORE_EMULATOR_HOST', 'localhost:8080')}")
+                    print(f"📋 Project ID: {emulator_project_id} (matching REST API seeding)")
                 # Emulator mode detected
                 
                 # Set environment variable to ensure consistent project ID
@@ -147,14 +149,18 @@ def create_app(config_name="default"):
                 
                 # CRITICAL: Set the emulator host environment variable
                 os.environ['FIRESTORE_EMULATOR_HOST'] = emulator_host
-                print(f"🎯 FORCED FIRESTORE_EMULATOR_HOST: {emulator_host}")
                 
                 # CRITICAL: Disable credentials for emulator to bypass authentication
                 if 'GOOGLE_APPLICATION_CREDENTIALS' in os.environ:
                     del os.environ['GOOGLE_APPLICATION_CREDENTIALS']
-                    print("🔧 Removed GOOGLE_APPLICATION_CREDENTIALS for emulator")
-                else:
-                    print("🔧 GOOGLE_APPLICATION_CREDENTIALS already not set")
+                    
+                # Only show debug messages in main process
+                if os.environ.get('WERKZEUG_RUN_MAIN'):
+                    print(f"🎯 FORCED FIRESTORE_EMULATOR_HOST: {emulator_host}")
+                    if 'GOOGLE_APPLICATION_CREDENTIALS' in os.environ:
+                        print("🔧 Removed GOOGLE_APPLICATION_CREDENTIALS for emulator")
+                    else:
+                        print("🔧 GOOGLE_APPLICATION_CREDENTIALS already not set")
                 
                 # Environment variables configured for emulator
                 
@@ -164,7 +170,8 @@ def create_app(config_name="default"):
                         'projectId': emulator_project_id,
                         'storageBucket': bucket_name
                     })
-                    print("✅ Firebase Admin SDK initialized with emulator settings (no auth)")
+                    if os.environ.get('WERKZEUG_RUN_MAIN'):
+                        print("✅ Firebase Admin SDK initialized with emulator settings (no auth)")
                 except Exception as e:
                     print(f"⚠️ Firebase Admin SDK init failed: {e}")
                     # Fallback initialization
@@ -223,6 +230,36 @@ def create_app(config_name="default"):
     
     # Firestore client initialized
     login_manager.init_app(app)
+    
+    # Initialize Flask-Mail for email functionality with secure credentials
+    # Only initialize once in the main process, not in the reloader process
+    if os.environ.get('WERKZEUG_RUN_MAIN') or not app.debug:
+        try:
+            from .secret_manager_utils import get_email_credentials
+            
+            # Load email credentials securely (will use cache on restart)
+            mail_username, mail_password = get_email_credentials()
+            if mail_username and mail_password:
+                app.config['MAIL_USERNAME'] = mail_username
+                app.config['MAIL_PASSWORD'] = mail_password
+            else:
+                app.logger.warning("Email credentials not available - email functionality disabled")
+            
+            mail = Mail(app)
+            
+            # Initialize email service
+            from .email_service import init_email_service
+            init_email_service(app, mail)
+            
+        except Exception as e:
+            app.logger.error(f"Failed to initialize email service: {str(e)}")
+            import traceback
+            app.logger.error(f"Email service traceback: {traceback.format_exc()}")
+            # Initialize basic mail anyway to prevent app startup failure
+            mail = Mail(app)
+    else:
+        # Email service skipped in reloader process
+        mail = None
     
     # Initialize security middleware (rate limiting, security headers)
     init_security(app)
@@ -312,13 +349,14 @@ def create_app(config_name="default"):
             print("⚡ Deferred card loading: LAZY (will load on first user request)")
     elif os.environ.get('FIRESTORE_EMULATOR_HOST'):
         # Emulator mode - load immediately since it's free and fast
-        print("💰 CARD LOADING: EMULATOR (loads full collection immediately)")
-        print("📊 Cards loaded: All production data from emulator (FREE)")
+        if os.environ.get('WERKZEUG_RUN_MAIN'):
+            print("💰 CARD LOADING: EMULATOR (loads full collection immediately)")
+            print("📊 Cards loaded: All production data from emulator (FREE)")
         try:
             # Load cards immediately from emulator within app context
             with app.app_context():
                 collection = CardService._load_full_collection(cache_as_full=True)
-                if config_name == 'development':
+                if config_name == 'development' and os.environ.get('WERKZEUG_RUN_MAIN'):
                     print(f"✅ Loaded {len(collection)} cards from emulator")
         except Exception as e:
             if config_name == 'development':

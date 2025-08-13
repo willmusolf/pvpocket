@@ -3,12 +3,14 @@
         <li><h6 class="dropdown-header text-end">
             {{ current_user.username }}
             {% if is_admin %}
-                <small class="text-warning d-block" style="font-size: 0.7em; font-weight: normal;">🔧 Admin</small>
+                <small class="text-warning d-block" style="font-size: 0.7em; font-weight: normal;">Admin</small>
             {% endif %}
         </h6></li>
         <li><a class="dropdown-item text-end" href="{{ url_for('auth.user_profile_and_settings') }}">Profile/Settings</a></li>
         {% if is_admin %}
-            <li><a class="dropdown-item text-end text-warning" href="{{ url_for('admin.metrics_dashboard') }}">📊 Metrics Dashboard</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item text-end text-warning" href="{{ url_for('admin.admin_dashboard') }}">Admin Dashboard</a></li>
+            <li><hr class="dropdown-divider"></li>
         {% endif %}
         <li><a class="dropdown-item text-end" href="{{ url_for('friends.friends_page') }}">Friends</a></li>
         <li><hr class="dropdown-divider"></li>
@@ -18,7 +20,7 @@
     {% endif %}
 {% endmacro %}
 
-<nav class="navbar navbar-expand-lg py-2 px-3 border-bottom" id="mainNavbar">
+<nav class="navbar navbar-expand-lg py-2 px-3 border-bottom" id="mainNavbar" style="z-index: 1030; position: relative;">
     <div class="container-fluid align-items-center">
         <a class="navbar-brand d-flex align-items-center fs-5" href="{{ url_for('main.index') }}">
             <img src="{{ url_for('static', filename='navbar-icon.png') }}" alt="PvPocket Logo" width="32" height="32" class="me-2">
@@ -80,6 +82,7 @@
         inset: 0px auto auto 0px;
         margin: 0px;
         transform: translate3d(0px, 40px, 0px);
+        z-index: 1040; /* Above navbar and admin sidebar */
     }
     
     /* Desktop dropdown positioning */
@@ -208,12 +211,9 @@
         }
     }
     
-    /* Profile dropdown button styling */
+    /* Profile dropdown button styling - minimal */
     #mainNavbar .nav-link.dropdown-toggle {
-        border-radius: 8px;
-        padding: 8px 12px;
         background-color: transparent;
-        transition: all 0.2s ease;
         -webkit-tap-highlight-color: transparent !important;
         -webkit-touch-callout: none;
         -webkit-user-select: none;
@@ -227,15 +227,7 @@
         appearance: none;
     }
     
-    /* Add hover effect to profile dropdown to match nav links */
-    #mainNavbar .nav-link.dropdown-toggle:hover {
-        background-color: rgba(0, 0, 0, 0.05);
-        transform: translateY(-1px);
-    }
-    
-    [data-theme="dark"] #mainNavbar .nav-link.dropdown-toggle:hover {
-        background-color: rgba(255, 255, 255, 0.08);
-    }
+    /* Remove custom hover effects for profile dropdown */
     
     /* Force profile dropdown to be black in light mode (override Bootstrap's navbar-light) */
     #mainNavbar.navbar-light .nav-link.dropdown-toggle,
@@ -248,17 +240,7 @@
         color: #f8f9fa !important; /* White for dark mode */
     }
     
-    /* Active dropdown state */
-    #mainNavbar .dropdown.show .nav-link.dropdown-toggle,
-    #mainNavbar .nav-link.dropdown-toggle[aria-expanded="true"] {
-        background-color: rgba(0, 0, 0, 0.02);
-    }
-    
-    /* Dark theme - active dropdown */
-    [data-theme="dark"] #mainNavbar .dropdown.show .nav-link.dropdown-toggle,
-    [data-theme="dark"] #mainNavbar .nav-link.dropdown-toggle[aria-expanded="true"] {
-        background-color: rgba(255, 255, 255, 0.05);
-    }
+    /* Remove custom active dropdown backgrounds */
     
     /* Remove focus styles but keep hover */
     #mainNavbar .nav-link.dropdown-toggle:focus {
@@ -272,16 +254,7 @@
         outline-offset: 2px;
     }
     
-    /* Only show background when explicitly open */
-    #mainNavbar .dropdown.show .nav-link.dropdown-toggle:hover,
-    #mainNavbar .dropdown.show .nav-link.dropdown-toggle:focus {
-        background-color: rgba(0, 0, 0, 0.02);
-    }
-    
-    [data-theme="dark"] #mainNavbar .dropdown.show .nav-link.dropdown-toggle:hover,
-    [data-theme="dark"] #mainNavbar .dropdown.show .nav-link.dropdown-toggle:focus {
-        background-color: rgba(255, 255, 255, 0.05);
-    }
+    /* Remove custom dropdown open state backgrounds */
 </style>
 
 <script>

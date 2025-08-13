@@ -477,8 +477,10 @@ class PerformanceMonitor:
                         else:
                             current_app.logger.info(f"ℹ️ ALERT [{alert_type.upper()}]: {message}")
                     except RuntimeError:
-                        # No Flask context available, use print as fallback
-                        print(f"ALERT [{severity.upper()}] [{alert_type.upper()}]: {message}")
+                        # No Flask context available - suppress alerts during startup
+                        # Only print critical alerts
+                        if severity == 'critical':
+                            print(f"ALERT [{severity.upper()}] [{alert_type.upper()}]: {message}")
                 
                 # Reset periodic metrics
                 self.metrics.reset_periodic_metrics()

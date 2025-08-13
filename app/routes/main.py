@@ -543,33 +543,44 @@ def submit_support_request():
     try:
         db = current_app.config.get("FIRESTORE_DB")
         if not db:
+            current_app.logger.error("Database not available for support ticket")
             return jsonify({"error": "Database not available"}), 500
             
         # Get form data
         data = request.get_json()
+        current_app.logger.info(f"Support request received: {data}")
+        
         if not data:
+            current_app.logger.error("No data provided in support request")
             return jsonify({"error": "No data provided"}), 400
             
-        # Validate required fields
-        required_fields = ["name", "email", "subject", "message"]
+        # Check if user is authenticated
+        if not flask_login_current_user.is_authenticated:
+            current_app.logger.error("Unauthenticated user attempted to submit support request")
+            return jsonify({"error": "You must be logged in to submit a support request"}), 401
+        
+        # Get user's email from their account
+        email = flask_login_current_user.email
+        if not email:
+            current_app.logger.error("User has no email address")
+            return jsonify({"error": "Your account must have an email address to submit support requests"}), 400
+        
+        # Validate required fields (email no longer required from form)
+        required_fields = ["name", "subject", "message"]
         for field in required_fields:
             if not data.get(field):
+                current_app.logger.error(f"Missing required field in support request: {field}")
                 return jsonify({"error": f"Missing required field: {field}"}), 400
-        
-        # Basic email validation
-        email = data.get("email", "").strip()
-        if "@" not in email or "." not in email:
-            return jsonify({"error": "Invalid email address"}), 400
             
         # Prepare support ticket data
         support_ticket = {
             "name": data.get("name", "").strip()[:100],  # Limit length
-            "email": email[:100],
+            "email": email[:100],  # Use account email
             "subject": data.get("subject", "").strip()[:200],
             "message": data.get("message", "").strip()[:2000],
             "timestamp": datetime.utcnow(),
             "status": "new",
-            "user_id": flask_login_current_user.get_id() if flask_login_current_user.is_authenticated else None,
+            "user_id": flask_login_current_user.get_id(),  # User is authenticated
             "ip_address": request.remote_addr
         }
         
