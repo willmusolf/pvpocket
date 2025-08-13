@@ -1,0 +1,40 @@
+service: test-env
+
+runtime: python311
+entrypoint: gunicorn -b :$PORT run:app
+
+automatic_scaling:
+  target_cpu_utilization: 0.6
+  max_instances: 3
+  min_instances: 0
+
+resources:
+  cpu: 1
+  memory_gb: 1
+  disk_size_gb: 10
+
+handlers:
+- url: /.*
+  script: auto
+  secure: always
+
+env_variables:
+  FLASK_CONFIG: 'staging'
+  FLASK_ENV: 'staging'
+  GCP_PROJECT_ID: "pvpocket-dd286"
+  FIREBASE_SECRET_NAME: "firebase-admin-sdk-json"
+  
+  # Authentication and Security - POPULATED BY deploy_secrets.py
+  SECRET_KEY: 'WILL_BE_REPLACED_BY_DEPLOY_SCRIPT'
+  REFRESH_SECRET_KEY: 'WILL_BE_REPLACED_BY_DEPLOY_SCRIPT'
+  GOOGLE_OAUTH_CLIENT_ID: 'WILL_BE_REPLACED_BY_DEPLOY_SCRIPT'
+  GOOGLE_OAUTH_CLIENT_SECRET: 'WILL_BE_REPLACED_BY_DEPLOY_SCRIPT'
+  TASK_AUTH_TOKEN: 'WILL_BE_REPLACED_BY_DEPLOY_SCRIPT'
+  ADMIN_EMAILS: 'WILL_BE_REPLACED_BY_DEPLOY_SCRIPT'
+  
+  # Scalability Configuration for Test Environment
+  USE_FIRESTORE_CACHE: 'false'
+  CACHE_TTL_HOURS: '24'
+  USER_CACHE_TTL_MINUTES: '30'
+  MAX_DB_CONNECTIONS: '10'  # Lower for test environment
+  MONITORING_ENABLED: 'true'

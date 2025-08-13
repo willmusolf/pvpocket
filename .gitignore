@@ -65,6 +65,8 @@ token.json
 # Deployment files with secrets
 app-deploy.yaml
 app-*-deploy.yaml
+app-test.yaml
+app-production.yaml
 
 # Keep tracked but exclude from accidental commits
 # (These files should not contain secrets after our changes)
