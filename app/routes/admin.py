@@ -926,8 +926,9 @@ def analytics_summary():
         # Calculate user analytics
         user_analytics = {}
         try:
-            # Get basic user counts
-            now = datetime.utcnow()
+            # Get basic user counts (use timezone-aware datetime for Firestore compatibility)
+            from datetime import timezone
+            now = datetime.now(timezone.utc)
             thirty_days_ago = now - timedelta(days=30)
             seven_days_ago = now - timedelta(days=7)
             one_day_ago = now - timedelta(days=1)
@@ -1001,8 +1002,9 @@ def analytics_summary():
         # Calculate app usage analytics
         app_usage = {}
         try:
-            # Get deck creation stats
-            seven_days_ago = datetime.utcnow() - timedelta(days=7)
+            # Get deck creation stats (use timezone-aware datetime)
+            from datetime import timezone
+            seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
             decks_query = db.collection("decks").where("created_at", ">", seven_days_ago).limit(500)
             recent_decks = list(decks_query.stream())
             

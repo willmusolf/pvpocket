@@ -4108,20 +4108,20 @@ document.addEventListener('DOMContentLoaded', initializeTooltips);
 
 async function loadDatabaseUsage() {
     try {
-        const response = await fetch('/internal/firestore-usage');
-        if (response.ok) {
-            const data = await response.json();
-            const dbReadsEl = document.getElementById('dbReads');
-            const dbWritesEl = document.getElementById('dbWrites');
-            if (dbReadsEl) dbReadsEl.textContent = data.total_reads_today || '0';
-            if (dbWritesEl) dbWritesEl.textContent = data.total_writes_today || '0';
-        }
+        // Skip API call since we now have analytics dashboard with better data
+        // and this endpoint requires special authentication
+        
+        // Set placeholder values instead of making failed API calls
+        const dbReadsEl = document.getElementById('dbReads');
+        const dbWritesEl = document.getElementById('dbWrites');
+        if (dbReadsEl) dbReadsEl.textContent = 'See Analytics';
+        if (dbWritesEl) dbWritesEl.textContent = 'See Analytics';
     } catch (error) {
         console.error('Failed to load database usage:', error);
         const dbReadsEl = document.getElementById('dbReads');
         const dbWritesEl = document.getElementById('dbWrites');
-        if (dbReadsEl) dbReadsEl.textContent = '---';
-        if (dbWritesEl) dbWritesEl.textContent = '---';
+        if (dbReadsEl) dbReadsEl.textContent = 'Error';
+        if (dbWritesEl) dbWritesEl.textContent = 'Error';
     }
 }
 
