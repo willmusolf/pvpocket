@@ -105,18 +105,32 @@
         background-position: center;
         background-repeat: no-repeat;
         background-attachment: scroll;
-        padding: 180px 0;
+        height: calc(100vh - 56px); /* Full viewport height minus navbar (56px is Bootstrap navbar height) */
         margin-bottom: 0;
-        margin-top: -1px; /* Compensate for navbar border */
-        min-height: 650px;
+        margin-top: -1px; /* Compensate for any border/gap from navbar */
         position: relative;
         overflow: hidden;
         width: 100%;
+        display: flex; /* Flexbox for vertical centering */
+        align-items: center; /* Center content vertically */
+        justify-content: center; /* Center content horizontally */
     }
     
+    /* Mobile viewport height fix - accounts for browser UI */
     @media (max-width: 768px) {
         .hero-section {
-            background-attachment: scroll; /* Disable parallax on mobile for better performance */
+            height: calc(100vh - 56px);
+            /* Fallback for mobile browsers that support it */
+            height: calc(100dvh - 56px); /* Dynamic viewport height minus navbar */
+            min-height: 500px; /* Ensure minimum height on very small screens */
+        }
+    }
+    
+    /* For very small devices or landscape orientation */
+    @media (max-height: 600px) {
+        .hero-section {
+            min-height: 400px;
+            height: calc(100vh - 56px);
         }
     }
     
@@ -138,6 +152,8 @@
         z-index: 2;
         color: white;
         text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        width: 100%; /* Ensure container takes full width */
+        padding: 2rem; /* Add some padding for mobile */
     }
     
     .card-count {

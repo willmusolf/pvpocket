@@ -519,6 +519,80 @@ python3 -m pytest tests/test_fast_development.py::TestBasicImports::test_core_mo
 - **Database patterns**: Look at `app/services.py` for examples
 - **Error patterns**: Check `app/__init__.py` for error handling examples
 
+## 🚨 CI/CD Troubleshooting Guide
+
+### GitHub Actions Authentication Issues
+
+**Problem**: `HTTPSConnectionPool(host='oauth2.googleapis.com', port=443): Max retries exceeded`
+
+**Root Causes & Solutions**:
+
+1. **Service Account Key Issues**:
+   ```bash
+   # Regenerate GitHub secrets using the setup script
+   ./scripts/github-secrets-setup.sh
+   ```
+
+2. **Missing GitHub Secrets**:
+   Required secrets in your GitHub repository settings:
+   - `GCP_SA_KEY` - Service account JSON key
+   - `SECRET_KEY`, `REFRESH_SECRET_KEY` - From Secret Manager
+   - `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` - OAuth credentials
+   - `TASK_AUTH_TOKEN`, `ADMIN_EMAILS` - App configuration
+
+3. **Network Connectivity**: The updated CI/CD pipeline includes network diagnostics and retry logic.
+
+### App Engine 502 Bad Gateway
+
+**Problem**: Manual deployment works but GitHub Actions deployment gives 502 error.
+
+**Root Cause**: Missing environment variables in deployment configuration.
+
+**Solution**: Ensure `app-test.yaml` includes all required environment variables:
+```yaml
+env_variables:
+  SECRET_KEY: 'your-secret-key'
+  REFRESH_SECRET_KEY: 'your-refresh-key'
+  GOOGLE_OAUTH_CLIENT_ID: 'your-client-id'
+  GOOGLE_OAUTH_CLIENT_SECRET: 'your-client-secret'
+  TASK_AUTH_TOKEN: 'your-task-token'
+  ADMIN_EMAILS: 'your-admin-emails'
+```
+
+### Service Account Permissions
+
+**Required IAM Roles for GitHub Actions Service Account**:
+```bash
+# Check current permissions
+gcloud projects get-iam-policy pvpocket-dd286 --flatten="bindings[].members" --filter="bindings.members:github-actions@pvpocket-dd286.iam.gserviceaccount.com"
+
+# Should include:
+# - roles/appengine.appAdmin
+# - roles/appengine.deployer  
+# - roles/secretmanager.secretAccessor
+# - roles/storage.admin
+```
+
+### Quick Fixes
+
+**If GitHub Actions fails**:
+1. Check network diagnostics in the action logs
+2. Verify authentication step completes successfully
+3. Ensure all required secrets are set
+4. Use the retry logic (automatically included)
+
+**If manual deployment fails**:
+1. Verify all environment variables in `app-test.yaml`
+2. Check that secrets exist in Secret Manager
+3. Confirm service account has necessary permissions
+
+**Emergency Manual Deployment**:
+```bash
+# If GitHub Actions is broken, deploy manually:
+gcloud app deploy app-test.yaml  # Test environment
+gcloud app deploy app.yaml      # Production (create from app-test.yaml template)
+```
+
 ## Development Commands
 
 ### Environment Setup

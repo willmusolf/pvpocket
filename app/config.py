@@ -14,6 +14,18 @@ class Config:
 
     GCP_PROJECT_ID = os.environ.get("GCP_PROJECT_ID")
     FIREBASE_SECRET_NAME = os.environ.get("FIREBASE_SECRET_NAME")
+    
+    # Email Configuration - Using port 465 (SSL) due to port 587 network blocking
+    MAIL_SERVER = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
+    MAIL_PORT = int(os.environ.get("MAIL_PORT", 465))  # Changed from 587 to 465
+    MAIL_USE_TLS = os.environ.get("MAIL_USE_TLS", "false").lower() == "true"  # TLS disabled for SSL
+    MAIL_USE_SSL = os.environ.get("MAIL_USE_SSL", "true").lower() == "true"   # SSL enabled for port 465
+    MAIL_TIMEOUT = int(os.environ.get("MAIL_TIMEOUT", 10))  # 10 second timeout
+    
+    # Email credentials from Secret Manager (fallback to env vars for development)
+    MAIL_USERNAME = None
+    MAIL_PASSWORD = None
+    MAIL_DEFAULT_SENDER = os.environ.get("MAIL_DEFAULT_SENDER", "willmusolf@gmail.com")
 
     PERMANENT_SESSION_LIFETIME = timedelta(days=7)
 

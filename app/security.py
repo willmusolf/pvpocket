@@ -57,12 +57,12 @@ class SecurityManager:
             # Development CSP - more permissive
             csp = {
                 'default-src': "'self' 'unsafe-inline' 'unsafe-eval'",
-                'script-src': "'self' 'unsafe-inline' 'unsafe-eval' https://cdn.pvpocket.xyz https://cdnjs.cloudflare.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://www.google.com https://www.gstatic.com",
+                'script-src': "'self' 'unsafe-inline' 'unsafe-eval' https://cdn.pvpocket.xyz https://cdnjs.cloudflare.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://www.google.com https://www.gstatic.com https://ep2.adtrafficquality.google",
                 'style-src': "'self' 'unsafe-inline' https://cdn.pvpocket.xyz https://fonts.googleapis.com https://cdnjs.cloudflare.com",
                 'img-src': "'self' data: https: blob: http:",
                 'font-src': "'self' https://fonts.gstatic.com https://cdn.pvpocket.xyz https://cdnjs.cloudflare.com",
-                'connect-src': "'self' https://api.github.com https://pvpocket.xyz ws: wss: https://ep1.adtrafficquality.google https://googleads.g.doubleclick.net https://pagead2.googlesyndication.com https://tpc.googlesyndication.com https://www.google.com https://www.gstatic.com https://adnxs.com https://adsystem.amazon.com",
-                'frame-src': "'self' https://googleads.g.doubleclick.net https://tpc.googlesyndication.com",
+                'connect-src': "'self' https://api.github.com https://pvpocket.xyz ws: wss: https://ep1.adtrafficquality.google https://googleads.g.doubleclick.net https://pagead2.googlesyndication.com https://tpc.googlesyndication.com https://www.google.com https://www.gstatic.com https://csi.gstatic.com https://adnxs.com https://adsystem.amazon.com",
+                'frame-src': "'self' https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://ep2.adtrafficquality.google https://www.google.com",
                 'frame-ancestors': "'none'",
                 'base-uri': "'self'",
                 'form-action': "'self'"
@@ -71,12 +71,12 @@ class SecurityManager:
             # Production CSP - secure but allows necessary external resources
             csp = {
                 'default-src': "'self'",
-                'script-src': "'self' 'unsafe-inline' 'unsafe-eval' https://cdn.pvpocket.xyz https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://www.google.com https://www.gstatic.com",
+                'script-src': "'self' 'unsafe-inline' 'unsafe-eval' https://cdn.pvpocket.xyz https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://www.google.com https://www.gstatic.com https://ep2.adtrafficquality.google",
                 'style-src': "'self' 'unsafe-inline' https://cdn.pvpocket.xyz https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com",
                 'img-src': "'self' data: https: blob:",
                 'font-src': "'self' https://fonts.gstatic.com https://cdn.pvpocket.xyz https://cdn.jsdelivr.net https://cdnjs.cloudflare.com",
-                'connect-src': "'self' https://api.github.com https://pvpocket.xyz https://cdn.pvpocket.xyz https://ep1.adtrafficquality.google https://googleads.g.doubleclick.net https://pagead2.googlesyndication.com https://tpc.googlesyndication.com https://www.google.com https://www.gstatic.com https://adnxs.com https://adsystem.amazon.com",
-                'frame-src': "'self' https://googleads.g.doubleclick.net https://tpc.googlesyndication.com",
+                'connect-src': "'self' https://api.github.com https://pvpocket.xyz https://cdn.pvpocket.xyz https://ep1.adtrafficquality.google https://googleads.g.doubleclick.net https://pagead2.googlesyndication.com https://tpc.googlesyndication.com https://www.google.com https://www.gstatic.com https://csi.gstatic.com https://adnxs.com https://adsystem.amazon.com",
+                'frame-src': "'self' https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://ep2.adtrafficquality.google https://www.google.com",
                 'frame-ancestors': "'none'",
                 'base-uri': "'self'",
                 'form-action': "'self'"

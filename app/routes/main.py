@@ -536,3 +536,62 @@ def main_index():
     """Alias for the main index page."""
     return redirect(url_for("main.index"), code=301)
 
+
+@main_bp.route("/api/support", methods=["POST"])
+def submit_support_request():
+    """Handle support form submissions by storing them in Firestore."""
+    try:
+        db = current_app.config.get("FIRESTORE_DB")
+        if not db:
+            current_app.logger.error("Database not available for support ticket")
+            return jsonify({"error": "Database not available"}), 500
+            
+        # Get form data
+        data = request.get_json()
+        current_app.logger.info(f"Support request received: {data}")
+        
+        if not data:
+            current_app.logger.error("No data provided in support request")
+            return jsonify({"error": "No data provided"}), 400
+            
+        # Check if user is authenticated
+        if not flask_login_current_user.is_authenticated:
+            current_app.logger.error("Unauthenticated user attempted to submit support request")
+            return jsonify({"error": "You must be logged in to submit a support request"}), 401
+        
+        # Get user's email from their account
+        email = flask_login_current_user.email
+        if not email:
+            current_app.logger.error("User has no email address")
+            return jsonify({"error": "Your account must have an email address to submit support requests"}), 400
+        
+        # Validate required fields (email no longer required from form)
+        required_fields = ["name", "subject", "message"]
+        for field in required_fields:
+            if not data.get(field):
+                current_app.logger.error(f"Missing required field in support request: {field}")
+                return jsonify({"error": f"Missing required field: {field}"}), 400
+            
+        # Prepare support ticket data
+        support_ticket = {
+            "name": data.get("name", "").strip()[:100],  # Limit length
+            "email": email[:100],  # Use account email
+            "subject": data.get("subject", "").strip()[:200],
+            "message": data.get("message", "").strip()[:2000],
+            "timestamp": datetime.utcnow(),
+            "status": "new",
+            "user_id": flask_login_current_user.get_id(),  # User is authenticated
+            "ip_address": request.remote_addr
+        }
+        
+        # Store in Firestore
+        doc_ref = db.collection("support_tickets").add(support_ticket)
+        
+        current_app.logger.info(f"Support ticket created: {doc_ref[1].id}")
+        
+        return jsonify({"success": True, "message": "Support request submitted successfully"}), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error submitting support request: {e}")
+        return jsonify({"error": "Failed to submit support request"}), 500
+

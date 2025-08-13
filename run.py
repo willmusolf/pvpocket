@@ -18,7 +18,7 @@ if not is_cloud_environment:
     try:
         with socket.create_connection(('localhost', 8080), timeout=1):
             os.environ['FIRESTORE_EMULATOR_HOST'] = 'localhost:8080'
-            print("🔗 Early emulator detection: Connected")
+            # Silently connect to emulator
     except (socket.error, ConnectionRefusedError):
         pass
 else:
@@ -49,7 +49,9 @@ def start_emulator_if_needed():
     try:
         with socket.create_connection(('localhost', 8080), timeout=1):
             os.environ['FIRESTORE_EMULATOR_HOST'] = 'localhost:8080'
-            print("🔥 Using Firebase Emulator (FREE) - already running")
+            # Only print in main process
+            if os.environ.get('WERKZEUG_RUN_MAIN'):
+                print("🔥 Firebase Emulator: Connected")
             return True
     except (socket.error, ConnectionRefusedError):
         pass
@@ -111,10 +113,14 @@ def sync_emulator_data():
     
     # Check for force sync flag
     force_sync = '--force-sync' in sys.argv
+    # Only show sync status in main process
+    if not os.environ.get('WERKZEUG_RUN_MAIN'):
+        return  # Skip all sync messages in reloader process
+        
     if force_sync:
-        print("\n🔄 Force sync requested - syncing all production data...")
+        print("🔄 Force sync requested...")
     else:
-        print("\n🔄 Checking emulator data...")
+        print("🔄 Checking data freshness...")
     
     try:
         import firebase_admin
@@ -175,8 +181,7 @@ def sync_emulator_data():
                     needs_sync = True
                     sync_reason = f"Data is stale (last sync: {last_sync.strftime('%Y-%m-%d %H:%M')})"
                 else:
-                    print(f"✅ Emulator data is fresh (last sync: {last_sync.strftime('%Y-%m-%d %H:%M')})")
-                    print("   Skipping sync to save Firebase costs")
+                    print(f"✅ Data is fresh (synced: {last_sync.strftime('%Y-%m-%d %H:%M')})")
                     return
             except Exception as e:
                 needs_sync = True
@@ -230,7 +235,7 @@ if not is_cloud_environment:
             if not os.environ.get('WERKZEUG_RUN_MAIN'):
                 sync_emulator_data()
             else:
-                print("🔄 Skipping sync on Flask auto-restart (already synced)")
+                pass  # Silently skip sync on Flask auto-restart
 else:
     emulator_started = False
     print("🚨 CLOUD: Skipping emulator startup (production environment)")
@@ -244,21 +249,11 @@ config_name = os.getenv("FLASK_CONFIG", os.getenv("FLASK_ENV", "default"))
 if config_name == "development" and os.environ.get('WERKZEUG_RUN_MAIN'):
     using_emulator = bool(os.environ.get('FIRESTORE_EMULATOR_HOST'))
     
-    print("\n🎮 Pokemon TCG Pocket - Development Mode")
-    print("=" * 50)
-    
     if using_emulator:
-        print("📊 Data Source: Firebase Emulator (FREE)")
-        print("✅ Smart sync: Only syncs when data is stale (>24h old)")
-        print("🔄 Force fresh sync: python3 run.py --force-sync")
-        print("💡 Force sync automatically clears app cache for instant refresh")
-        print("⚡ Sync runs only once (skipped on Flask auto-restart)")
+        print("🎮 Pokemon TCG Pocket - Development Mode (Emulator)")
     else:
-        print("📊 Data Source: Production Firestore (COSTS MONEY)")
-        print("⚠️  Install Firebase CLI for free emulator:")
-        print("   npm install -g firebase-tools")
-    
-    print("=" * 50 + "\n")
+        print("🎮 Pokemon TCG Pocket - Development Mode (Production DB)")
+        print("⚠️  Install Firebase CLI for free emulator: npm install -g firebase-tools")
 
 app = create_app(config_name)
 

@@ -2327,6 +2327,9 @@
         // Apply user preferences
         userPrefs.applyPreferences();
         
+        // Initialize empty deck display immediately to prevent layout shifts
+        updateDeckDisplay();
+        
         // Register Service Worker for persistent caching
         registerServiceWorker();
         
@@ -3562,10 +3565,8 @@
             setSortTypeFromURL();
             updateSortDropdownUI();
             
-            // Initialize deck display if no deck was loaded
-            if (!editDeckId && !restoredPendingDeck) {
-                updateDeckDisplay();
-            }
+            // Deck display is already initialized at the start of DOMContentLoaded
+            // It will be updated again if a deck is loaded via editDeckId or restoredPendingDeck
             
             // Ensure energy icons are properly displayed on mobile after everything is loaded
             if (window.matchMedia("(hover: none)").matches && selectedDeckEnergies.length > 0) {
