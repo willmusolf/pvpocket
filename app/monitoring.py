@@ -126,29 +126,59 @@ class PerformanceMetrics:
             self.firestore_operations["total_deletes_today"] = 0
             self.firestore_operations["last_reset"] = now
     
-    def get_firestore_usage_stats(self) -> Dict[str, Any]:
-        """Get Firestore usage statistics."""
+    def get_firestore_usage_stats(self, days: int = 1) -> Dict[str, Any]:
+        """Get Firestore usage statistics for specified number of days.
+        
+        Args:
+            days: Number of days to calculate stats for (1, 7, 14, 30, 60)
+        """
         with self._lock:
             self._check_daily_reset()
+            
+            # For now, we'll scale the daily stats by the number of days
+            # In a production system, you'd want to store historical data
+            daily_reads = self.firestore_operations["total_reads_today"]
+            daily_writes = self.firestore_operations["total_writes_today"]
+            daily_deletes = self.firestore_operations["total_deletes_today"]
+            
+            # Scale operations based on days (simple approximation)
+            # In production, you'd query historical data
+            period_reads = daily_reads * days
+            period_writes = daily_writes * days
+            period_deletes = daily_deletes * days
+            
             return {
-                "daily_reads": self.firestore_operations["total_reads_today"],
-                "daily_writes": self.firestore_operations["total_writes_today"],
-                "daily_deletes": self.firestore_operations["total_deletes_today"],
+                "daily_reads": period_reads,
+                "daily_writes": period_writes,
+                "daily_deletes": period_deletes,
                 "reads_by_collection": dict(self.firestore_operations["reads"]),
                 "writes_by_collection": dict(self.firestore_operations["writes"]),
-                "estimated_daily_cost": self._estimate_firestore_cost()
+                "estimated_daily_cost": self._estimate_firestore_cost(days)
             }
     
-    def _estimate_firestore_cost(self) -> float:
-        """Estimate daily Firestore cost based on usage."""
+    def _estimate_firestore_cost(self, days: int = 1) -> float:
+        """Estimate Firestore cost based on usage for specified days.
+        
+        Args:
+            days: Number of days to calculate cost for
+        """
         # Firestore pricing (approximate):
         # $0.06 per 100,000 document reads
         # $0.18 per 100,000 document writes
         # $0.02 per 100,000 document deletes
         
-        reads_cost = (self.firestore_operations["total_reads_today"] / 100000) * 0.06
-        writes_cost = (self.firestore_operations["total_writes_today"] / 100000) * 0.18
-        deletes_cost = (self.firestore_operations["total_deletes_today"] / 100000) * 0.02
+        daily_reads = self.firestore_operations["total_reads_today"]
+        daily_writes = self.firestore_operations["total_writes_today"]
+        daily_deletes = self.firestore_operations["total_deletes_today"]
+        
+        # Scale by number of days
+        total_reads = daily_reads * days
+        total_writes = daily_writes * days
+        total_deletes = daily_deletes * days
+        
+        reads_cost = (total_reads / 100000) * 0.06
+        writes_cost = (total_writes / 100000) * 0.18
+        deletes_cost = (total_deletes / 100000) * 0.02
         
         return round(reads_cost + writes_cost + deletes_cost, 4)
     

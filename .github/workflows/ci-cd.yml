@@ -334,13 +334,38 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
+    - name: Network Diagnostics (Pre-Auth)
+      run: |
+        echo "🔍 Network diagnostics before authentication..."
+        echo "Testing DNS resolution for Google APIs..."
+        nslookup oauth2.googleapis.com || echo "❌ DNS resolution failed"
+        echo "Testing connectivity to oauth2.googleapis.com..."
+        curl -I --connect-timeout 10 --max-time 15 https://oauth2.googleapis.com/ || echo "❌ Connectivity test failed"
+        echo "Testing basic Google Cloud connectivity..."
+        curl -I --connect-timeout 10 --max-time 15 https://cloudresourcemanager.googleapis.com/ || echo "❌ GCP API connectivity failed"
+        
     - name: Authenticate to Google Cloud
       uses: google-github-actions/auth@v2
+      id: auth
       with:
         credentials_json: ${{ secrets.GCP_SA_KEY }}
+        create_credentials_file: true
+        export_environment_variables: true
+        cleanup_credentials: false
+      timeout-minutes: 5
         
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v2
+      with:
+        version: 'latest'
+      timeout-minutes: 3
+      
+    - name: Verify Authentication
+      run: |
+        echo "🔍 Verifying Google Cloud authentication..."
+        gcloud auth list
+        gcloud config get-value project || echo "❌ Project not set"
+        echo "✅ Authentication verification complete"
       
     - name: Create deployment configuration
       env:
@@ -391,12 +416,27 @@ jobs:
     - name: Deploy to Test Environment
       run: |
         echo "Deploying to test environment..."
-        if gcloud app deploy app-test-deploy.yaml --quiet; then
-          echo "✅ Test deployment completed successfully"
-        else
-          echo "❌ Test deployment failed"
-          exit 1
-        fi
+        
+        # Add retry logic for deployment
+        for attempt in 1 2 3; do
+          echo "🚀 Deployment attempt $attempt/3..."
+          
+          if gcloud app deploy app-test-deploy.yaml --quiet; then
+            echo "✅ Test deployment completed successfully on attempt $attempt"
+            break
+          else
+            echo "❌ Deployment attempt $attempt failed"
+            if [ $attempt -eq 3 ]; then
+              echo "💥 All deployment attempts failed"
+              echo "📋 Getting recent logs for debugging..."
+              gcloud logging read "resource.type=gae_app AND severity>=ERROR" --limit=10 --format="table(timestamp,severity,textPayload)" || echo "Could not fetch error logs"
+              exit 1
+            else
+              echo "⏳ Waiting 30 seconds before retry..."
+              sleep 30
+            fi
+          fi
+        done
         
         # Verify deployment status
         echo "Checking deployment status..."
@@ -468,13 +508,38 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
+    - name: Network Diagnostics (Pre-Auth)
+      run: |
+        echo "🔍 Network diagnostics before authentication..."
+        echo "Testing DNS resolution for Google APIs..."
+        nslookup oauth2.googleapis.com || echo "❌ DNS resolution failed"
+        echo "Testing connectivity to oauth2.googleapis.com..."
+        curl -I --connect-timeout 10 --max-time 15 https://oauth2.googleapis.com/ || echo "❌ Connectivity test failed"
+        echo "Testing basic Google Cloud connectivity..."
+        curl -I --connect-timeout 10 --max-time 15 https://cloudresourcemanager.googleapis.com/ || echo "❌ GCP API connectivity failed"
+        
     - name: Authenticate to Google Cloud
       uses: google-github-actions/auth@v2
+      id: auth
       with:
         credentials_json: ${{ secrets.GCP_SA_KEY }}
+        create_credentials_file: true
+        export_environment_variables: true
+        cleanup_credentials: false
+      timeout-minutes: 5
         
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v2
+      with:
+        version: 'latest'
+      timeout-minutes: 3
+      
+    - name: Verify Authentication
+      run: |
+        echo "🔍 Verifying Google Cloud authentication..."
+        gcloud auth list
+        gcloud config get-value project || echo "❌ Project not set"
+        echo "✅ Authentication verification complete"
       
     - name: Retrieve secrets from Secret Manager
       run: |

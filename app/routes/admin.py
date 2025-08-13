@@ -915,12 +915,24 @@ def moderate_deck(deck_id):
 def analytics_summary():
     """Get consolidated analytics data for the analytics dashboard."""
     try:
+        # Get time range parameter from query string
+        time_range = request.args.get('time_range', '1d')
+        
+        # Parse time range into days
+        time_range_days = {
+            '1d': 1,
+            '7d': 7,
+            '14d': 14,
+            '30d': 30,
+            '60d': 60
+        }.get(time_range, 1)
+        
         db = current_app.config.get("FIRESTORE_DB")
         if not db:
             return jsonify({"error": "Database not available"}), 500
         
-        # Get Firestore usage and cost data
-        firestore_stats = performance_monitor.metrics.get_firestore_usage_stats()
+        # Get Firestore usage and cost data for the specified time range
+        firestore_stats = performance_monitor.metrics.get_firestore_usage_stats(days=time_range_days)
         cost_trends = performance_monitor.alert_manager.get_cost_trends()
         
         # Calculate user analytics
@@ -932,6 +944,9 @@ def analytics_summary():
             thirty_days_ago = now - timedelta(days=30)
             seven_days_ago = now - timedelta(days=7)
             one_day_ago = now - timedelta(days=1)
+            
+            # Use the selected time range for period calculations
+            period_start = now - timedelta(days=time_range_days)
             
             # Count total users and recent activity
             users_query = db.collection("users").limit(1000)
@@ -1004,14 +1019,14 @@ def analytics_summary():
         try:
             # Get deck creation stats (use timezone-aware datetime)
             from datetime import timezone
-            seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
-            decks_query = db.collection("decks").where("created_at", ">", seven_days_ago).limit(500)
+            period_start = datetime.now(timezone.utc) - timedelta(days=time_range_days)
+            decks_query = db.collection("decks").where("created_at", ">", period_start).limit(500)
             recent_decks = list(decks_query.stream())
             
-            decks_created_7d = len(recent_decks)
+            decks_created_period = len(recent_decks)
             public_decks = sum(1 for deck in recent_decks if deck.to_dict().get("is_public", False))
             
-            current_app.logger.info(f"Analytics: Found {decks_created_7d} decks created in last 7 days")
+            current_app.logger.info(f"Analytics: Found {decks_created_period} decks created in last {time_range_days} days")
             
             # Get endpoint usage from performance monitor
             top_endpoints = performance_monitor.metrics.get_top_endpoints(5)
@@ -1019,12 +1034,15 @@ def analytics_summary():
             
             # If minimal data in localhost/emulator, add sample data
             is_localhost = request.host.startswith('localhost') or request.host.startswith('127.0.0.1')
-            if (decks_created_7d == 0 or total_requests < 10) and is_localhost:
+            if (decks_created_period == 0 or total_requests < 10) and is_localhost:
                 current_app.logger.info("Analytics: Adding sample app usage data for development")
+                # Scale sample data based on time range
+                sample_base = 34
+                sample_multiplier = time_range_days / 7  # Scale based on 7-day baseline
                 app_usage = {
-                    "decks_created_7d": 34,
-                    "public_decks_7d": 18,
-                    "private_decks_7d": 16,
+                    "decks_created_7d": int(sample_base * sample_multiplier),
+                    "public_decks_7d": int(18 * sample_multiplier),
+                    "private_decks_7d": int(16 * sample_multiplier),
                     "top_endpoints": [
                         ["/api/cards", 1547],
                         ["/decks", 892],
@@ -1036,9 +1054,9 @@ def analytics_summary():
                 }
             else:
                 app_usage = {
-                    "decks_created_7d": decks_created_7d,
+                    "decks_created_7d": decks_created_period,
                     "public_decks_7d": public_decks,
-                    "private_decks_7d": decks_created_7d - public_decks,
+                    "private_decks_7d": decks_created_period - public_decks,
                     "top_endpoints": top_endpoints,
                     "total_requests": total_requests
                 }
