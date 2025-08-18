@@ -1645,7 +1645,7 @@
                                     <span class="value" id="totalUsers">0</span>
                                 </div>
                                 <div class="growth-item">
-                                    <span class="label">New Users (7d):</span>
+                                    <span class="label" id="newUsersLabel">New Users:</span>
                                     <span class="value" id="newUsers7d">0</span>
                                 </div>
                                 <div class="growth-item">
@@ -3344,6 +3344,12 @@ function updateLabelsForTimeRange(timeRange) {
     const deckActivityHeader = document.querySelector('.analytics-card .card-header h4');
     if (deckActivityHeader && deckActivityHeader.textContent.includes('Deck Activity')) {
         deckActivityHeader.textContent = `Deck Activity (${label})`;
+    }
+    
+    // Update "New Users" label with the actual time period
+    const newUsersLabel = document.getElementById('newUsersLabel');
+    if (newUsersLabel) {
+        newUsersLabel.textContent = `New Users (${label}):`;
     }
 }
 
