@@ -4,6 +4,7 @@ import socket
 import subprocess
 import time
 import atexit
+import threading
 
 # Set emulator environment BEFORE any other imports - ONLY in local development
 # Don't run emulator detection in cloud environments like Google App Engine
@@ -111,11 +112,14 @@ def sync_emulator_data():
     import sys
     from datetime import datetime, timedelta
     
+    # CRITICAL: Prevent production Firebase costs during local development
+    if not os.environ.get('JOB_TYPE'):
+        print("🔒 Production sync disabled for local development (prevents Firebase costs)")
+        print("💡 Emulator data is available for development")
+        return
+    
     # Check for force sync flag
     force_sync = '--force-sync' in sys.argv
-    # Only show sync status in main process
-    if not os.environ.get('WERKZEUG_RUN_MAIN'):
-        return  # Skip all sync messages in reloader process
         
     if force_sync:
         print("🔄 Force sync requested...")
@@ -226,16 +230,6 @@ def sync_emulator_data():
 # Don't run emulator startup in cloud environments
 if not is_cloud_environment:
     emulator_started = start_emulator_if_needed()
-    
-    # Sync production data to emulator if needed
-    # Skip sync on Flask auto-restart (when WERKZEUG_RUN_MAIN is set)
-    if emulator_started and os.environ.get('FIRESTORE_EMULATOR_HOST'):
-        if os.environ.get('SKIP_EMULATOR_SYNC') != '1':
-            # Only sync on initial run, not on Flask restart
-            if not os.environ.get('WERKZEUG_RUN_MAIN'):
-                sync_emulator_data()
-            else:
-                pass  # Silently skip sync on Flask auto-restart
 else:
     emulator_started = False
     print("🚨 CLOUD: Skipping emulator startup (production environment)")
@@ -256,6 +250,57 @@ if config_name == "development" and os.environ.get('WERKZEUG_RUN_MAIN'):
         print("⚠️  Install Firebase CLI for free emulator: npm install -g firebase-tools")
 
 app = create_app(config_name)
+
+def background_emulator_sync():
+    """Run emulator sync in background thread to avoid blocking Flask startup."""
+    import time
+    from concurrent.futures import ThreadPoolExecutor, TimeoutError
+    
+    # Wait for Flask to fully start before syncing
+    time.sleep(2)
+    
+    try:
+        print("🔄 Background emulator sync starting...")
+        # Set environment to ensure we're in the right context
+        os.environ['WERKZEUG_RUN_MAIN'] = 'true'
+        
+        # Call sync with explicit timeout handling
+        try:
+            # Run sync with a timeout to prevent hanging
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(sync_emulator_data)
+                try:
+                    future.result(timeout=30)  # 30 second timeout
+                    print("✅ Background emulator sync completed")
+                except TimeoutError:
+                    print("⏰ Background emulator sync timed out (30s) - continuing startup")
+                except Exception as e:
+                    print(f"❌ Background emulator sync error: {e}")
+                    
+        except Exception as e:
+            print(f"⚠️ Background emulator sync setup failed: {e}")
+            
+    except Exception as e:
+        print(f"⚠️ Background emulator sync wrapper failed: {e}")
+    
+    print("🔄 Background emulator sync thread terminating")
+
+# Start background sync if needed (non-blocking)
+# Only run once in the main process after reloader
+if (not is_cloud_environment and 
+    emulator_started and 
+    os.environ.get('FIRESTORE_EMULATOR_HOST') and
+    os.environ.get('SKIP_EMULATOR_SYNC') != '1' and
+    os.environ.get('WERKZEUG_RUN_MAIN') == 'true'):
+    
+    # Check if user wants to skip background sync (helps with hanging issues)
+    if '--no-sync' in sys.argv:
+        print("🚫 Background emulator sync disabled via --no-sync flag")
+    else:
+        sync_thread = threading.Thread(target=background_emulator_sync, daemon=True)
+        sync_thread.start()
+        print("🔄 Emulator data sync scheduled for background (non-blocking)")
+        print("   💡 Use 'python run.py --no-sync' to disable background sync if hanging")
 
 if __name__ == "__main__":
     app.run(

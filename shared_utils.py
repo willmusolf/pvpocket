@@ -255,10 +255,12 @@ def documents_are_different(emulator_data, production_data):
 
 def sync_to_local_emulator():
     """Smart sync: Only update differences between production and emulator."""
-    # Only attempt sync if we're in development/scraping context
-    if not (os.environ.get('FLASK_DEBUG') == '1' or 
-            os.environ.get('FLASK_CONFIG') == 'development' or
-            os.environ.get('JOB_TYPE')):  # Running in scraping job
+    import time
+    
+    # CRITICAL: Only run in scraping jobs, NOT in local development
+    # This prevents local development from hitting production Firebase and causing costs
+    if not os.environ.get('JOB_TYPE'):  # Only run in scraping jobs
+        print("🔒 Sync skipped - only runs in scraping jobs to prevent production costs")
         return
     
     if not is_emulator_running():
@@ -266,6 +268,7 @@ def sync_to_local_emulator():
         return
     
     print("🔄 Smart sync: Comparing emulator vs production...")
+    start_time = time.time()
     
     # Store original emulator setting
     original_emulator_host = os.environ.get('FIRESTORE_EMULATOR_HOST')
@@ -317,13 +320,18 @@ def sync_to_local_emulator():
         os.environ['FIRESTORE_EMULATOR_HOST'] = 'localhost:8080'
         emulator_db = firestore.client(app=emulator_app)
         
-        # Get all collections dynamically
+        # Get all collections dynamically with error handling
         print("🔍 Discovering collections...")
-        prod_collections = list(prod_db.collections())
-        print(f"📁 Found {len(prod_collections)} collections in production")
-        
-        if len(prod_collections) == 0:
-            print("⚠️  No collections found in production - check Firebase connection")
+        try:
+            prod_collections = list(prod_db.collections())
+            print(f"📁 Found {len(prod_collections)} collections in production")
+            
+            if len(prod_collections) == 0:
+                print("⚠️  No collections found in production - check Firebase connection")
+                return
+        except Exception as e:
+            print(f"❌ Failed to discover collections: {e}")
+            print("   This may be due to permissions or connectivity issues")
             return
         
         total_added = 0
@@ -447,6 +455,11 @@ def sync_to_local_emulator():
         # Don't fail the main scraping job if emulator sync fails
         
     finally:
+        
+        # Log timing
+        elapsed = time.time() - start_time
+        print(f"⏱️ Sync operation took {elapsed:.2f} seconds")
+        
         # Clean up apps and restore environment
         if emulator_app and emulator_app.name == 'emulator_app':
             try:

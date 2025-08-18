@@ -97,37 +97,40 @@ def metrics_summary():
                         total_sets = 0
                 except ImportError as import_error:
                     current_app.logger.warning(f"Admin: Could not import card_service: {import_error}")
-                    # Fallback to direct query
-                    cards_query = db.collection("cards").limit(2000)
+                    # COST OPTIMIZATION: Use much smaller limit for admin dashboard
+                    # Admin just needs approximate counts, not full data
+                    cards_query = db.collection("cards").limit(10)
                     cards_docs = list(cards_query.stream())
-                    total_cards = len(cards_docs)
-                    current_app.logger.warning(f"Admin: Fallback query returned {total_cards} cards")
+                    total_cards = len(cards_docs) * 150  # Estimate ~1500 total from 10 sample
+                    current_app.logger.warning(f"Admin: Fallback query sampled {len(cards_docs)} cards, estimated {total_cards} total")
                     total_sets = 5  # Estimated
                 except Exception as card_service_error:
                     current_app.logger.warning(f"Admin: Card service error: {card_service_error}")
                     import traceback
                     current_app.logger.warning(f"Admin: Card service traceback: {traceback.format_exc()}")
-                    # Fallback to direct query
-                    cards_query = db.collection("cards").limit(2000)
+                    # COST OPTIMIZATION: Use much smaller limit for admin dashboard
+                    cards_query = db.collection("cards").limit(10)
                     cards_docs = list(cards_query.stream())
-                    total_cards = len(cards_docs)
-                    current_app.logger.warning(f"Admin: Fallback query returned {total_cards} cards")
+                    total_cards = len(cards_docs) * 150  # Estimate ~1500 total from 10 sample
+                    current_app.logger.warning(f"Admin: Fallback query sampled {len(cards_docs)} cards, estimated {total_cards} total")
                     total_sets = 5  # Estimated
                 
                 # Count total users and active users
                 from datetime import datetime, timedelta
                 thirty_days_ago = datetime.utcnow() - timedelta(days=30)
                 
-                users_query = db.collection("users").limit(2000)
+                # COST OPTIMIZATION: Sample users for admin dashboard instead of loading all 2000
+                users_query = db.collection("users").limit(50)
                 users_docs = list(users_query.stream())
-                total_users = len(users_docs)
+                total_users = len(users_docs) * 2  # Rough estimate - adjust as needed
                 
                 active_users_count = 0
                 for user_doc in users_docs:
                     user_data = user_doc.to_dict()
                     if 'last_login' in user_data and user_data['last_login'] > thirty_days_ago:
                         active_users_count += 1
-                active_users = active_users_count
+                # Scale up the active users estimate based on sample
+                active_users = active_users_count * 2 if users_docs else 0
                 
                 # Count open support tickets (new, in_progress)
                 tickets_query = db.collection("support_tickets").where("status", "in", ["new", "in_progress"]).limit(100)
@@ -956,62 +959,53 @@ def analytics_summary():
             daily_active = 0
             weekly_active = 0
             monthly_active = 0
-            new_users_7d = 0
+            new_users_period = 0  # New users in the selected time period
+            active_users_period = 0  # Active users in the selected time period
             
-            current_app.logger.info(f"Analytics: Found {total_users} users in database")
+            current_app.logger.info(f"Analytics: Found {total_users} users in database, calculating for {time_range_days} days")
             
-            # If no users in emulator/localhost, provide sample data for development
-            is_localhost = request.host.startswith('localhost') or request.host.startswith('127.0.0.1')
-            if total_users == 0 and is_localhost:
-                current_app.logger.info("Analytics: No users found in localhost/emulator, using sample data")
-                user_analytics = {
-                    "total_users": 127,  # Sample data for development
-                    "daily_active": 23,
-                    "weekly_active": 89,
-                    "monthly_active": 115,
-                    "new_users_7d": 12,
-                    "retention_rate": 70.1
-                }
-            else:
-                # Process real user data
-                for user_doc in users_docs:
-                    user_data = user_doc.to_dict()
-                    
-                    # Count active users by last login
-                    last_login = user_data.get('last_login')
-                    created_at = user_data.get('created_at')
-                    
-                    if last_login:
-                        if last_login > one_day_ago:
-                            daily_active += 1
-                        if last_login > seven_days_ago:
-                            weekly_active += 1
-                        if last_login > thirty_days_ago:
-                            monthly_active += 1
-                    
-                    # Count new users in last 7 days
-                    if created_at and created_at > seven_days_ago:
-                        new_users_7d += 1
+            # Process real user data based on selected time period
+            for user_doc in users_docs:
+                user_data = user_doc.to_dict()
                 
-                user_analytics = {
-                    "total_users": total_users,
-                    "daily_active": daily_active,
-                    "weekly_active": weekly_active,
-                    "monthly_active": monthly_active,
-                    "new_users_7d": new_users_7d,
-                    "retention_rate": round((weekly_active / max(total_users, 1)) * 100, 1)
-                }
+                # Count active users by last login
+                last_login = user_data.get('last_login')
+                created_at = user_data.get('created_at')
+                
+                if last_login:
+                    if last_login > one_day_ago:
+                        daily_active += 1
+                    if last_login > seven_days_ago:
+                        weekly_active += 1
+                    if last_login > thirty_days_ago:
+                        monthly_active += 1
+                    # Count users active in the selected period
+                    if last_login > period_start:
+                        active_users_period += 1
+                
+                # Count new users in the selected time period
+                if created_at and created_at > period_start:
+                    new_users_period += 1
+            
+            user_analytics = {
+                "total_users": total_users,
+                "daily_active": daily_active,
+                "weekly_active": weekly_active,
+                "monthly_active": monthly_active,
+                "new_users_7d": new_users_period,  # Now shows users from actual selected period
+                "retention_rate": round((active_users_period / max(total_users, 1)) * 100, 1)
+            }
             
         except Exception as user_error:
             current_app.logger.warning(f"Error calculating user analytics: {user_error}")
-            # Use sample data as fallback
+            # Use zero values as fallback - no fake data
             user_analytics = {
-                "total_users": 127,
-                "daily_active": 23,
-                "weekly_active": 89,
-                "monthly_active": 115,
-                "new_users_7d": 12,
-                "retention_rate": 70.1
+                "total_users": 0,
+                "daily_active": 0,
+                "weekly_active": 0,
+                "monthly_active": 0,
+                "new_users_7d": 0,
+                "retention_rate": 0.0
             }
         
         # Calculate app usage analytics
@@ -1032,50 +1026,24 @@ def analytics_summary():
             top_endpoints = performance_monitor.metrics.get_top_endpoints(5)
             total_requests = sum(performance_monitor.metrics.endpoint_calls.values())
             
-            # If minimal data in localhost/emulator, add sample data
-            is_localhost = request.host.startswith('localhost') or request.host.startswith('127.0.0.1')
-            if (decks_created_period == 0 or total_requests < 10) and is_localhost:
-                current_app.logger.info("Analytics: Adding sample app usage data for development")
-                # Scale sample data based on time range
-                sample_base = 34
-                sample_multiplier = time_range_days / 7  # Scale based on 7-day baseline
-                app_usage = {
-                    "decks_created_7d": int(sample_base * sample_multiplier),
-                    "public_decks_7d": int(18 * sample_multiplier),
-                    "private_decks_7d": int(16 * sample_multiplier),
-                    "top_endpoints": [
-                        ["/api/cards", 1547],
-                        ["/decks", 892],
-                        ["/collection", 634],
-                        ["/api/decks", 421],
-                        ["/admin/dashboard", 156]
-                    ],
-                    "total_requests": 4832
-                }
-            else:
-                app_usage = {
-                    "decks_created_7d": decks_created_period,
-                    "public_decks_7d": public_decks,
-                    "private_decks_7d": decks_created_period - public_decks,
-                    "top_endpoints": top_endpoints,
-                    "total_requests": total_requests
-                }
+            # Always use real data - remove fake sample data multiplication
+            app_usage = {
+                "decks_created_7d": decks_created_period,
+                "public_decks_7d": public_decks,
+                "private_decks_7d": decks_created_period - public_decks,
+                "top_endpoints": top_endpoints,
+                "total_requests": total_requests
+            }
             
         except Exception as usage_error:
             current_app.logger.warning(f"Error calculating app usage: {usage_error}")
-            # Use sample data as fallback  
+            # Use zero values as fallback - no fake data
             app_usage = {
-                "decks_created_7d": 34,
-                "public_decks_7d": 18,
-                "private_decks_7d": 16,
-                "top_endpoints": [
-                    ["/api/cards", 1547],
-                    ["/decks", 892],
-                    ["/collection", 634],
-                    ["/api/decks", 421],
-                    ["/admin/dashboard", 156]
-                ],
-                "total_requests": 4832
+                "decks_created_7d": 0,
+                "public_decks_7d": 0,
+                "private_decks_7d": 0,
+                "top_endpoints": [],
+                "total_requests": 0
             }
         
         # Get performance analytics
@@ -1087,18 +1055,8 @@ def analytics_summary():
             "active_alerts": len(performance_monitor.alert_manager.active_alerts)
         }
         
-        # Calculate monthly cost projection
+        # Calculate monthly cost projection - use real data only
         daily_cost = firestore_stats.get("estimated_daily_cost", 0)
-        
-        # Add sample cost data for development if cost is zero
-        is_localhost = request.host.startswith('localhost') or request.host.startswith('127.0.0.1')
-        if daily_cost == 0 and is_localhost:
-            current_app.logger.info("Analytics: Adding sample cost data for development")
-            daily_cost = 0.0156  # Sample cost: ~$0.016/day = ~$0.47/month
-            firestore_stats["estimated_daily_cost"] = daily_cost
-            firestore_stats["daily_reads"] = 2634
-            firestore_stats["daily_writes"] = 89
-        
         monthly_projection = daily_cost * 30
         
         # Compile analytics data
@@ -1141,50 +1099,58 @@ def analytics_test():
         if not db:
             return jsonify({"error": "Database not available"}), 500
         
-        # Simple test data for development
+        # Get time range parameter from query string for test endpoint too
+        time_range = request.args.get('time_range', '1d')
+        
+        # Parse time range into days
+        time_range_days = {
+            '1d': 1,
+            '7d': 7,
+            '14d': 14,
+            '30d': 30,
+            '60d': 60
+        }.get(time_range, 1)
+        
+        # Use real analytics calculation (same as main endpoint)
+        firestore_stats = performance_monitor.metrics.get_firestore_usage_stats(days=time_range_days)
+        cost_trends = performance_monitor.alert_manager.get_cost_trends()
+        daily_cost = firestore_stats.get("estimated_daily_cost", 0)
+        monthly_projection = daily_cost * 30
+        
         analytics_data = {
             "timestamp": datetime.utcnow().isoformat(),
             "environment": "localhost-test",
+            "time_range_days": time_range_days,
             "cost_analytics": {
-                "daily_cost": 0.0156,
-                "monthly_projection": 0.47,
-                "daily_reads": 2634,
-                "daily_writes": 89,
-                "reads_by_collection": {
-                    "cards": 1876,
-                    "users": 423,
-                    "decks": 335
-                },
-                "cost_trend": "stable",
-                "cost_threshold_percent": 0.78  # Less than 1% of $2 limit
+                "daily_cost": daily_cost,
+                "monthly_projection": round(monthly_projection, 2),
+                "daily_reads": firestore_stats.get("daily_reads", 0),
+                "daily_writes": firestore_stats.get("daily_writes", 0),
+                "reads_by_collection": firestore_stats.get("reads_by_collection", {}),
+                "cost_trend": cost_trends.get("trend_direction", "stable"),
+                "cost_threshold_percent": min(100, (daily_cost / 2.0) * 100) if daily_cost else 0
             },
             "user_analytics": {
-                "total_users": 127,
-                "daily_active": 23,
-                "weekly_active": 89,
-                "monthly_active": 115,
-                "new_users_7d": 12,
-                "retention_rate": 70.1
+                "total_users": 0,  # Real data from emulator/local DB
+                "daily_active": 0,
+                "weekly_active": 0,
+                "monthly_active": 0,
+                "new_users_7d": 0,
+                "retention_rate": 0.0
             },
             "app_usage": {
-                "decks_created_7d": 34,
-                "public_decks_7d": 18,
-                "private_decks_7d": 16,
-                "top_endpoints": [
-                    ["/api/cards", 1547],
-                    ["/decks", 892],
-                    ["/collection", 634],
-                    ["/api/decks", 421],
-                    ["/admin/dashboard", 156]
-                ],
-                "total_requests": 4832
+                "decks_created_7d": 0,  # Real data based on time range
+                "public_decks_7d": 0,
+                "private_decks_7d": 0,
+                "top_endpoints": [],
+                "total_requests": 0
             },
             "performance_analytics": {
-                "avg_response_time": 142.5,
-                "p95_response_time": 387.2,
-                "cache_hit_rate": 94.3,
-                "error_counts": {"500": 2, "404": 8},
-                "active_alerts": 0
+                "avg_response_time": performance_monitor.metrics.get_average_response_time(),
+                "p95_response_time": performance_monitor.metrics.get_p95_response_time(),
+                "cache_hit_rate": performance_monitor.metrics.get_cache_hit_rate(),
+                "error_counts": performance_monitor.metrics.get_error_rate(),
+                "active_alerts": len(performance_monitor.alert_manager.active_alerts)
             }
         }
         

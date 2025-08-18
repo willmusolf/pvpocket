@@ -79,6 +79,7 @@
     min-height: 44px; /* Apple's recommended touch target size */
     display: flex;
     align-items: center;
+    font-size: 14px !important; /* Ensure readable text size */
 }
 
 /* 8. Fix potential z-index issues with dropdowns */
@@ -172,4 +173,132 @@
 .dropdown-item,
 .nav-link {
     touch-action: manipulation;
+}
+
+/* 21. Mobile text size improvements */
+@media (max-width: 768px) {
+    /* Ensure footer links are readable and tappable */
+    .footer-link {
+        font-size: 16px !important; /* Increase from 0.9rem (14.4px) to 16px */
+        padding: 8px 4px !important; /* Add touch padding */
+        min-height: 44px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        line-height: 1.2 !important;
+    }
+    
+    /* Footer link separators */
+    .footer-links .text-muted {
+        font-size: 16px !important;
+        padding: 0 8px !important;
+    }
+    
+    /* Dropdown header text */
+    .dropdown-header {
+        font-size: 14px !important;
+        min-height: 44px !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+    
+    /* Navbar dropdown text improvements */
+    #mainNavbar .dropdown-item {
+        font-size: 16px !important; /* Override previous 14px for better mobile readability */
+        line-height: 1.3 !important;
+    }
+    
+    /* General small text fixes */
+    small, .small {
+        font-size: 14px !important; /* Minimum 14px for mobile */
+    }
+    
+    /* Footer small text */
+    .pvpocket-footer small {
+        font-size: 14px !important;
+    }
+    
+    /* Dark mode toggle label */
+    .form-check-label {
+        font-size: 14px !important;
+        min-height: 44px !important;
+        display: flex !important;
+        align-items: center !important;
+        padding: 8px 0 !important;
+    }
+}
+
+/* 22. Fix navbar login/signup link */
+@media (max-width: 768px) {
+    .navbar-nav .nav-link {
+        font-size: 16px !important;
+        min-height: 44px !important;
+        display: flex !important;
+        align-items: center !important;
+        padding: 12px 16px !important;
+    }
+    
+    /* Fix navbar brand touch target size */
+    .navbar-brand {
+        min-height: 44px !important;
+        padding: 11px 0 !important; /* Add vertical padding to reach 44px */
+    }
+    
+    /* Fix footer link touch targets */
+    .footer-links .footer-link {
+        min-width: 44px !important;
+        min-height: 44px !important;
+        padding: 8px 12px !important; /* Increase horizontal padding */
+        text-align: center !important;
+    }
+}
+
+/* 23. Ensure all links have minimum touch target size */
+@media (max-width: 768px) {
+    a:not(.btn):not(.navbar-brand):not(.dropdown-item) {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        touch-action: manipulation;
+    }
+    
+    /* Override for inline text links that don't need full button treatment */
+    p a, 
+    .card-text a,
+    .alert a {
+        min-height: auto;
+        display: inline;
+        padding: 4px 2px;
+    }
+    
+    /* Hide problematic empty links that cause 0x0px touch targets */
+    a[href=""]:empty,
+    a:not([href]):empty,
+    a[href="#"]:empty {
+        display: none !important;
+    }
+    
+    /* Ensure collapsed navbar elements don't interfere with touch target calculations */
+    .navbar-collapse:not(.show) .nav-link,
+    .navbar-collapse:not(.show) .dropdown-item {
+        position: absolute !important;
+        left: -9999px !important;
+        top: -9999px !important;
+        width: 0 !important;
+        height: 0 !important;
+        overflow: hidden !important;
+    }
+    
+    /* Ensure feature card buttons are properly sized */
+    .feature-card .btn {
+        min-height: 48px !important;
+        font-size: 16px !important;
+        padding: 12px 24px !important;
+    }
+    
+    /* Hero section button */
+    .hero-section .btn {
+        min-height: 48px !important;
+        font-size: 16px !important;
+        padding: 12px 24px !important;
+    }
 }

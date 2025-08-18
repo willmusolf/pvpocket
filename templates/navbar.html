@@ -83,6 +83,7 @@
         margin: 0px;
         transform: translate3d(0px, 40px, 0px);
         z-index: 1040; /* Above navbar and admin sidebar */
+        font-size: 16px !important; /* Ensure dropdown text is readable on mobile */
     }
     
     /* Desktop dropdown positioning */
@@ -113,11 +114,20 @@
     #mainNavbar .dropdown-item {
         text-align: right !important;
         direction: rtl;
+        font-size: 16px !important; /* Ensure readable text size on mobile */
+        min-height: 44px !important; /* Ensure touch target size */
+        display: flex !important;
+        align-items: center !important;
+        padding: 0.75rem 1.25rem !important;
     }
     
     #mainNavbar .dropdown-header {
         text-align: right !important;
         direction: rtl;
+        font-size: 14px !important; /* Minimum readable size */
+        min-height: 44px !important;
+        display: flex !important;
+        align-items: center !important;
     }
     
     /* Clean tab-style navigation for desktop */
