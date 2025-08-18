@@ -266,70 +266,49 @@ def create_app(config_name="default"):
     
     # Initialize non-critical services (can be moved later if needed)
     
-    # Skip storage bucket operations when using emulator - it doesn't support storage
-    if os.environ.get('FIRESTORE_EMULATOR_HOST'):
-        # Use default profile icons without fetching from storage in emulator mode
-        DEFAULT_PROFILE_ICON = "default.png"
-        cdn_base_url = 'https://cdn.pvpocket.xyz'
-        
-        # Use a predefined list of common profile icons
+    # Profile icon configuration - fetch from Firebase Storage even in emulator mode
+    try:
+        bucket = storage.bucket()
+        blobs = list(bucket.list_blobs(prefix="profile_icons/"))
         icon_filenames = [
-            "bulbasaur.png", "charizard.png", "pikachu.png", 
-            "squirtle.png", "eevee.png", "mewtwo.png"
+            blob.name.split("/")[-1]
+            for blob in blobs
+            if blob.name.split("/")[-1] and not blob.name.endswith("/")
         ]
-        
+
+        DEFAULT_PROFILE_ICON = "default.png"
+        if DEFAULT_PROFILE_ICON in icon_filenames:
+            icon_filenames.remove(DEFAULT_PROFILE_ICON)
+
+        base_url = app.config['ASSET_BASE_URL']
         all_icon_urls = {}
+        # Always use CDN for profile icons to avoid CORS issues
+        cdn_base_url = 'https://cdn.pvpocket.xyz'
         for icon in icon_filenames + [DEFAULT_PROFILE_ICON]:
             all_icon_urls[icon] = f"{cdn_base_url}/profile_icons/{icon}"
-        
+
         app.config["PROFILE_ICON_FILENAMES"] = sorted(icon_filenames)
         app.config["PROFILE_ICON_URLS"] = all_icon_urls
-        # Ensure we always have a valid default URL, never empty string
-        default_icon_url = all_icon_urls.get(DEFAULT_PROFILE_ICON, f"{cdn_base_url}/profile_icons/default.png")
-        app.config["DEFAULT_PROFILE_ICON_URL"] = default_icon_url
+        app.config["DEFAULT_PROFILE_ICON_URL"] = all_icon_urls.get(
+            DEFAULT_PROFILE_ICON, ""
+        )
         
         if os.environ.get('WERKZEUG_RUN_MAIN'):
-            print("📦 Storage: Using predefined profile icons (emulator mode)")
-            print(f"📦 DEFAULT_PROFILE_ICON_URL: {default_icon_url}")
-            print(f"📦 PROFILE_ICON_URLS: {all_icon_urls}")
-    else:
-        try:
-            bucket = storage.bucket()
-            blobs = list(bucket.list_blobs(prefix="profile_icons/"))
-            icon_filenames = [
-                blob.name.split("/")[-1]
-                for blob in blobs
-                if blob.name.split("/")[-1] and not blob.name.endswith("/")
-            ]
+            storage_mode = "Emulator" if os.environ.get('FIRESTORE_EMULATOR_HOST') else "Production"
+            print(f"📦 Storage: Fetched {len(all_icon_urls)} profile icons from Firebase Storage ({storage_mode})")
 
-            DEFAULT_PROFILE_ICON = "default.png"
-            if DEFAULT_PROFILE_ICON in icon_filenames:
-                icon_filenames.remove(DEFAULT_PROFILE_ICON)
-
-            base_url = app.config['ASSET_BASE_URL']
-            all_icon_urls = {}
-            # Always use CDN for profile icons to avoid CORS issues
-            cdn_base_url = 'https://cdn.pvpocket.xyz'
-            for icon in icon_filenames + [DEFAULT_PROFILE_ICON]:
-                all_icon_urls[icon] = f"{cdn_base_url}/profile_icons/{icon}"
-
-            app.config["PROFILE_ICON_FILENAMES"] = sorted(icon_filenames)
-            app.config["PROFILE_ICON_URLS"] = all_icon_urls
-            app.config["DEFAULT_PROFILE_ICON_URL"] = all_icon_urls.get(
-                DEFAULT_PROFILE_ICON, ""
-            )
-
-        except Exception as e:
-            # Only log profile icon errors in debug mode
-            if config_name == 'development':
-                print(f"CRITICAL ERROR in profile icon loading: {e}", flush=True)
-            # Always provide a fallback profile icon URL instead of empty string
-            fallback_url = "https://cdn.pvpocket.xyz/profile_icons/default.png"
-            app.config["PROFILE_ICON_FILENAMES"] = []
-            app.config["PROFILE_ICON_URLS"] = {"default.png": fallback_url}
-            app.config["DEFAULT_PROFILE_ICON_URL"] = fallback_url
-            if os.environ.get('WERKZEUG_RUN_MAIN') and config_name == 'development':
-                print(f"📦 FALLBACK: Using fallback profile icon URL: {fallback_url}")
+    except Exception as e:
+        # Fallback to default icon if Firebase Storage fails
+        if config_name == 'development':
+            print(f"⚠️ Profile icon loading failed: {e}")
+        # Always provide a fallback profile icon URL instead of empty string
+        fallback_url = "https://cdn.pvpocket.xyz/profile_icons/default.png"
+        app.config["PROFILE_ICON_FILENAMES"] = []
+        app.config["PROFILE_ICON_URLS"] = {"default.png": fallback_url}
+        app.config["DEFAULT_PROFILE_ICON_URL"] = fallback_url
+        if os.environ.get('WERKZEUG_RUN_MAIN') and config_name == 'development':
+            print(f"📦 FALLBACK: Using fallback profile icon URL: {fallback_url}")
+    
 
     # Schedule deferred card collection initialization
     # This prevents blocking startup while ensuring cards are available quickly
@@ -453,7 +432,8 @@ def create_app(config_name="default"):
             context_vars["current_user_profile_icon_url"] = profile_icon_url
             # Debug logging
             if config_name == 'development':
-                print(f"DEBUG PROFILE ICON (AUTH): icon_filename={icon_filename}, default_url={default_url}, final_url={profile_icon_url}")
+                available_icons = list(icon_urls.keys())
+                print(f"DEBUG PROFILE ICON (AUTH): icon_filename='{icon_filename}', available_icons={available_icons}, final_url='{profile_icon_url}'")
             
             # Check if user is admin using ADMIN_EMAILS environment variable
             env_admins = os.environ.get("ADMIN_EMAILS", "")

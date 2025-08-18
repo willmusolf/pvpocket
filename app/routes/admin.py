@@ -318,7 +318,8 @@ def test_cards_endpoint():
 @admin_required
 def admin_dashboard():
     """Admin monitoring dashboard page."""
-    return render_template("admin_dashboard.html")
+    refresh_key = current_app.config.get('REFRESH_SECRET_KEY', '')
+    return render_template("admin_dashboard.html", refresh_key=refresh_key)
 
 
 @admin_bp.route("/api/support-tickets")

@@ -3,13 +3,13 @@
         <li><h6 class="dropdown-header text-end">
             {{ current_user.username }}
             {% if is_admin %}
-                <small class="text-warning d-block" style="font-size: 0.7em; font-weight: normal;">Admin</small>
+                <span class="badge bg-warning text-dark ms-2" style="font-size: 0.65em; font-weight: 600; padding: 0.25em 0.5em; border-radius: 0.375rem;">ADMIN</span>
             {% endif %}
         </h6></li>
         <li><a class="dropdown-item text-end" href="{{ url_for('auth.user_profile_and_settings') }}">Profile/Settings</a></li>
         {% if is_admin %}
             <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item text-end text-warning" href="{{ url_for('admin.admin_dashboard') }}">Admin Dashboard</a></li>
+            <li><a class="dropdown-item text-end" href="{{ url_for('admin.admin_dashboard') }}" style="color: #fd7e14; font-weight: 600;">🛠️ Admin Dashboard</a></li>
             <li><hr class="dropdown-divider"></li>
         {% endif %}
         <li><a class="dropdown-item text-end" href="{{ url_for('friends.friends_page') }}">Friends</a></li>
