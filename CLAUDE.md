@@ -18,6 +18,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ./scripts/run_tests.sh pre-prod  # Full validation
 ```
 
+### 🤔 MANDATORY: Ask Before Significant Changes
+**ALWAYS ask for clarification when:**
+- Making architectural changes or adding new features
+- Modifying authentication, security, or admin functionality
+- Changing database schema or Firebase collections
+- Unclear about requirements or implementation approach
+- Impact affects multiple files or core systems
+
 ### 📝 Code Simplicity & Quality Rules
 **ALWAYS write simple, maintainable code:**
 - **Prefer simple over clever**
@@ -43,520 +51,193 @@ cards = db.collection('cards').get()  # Could crash the app!
 return [card.to_dict() for card in cards]
 ```
 
-## 🎯 Simple Overview for Beginners
+## 🎯 Quick Start
 
-### What We Built
-1. **Your App**: A Pokemon TCG Pocket app that runs on Google Cloud
-2. **Security**: All passwords/secrets are safely stored (not in code)
-3. **Automation**: Push code → Tests run → Deploys automatically
-4. **Monitoring**: Tracks if your app is healthy and fast
-5. **Backups**: Saves your database automatically every day
+**Pokemon TCG Pocket app** running on Google Cloud with automated testing & deployment.
 
-### Key URLs
-- **Your Website**: https://pvpocket.xyz
-- **Test Version**: https://test-env-dot-pvpocket-dd286.uc.r.appspot.com
-- **Local Testing**: http://localhost:5001 (on your computer)
+**Key URLs:**
+- **Production**: https://pvpocket.xyz  
+- **Test**: https://test-env-dot-pvpocket-dd286.uc.r.appspot.com
+- **Local**: http://localhost:5001
 
-### Daily Development (What You'll Actually Do)
+**Daily Development:**
 ```bash
-python run.py  # Run app locally
-
-# After making changes, test
-./scripts/run_tests.sh fast
+python run.py  # Run locally
+./scripts/run_tests.sh fast  # Test after changes
 ```
 
-## 🚀 Deployment & Infrastructure Overview
+## 🚀 Deployment & Architecture
 
-### Current Setup
-- **Production URL**: https://pvpocket.xyz (from https://pvpocket-dd286.uc.r.appspot.com)
-- **Test Environment**: https://test-env-dot-pvpocket-dd286.uc.r.appspot.com
-- **Local Development**: http://localhost:5001
+**Automated Deployment:**
+- Push to `main` → Production deploy  
+- Push to `development` → Test environment deploy
+- All secrets in Google Secret Manager (NEVER in code)
 
-### Security & Secrets Management
-- **All secrets removed from code** - stored in Google Secret Manager. NEVER add secrets or sensitive information to the repo as this all goes on Github
-- **Local development**: Uses `.env` file (never commit this!)
-- **Cloud deployment**: Uses `deploy_secrets.py` script to fetch from Secret Manager
-- **GitHub Actions**: Secrets stored in repository settings
+**Firebase Emulator:**
+- Local dev uses emulator with production data mirror (FREE)
+- Tests use emulator with test data (FREE)
+- Auto-starts with `python run.py`
 
-### Firebase Cost Optimizations (Jan 2025)
-- **Extended Cache TTLs**: Card collection (72h), user data (2h), user collections (24h), decks (6h)
-- **Client-Side Filtering**: Deck searches filter locally after initial load, reducing Firestore reads by 50%+
-- **Connection Pool Optimization**: Reduced from 15 to 10 concurrent connections
-- **Batch Size Reduction**: Limited to 100 documents per batch (from 500)
-- **Composite Indexes**: Added for common query patterns (owner_id + updated_at, etc.)
-- **Usage Monitoring**: Track Firestore operations at `/internal/firestore-usage`
-- **Cost Alerts**: Automatic warnings when approaching daily limits or high costs
+**Performance Optimizations:**
+- Extended cache TTLs, client-side filtering, connection pooling
+- Cost monitoring at `/internal/firestore-usage`
 
-### How to Deploy (GitHub Actions)
+See `DEPLOYMENT_GUIDE.md` for detailed deployment instructions.
 
-#### Automated Deployment via GitHub
-Your app uses GitHub Actions for continuous deployment:
+## Git Workflow & Testing
 
-**Production Deployment:**
-```bash
-# Push to main branch triggers production deployment
-git checkout main
-git merge development  # or your feature branch
-git push origin main
-```
+**Branch Strategy:**
+- `main` → Production auto-deploy
+- `development` → Test environment auto-deploy  
+- Feature branches → Tests only, no deploy
 
-**Test Environment Deployment:**
-```bash
-# Push to development branch triggers test deployment  
-git checkout development
-git push origin development
-```
+**Testing Protocol:**
+- Always run `./scripts/run_tests.sh fast` after changes
+- Add tests for new features in appropriate directories:
+  - `tests/unit/` - Business logic
+  - `tests/integration/` - API endpoints  
+  - `tests/security/` - Auth/admin features
 
-#### Manual Deployment (if needed)
-```bash
-# Generate deployment config with secrets
-python3 deploy_secrets.py --project-id pvpocket-dd286 --environment production
-gcloud app deploy app.yaml --project=pvpocket-dd286
-rm app.yaml  # Clean up temporary file with secrets
+See `TESTING.md` and `TESTING_CHEAT_SHEET.md` for complete testing docs.
 
-# For test environment
-python3 deploy_secrets.py --project-id pvpocket-dd286 --environment test  
-gcloud app deploy app-test.yaml --project=pvpocket-dd286
-rm app-test.yaml
-```
+## 💡 Key Development Info
 
-#### Environment Variables (Automatically Configured in GitHub Actions)
-- ✅ `ADMIN_EMAILS` - Admin access control (stored in Google Secret Manager)
-- ✅ `TASK_AUTH_TOKEN` - Secure background task authentication  
-- ✅ `SECRET_KEY` - Flask secret key
-- ✅ `REFRESH_SECRET_KEY` - API refresh key
-- ✅ `GOOGLE_OAUTH_CLIENT_ID/SECRET` - OAuth authentication
-- ✅ All alert system credentials
+**Common Tasks:**
+- Force card refresh: POST `/api/refresh-cards` with `X-Refresh-Key` header
+- Default dev port: 5001
+- Cache TTL: Cards 24h, Users 30min
+- Admin access: `ADMIN_EMAILS` env var
 
-### Firebase Emulator Strategy
-
-#### Local Development
-- **Purpose**: Free local development with full production data mirror
-- **Auto-start**: `python3 run.py` starts emulator and syncs if needed
-- **Data sync**: Syncs ALL collections from production on first run
-- **Persistence**: Data saved in `emulator_data/` directory
-- **Isolation**: Local changes don't affect production
-- **Collections synced**: cards (~1327), users (all), decks (all), internal_config, etc.
-
-#### GitHub Actions Tests
-- **Test data**: Uses `scripts/create_test_data.py` for consistent test data
-- **Content**: 10 test cards, 3 test users, 3 test decks
-- **Isolation**: Each test run gets fresh emulator instance
-- **All test types**: Fast, full, unit, security, performance tests use emulator
-
-#### Environment Summary
-| Environment | Firebase Mode | Data Content | Cost |
-|-------------|--------------|--------------|------|
-| Local Dev | Emulator | Full production mirror | FREE |
-| GitHub CI | Emulator | Test data (10 cards) | FREE |
-| Staging | Real Firestore | Production data | MINIMAL |
-| Production | Real Firestore | Production data | OPTIMIZED |
-
-## Git Workflow & CI/CD
-
-### Branch Strategy
-- **main branch**: Auto-deploys to production when you push
-- **develop branch**: Auto-deploys to test environment when you push
-- **feature branches**: Run tests but don't deploy
-
-### Typical Development Flow
-1. Create feature branch: `git checkout -b feature/my-new-feature`
-2. Make changes and test locally: `python run.py`
-3. Commit and push: `git add . && git commit -m "Add feature" && git push`
-4. Create Pull Request to main branch
-5. GitHub Actions automatically runs tests
-6. Merge PR → Auto-deploys to production
-
-### What Happens Automatically
-- **Claude runs tests** after every code change
-- **Security scanning** on every push
-- **Performance tests** on every push  
-- **Auto-deployment** when pushing to main/develop
-- **Health checks** after each deployment
-- **Test failure blocking** - PRs can't merge with failing tests
-
-### 🧪 Claude's Testing Protocol
-**For any significant change, Claude will:**
-- Run `./scripts/run_tests.sh fast` after changes
-- Add appropriate test files if creating new functionality:
-  - `tests/unit/` for business logic and data models
-  - `tests/integration/` for API endpoints and workflows  
-  - `tests/security/` for authentication and authorization
-- Ensure test coverage for new code meets project standards
-- Fix any test failures before completing the task
-- Report test results and coverage in the response
-
-## Development Workflow
-
-### Development Best Practices
-- **Configuration**: Use environment variables for all sensitive data
-- **Caching**: Card collection cached for 24 hours - use `/api/refresh-cards` to force refresh
-- **Authentication**: Google OAuth requires proper redirect URIs in development
-- **Background Jobs**: Test scraping and checker modules independently
-- **Port Configuration**: Default development port is 5001, production uses `$PORT` environment variable
-
-### Common Development Tasks
-- **Force Card Refresh**: POST to `/api/refresh-cards` with `X-Refresh-Key` header
-- **Debug Firebase**: Check `app/__init__.py` for Firebase initialization and connection logs
-- **Profile Icon Management**: Icons stored in Firebase Storage under `profile_icons/`
-- **Energy Type Icons**: Predefined URLs in `app/__init__.py` for energy type visualization
-
-### When to Add Tests for New Features
-**ALWAYS add tests when creating:**
-- New API endpoints or routes
-- Authentication or authorization features
-- Database operations or transactions
-- Business logic or validation rules
-- User-facing forms or workflows
-- Admin or security features
-
-See `TESTING.md` and `TESTING_CHEAT_SHEET.md` for complete testing documentation.
-
-## 💡 Code Patterns & Best Practices
-
-#### API Endpoints
+**Core Patterns:**
 ```python
+# API endpoints - always validate input and handle errors
 @app.route('/api/endpoint')
 def api_endpoint():
-    # Input validation
     if not request.args.get('param'):
         return jsonify({'error': 'Missing parameter'}), 400
-    
     try:
-        # Process request
         result = process_request(request.args)
         return jsonify(result), 200
     except Exception as e:
         app.logger.error(f"API error: {e}")
         return jsonify({'error': 'Internal server error'}), 500
-```
 
-#### Caching Pattern
-```python
-# Check cache first, fallback to database
-def get_cards():
-    # Try cache
-    cached = cache_manager.get('cards')
+# Caching - check cache first, fallback to DB
+def get_data():
+    cached = cache_manager.get('key')
     if cached:
         return cached
-    
-    # Fallback to database
     try:
-        cards = fetch_from_database()
-        cache_manager.set('cards', cards, ttl=3600)
-        return cards
+        data = fetch_from_database()
+        cache_manager.set('key', data, ttl=3600)
+        return data
     except Exception as e:
-        app.logger.error(f"Failed to fetch cards: {e}")
+        app.logger.error(f"Failed to fetch: {e}")
         return []
 ```
 
-### Performance Considerations
-- **Use batch operations** for multiple Firestore writes
-- **Implement caching** for frequently accessed data
-- **Limit query results** to prevent excessive reads
-- **Use pagination** for large datasets
-- **Profile before optimizing** - don't guess at performance issues
-
-### Security Best Practices
-- **Never trust user input** - Always validate and sanitize
-- **Use parameterized queries** - Prevent injection attacks
-- **Check authentication** - Verify user permissions
-- **Log security events** - Track failed auth attempts
-- **Keep secrets in Secret Manager** - Never hardcode credentials
-
-## Development Commands
-
-### Environment Setup
-```bash
-# Install Python dependencies
-pip install -r requirements.txt
-
-# Install Node.js dependencies (Firebase client SDK)
-npm install
-```
-
-### Running the Application
-```bash
-# Development server (default port 5001)
-python run.py
-
-# Development server with specific port
-PORT=8080 python run.py
-
-# Production (Google App Engine)
-gunicorn -b :$PORT run:app
-```
-
-### Development Workflow
-```bash
-# Run locally with development config
-FLASK_CONFIG=development python run.py
-
-# Run with production config locally
-FLASK_CONFIG=production python run.py
-
-# Debug mode (automatic in development)
-FLASK_DEBUG=1 python run.py
-```
-
-### Deployment Commands
-```bash
-# Deploy to Google App Engine (production)
-gcloud app deploy app.yaml
-
-# Deploy to test environment
-gcloud app deploy app-test.yaml
-
-# View logs
-gcloud app logs tail -s default
-```
-
-### Background Jobs
-```bash
-# Build and run scraping job container
-docker build -t scraping-job .
-docker run scraping-job
-
-# Run checker module locally
-cd checker && python main.py
-```
+See `DEVELOPMENT.md` for detailed development workflows and commands.
 
 ## Project Structure
 
-### Application Organization
 ```
 pokemon_tcg_pocket/
 ├── app/                    # Core Flask application
-│   ├── __init__.py        # App factory and Flask-Dance OAuth setup
-│   ├── config.py          # Environment-based configuration classes
-│   ├── models.py          # User authentication and profile models
-│   ├── cache_manager.py   # High-performance in-memory caching system
-│   ├── monitoring.py      # Real-time performance monitoring and alerting
-│   ├── services.py        # Business logic and data access layer
-│   ├── db_service.py      # Database connection pooling and optimization
-│   ├── firestore_cache.py # Alternative Firestore-based caching
-│   ├── task_queue.py      # Background task processing
-│   └── routes/            # Modular route handlers
-│       ├── __init__.py    # Blueprint registration
-│       ├── auth.py        # Google OAuth login/logout
-│       ├── battle.py      # Battle simulation (in development)
-│       ├── collection.py  # Personal card collection management
-│       ├── decks.py       # Deck building and sharing
-│       ├── friends.py     # Friend system and social features
-│       ├── internal.py    # Internal system routes and monitoring
-│       ├── main.py        # Home page and core navigation
-│       └── meta.py        # Meta-game analysis and rankings
-├── static/                # Static web assets
-│   ├── js/               # JavaScript files
-│   │   ├── image-cache-sw.js    # Service worker for image caching
-│   │   ├── client-cache.js      # Client-side caching utilities
-│   │   └── image-utils.js       # Image loading and optimization
-│   ├── favicon.ico       # Site favicon
-│   └── navbar-icon.png   # Navigation bar icon
-├── templates/            # Jinja2 HTML templates
-│   ├── base.html         # Base template with navigation
-│   ├── main_index.html   # Homepage
-│   ├── collection.html   # Card collection interface
-│   ├── decks.html        # Deck management interface
-│   ├── deck_image_export.html  # Deck export functionality
-│   ├── friends.html      # Friend management
-│   ├── friend_decks.html # Browse friend decks
-│   ├── profile.html      # User profile management
-│   ├── login_prompt.html # Authentication flow
-│   ├── set_username.html # Username setup
-│   ├── battle.html       # Battle interface
-│   ├── meta_rankings.html # Meta-game statistics
-│   ├── navbar.html       # Navigation component
-│   └── test_scalability.html # Scalability testing dashboard
-├── scraping/             # Data acquisition pipeline
-│   ├── __init__.py       # Package initialization
-│   ├── scraper.py        # Web scraping from Limitless TCG
-│   ├── download_icons.py # Card image downloading
-│   ├── post_processor.py # Data cleaning and normalization
-│   └── run_job.py        # Background job orchestration
-├── checker/              # Data monitoring system
-│   ├── main.py           # Cloud Run job for change detection
-│   └── requirements.txt  # Checker-specific dependencies
-├── docs/                 # Project documentation
-│   └── scalability-without-redis.md # Scalability architecture guide
-├── Card.py               # Core card data models
-├── Deck.py               # Deck building logic and validation
-├── shared_utils.py       # Common Firebase utilities
-├── main.py               # Cloud Function entry point
-├── run.py                # Development server entry point
-├── test_scalability.py   # Comprehensive performance testing suite
-├── test_quick.py         # Quick performance tests
-├── requirements.txt      # Python dependencies
-├── package.json          # Node.js dependencies (Firebase client)
-├── Dockerfile           # Container configuration for jobs
-├── app.yaml             # Google App Engine production config
-├── app-test.yaml        # Google App Engine test config
-├── cors-config.json     # CORS configuration for Firebase Storage
-├── credentials.json     # Firebase service account (local dev)
-├── token.json           # Google API tokens (local dev)
-└── CLAUDE.md            # Development documentation
+│   ├── __init__.py        # App factory, Firebase/OAuth setup
+│   ├── config.py          # Environment configs
+│   ├── models.py          # User models
+│   ├── alerts.py          # Alert system
+│   ├── cache_manager.py   # In-memory caching
+│   ├── monitoring.py      # Performance monitoring
+│   ├── services.py        # Business logic
+│   ├── db_service.py      # Database operations
+│   ├── email_service.py   # Email notifications
+│   ├── firestore_cache.py # Alternative caching
+│   ├── gcp_exceptions.py  # GCP error handling
+│   ├── secret_manager_utils.py # Secret management
+│   ├── security.py        # Security utilities
+│   ├── task_queue.py      # Background tasks
+│   └── routes/            # Route handlers
+│       ├── admin.py       # Admin dashboard & metrics
+│       ├── auth.py        # OAuth login/logout
+│       ├── battle.py      # Battle simulation
+│       ├── collection.py  # Card collection
+│       ├── decks.py       # Deck building
+│       ├── friends.py     # Friend system
+│       ├── internal.py    # Internal/monitoring routes
+│       ├── main.py        # Home page
+│       └── meta.py        # Meta-game analysis
+├── templates/             # Jinja2 HTML templates
+│   ├── admin_dashboard.html # Admin interface
+│   ├── about.html, faq.html, support.html # Static pages
+│   ├── terms_of_service.html, privacy_policy.html
+│   └── [other templates...]
+├── static/js/             # Client-side JavaScript
+│   ├── client-cache.js, image-utils.js
+│   └── [performance/mobile scripts...]
+├── tests/                 # Test suite
+│   ├── unit/             # Unit tests
+│   ├── integration/      # Integration tests
+│   ├── security/         # Security tests
+│   └── performance/      # Performance tests
+├── scripts/              # Utility scripts
+│   ├── run_tests.sh      # Test runner
+│   ├── create_test_data.py, setup_*.py
+│   └── [other scripts...]
+├── docs/                 # Documentation
+├── monitoring/           # Monitoring configs
+├── scraping/             # Data pipeline
+├── checker/              # Change detection
+├── Card.py, Deck.py      # Core models
+├── shared_utils.py       # Firebase utilities
+├── run.py                # Dev server
+└── [config files...]     # app.yaml, requirements.txt, etc.
 ```
 
-### Architecture Overview
+## Architecture & Key Systems
 
-#### Core Application Structure
-- **Flask App Factory Pattern**: App created via `create_app()` in `app/__init__.py`
-- **Configuration Management**: Environment-based configs in `app/config.py` (development/production/staging/testing)
-- **Blueprint-based Routing**: Modular routes in `app/routes/` (auth, battle, collection, decks, friends, internal, main, meta)
+**Core Architecture:**
+- Flask app factory pattern with Blueprint-based routing
+- Environment-based configuration (dev/test/prod/staging)
+- Firebase integration (Firestore DB, Storage, OAuth)
+- In-memory caching system (24h cards, 30min users, 98%+ hit rate)
 
-#### High-Performance Scalability Architecture
-- **In-Memory Caching System** (`app/cache_manager.py`):
-  - Card collection cache with 24-hour TTL, 98%+ hit rates
-  - User data cache with 30-minute TTL
-  - Thread-safe operations with automatic cache refresh
-  - Redis-compatible interface with Firestore fallback
-- **Service Layer** (`app/services.py`):
-  - Clean data access patterns and business logic separation
-  - Connection pooling and query optimization
-  - Batch operations for improved performance
-- **Performance Monitoring** (`app/monitoring.py`):
-  - Real-time metrics collection (response times, cache hit rates, throughput)
-  - Performance threshold alerts and health monitoring
-  - Configurable alerting system
-- **Database Optimization** (`app/db_service.py`):
-  - Connection pooling (up to 15 concurrent connections)
-  - Optimized Firestore queries and batch operations
-- **Background Task Queue** (`app/task_queue.py`):
-  - Asynchronous processing for heavy operations
-  - Task prioritization and retry logic
+**Key Components:**
+- `Card.py` / `Deck.py` - Core data models
+- `app/services.py` - Business logic layer
+- `app/cache_manager.py` - High-performance caching
+- `app/monitoring.py` - Performance metrics & alerts
+- `app/routes/admin.py` - Admin dashboard with metrics
+- `scraping/` - Data pipeline from Limitless TCG
+- `checker/` - Change detection system
 
-#### Data Layer Architecture
-- **Firebase Integration**: 
-  - Firestore for data persistence with collections: `users/`, `decks/`, `cards/`, `internal_config/`
-  - Firebase Storage for card images and profile icons with CDN integration
-  - Firebase Auth via Google OAuth with Flask-Dance integration
-  - Secret Manager for secure credential management
-- **Card Data Models**: 
-  - `Card` class in `Card.py` - Individual Pokémon TCG cards with comprehensive attributes (HP, attacks, energy type, rarity, pack info)
-  - `CardCollection` class - In-memory collection with Firestore sync and 24-hour caching
-  - `Deck` class in `Deck.py` - Custom 20-card format, 2-copy limit per card name, with Firestore persistence and validation
-- **User Management**: Flask-Login with Firestore-backed User model, profile icon management, username requirements
-- **CDN Integration**: All static assets served via CDN (https://cdn.pvpocket.xyz) for optimal performance
-
-#### Data Synchronization System
-- **Card Cache**: In-memory with 24-hour TTL, thread-safe cache refresh system
-- **Cache Refresh API**: `/api/refresh-cards` endpoint with `X-Refresh-Key` header authentication
-- **Automated Data Pipeline**: 
-  - `main.py` - Cloud Function for monitoring external data sources and triggering updates
-  - `scraping/` module - Web scraping from Limitless TCG, Google Drive API integration for high-res images
-  - `checker/main.py` - Cloud Run jobs for data change detection and pipeline triggering
-  - `shared_utils.py` - Common Firebase initialization and utility functions
-- **Background Job Architecture**: Containerized scraping jobs with Docker, Cloud Run deployment
-
-#### Key Features Implementation
-- **Deck Building**: Custom 20-card format with type validation and energy cost analysis
-- **Collection Management**: Personal card tracking with rarity and pack information
-- **Meta-game Analysis**: Battle simulation data aggregation (in development)
-- **Authentication**: Google OAuth with username setup flow
-- **Performance Monitoring**: Real-time metrics, health checks, and scalability testing dashboard
-
-#### External Dependencies
-- **Data Sources**: Limitless TCG for card data, Google Drive for high-res images
-- **Cloud Services**: Google App Engine hosting with auto-scaling, Cloud Run for background jobs, Secret Manager for credentials
-- **Frontend**: Vanilla JavaScript + Bootstrap + Jinja2 templates with client-side caching
-
-## Performance and Scalability
-
-### Performance Metrics
-- **Cache Hit Rate**: 98.3%+ in production
-- **Response Time**: <500ms average for cached requests
-- **Throughput**: 20+ requests/second sustained
-- **Concurrent Users**: Supports 500+ simultaneous users
-
-### Scalability Features
-- **Auto-scaling**: Google App Engine with configurable scaling parameters
-- **Load Balancing**: Automatic request distribution across instances
-- **Connection Pooling**: Up to 15 concurrent database connections
-- **CDN Integration**: Static asset delivery via global CDN
-- **Client-side Caching**: Image and data caching in browser
-
-### Monitoring and Testing
-- **Health Endpoint**: `/health` - System status and diagnostics
-- **Metrics Endpoint**: `/metrics` - Performance data in JSON format
-- **Automated Testing**: `test_scalability.py` - Comprehensive load testing suite
-
-## Testing and Quality Assurance
-
-### Testing Approach
-- **Performance Testing**: Comprehensive scalability testing with `test_scalability.py`
-- **Load Testing**: Concurrent user simulation and stress testing
-- **Manual Testing**: Flask routes, Firebase integration, and UI workflows
-- **Health Monitoring**: Automated health checks and performance alerts
-
-### Code Quality
-- **Type Hints**: Comprehensive type hints throughout critical modules
-- **Error Handling**: Graceful fallbacks and comprehensive exception handling
-- **Security**: Input validation with `better-profanity`, secure credential management
-- **Performance Patterns**: Caching, connection pooling, and optimized queries
-
-### Firebase Collections Structure
+**Firebase Collections:**
 ```
-users/              # User profiles and authentication data
-decks/              # User-created decks with card lists and metadata  
-cards/              # Master card database with all TCG data
-internal_config/    # System configuration (sets_tracker, drive_tracker, etc.)
+users/          # User profiles & auth
+decks/          # User decks (20-card format, 2-copy limit)
+cards/          # Master card database
+internal_config/ # System configuration
 ```
 
-### Important Patterns
-- **Error Handling**: Graceful fallbacks for Firebase connectivity issues, comprehensive exception handling in data loading
-- **Security**: Secret key rotation via Google Secret Manager, OAuth scoping, input sanitization with `better-profanity` filtering
-- **Performance**: 
-  - High-performance in-memory caching with 98%+ hit rates
-  - Database connection pooling and query optimization
-  - CDN integration for static assets
-  - Client-side caching for improved user experience
-  - Background task processing for heavy operations
-- **Deployment**: 
-  - Multi-environment configs (`app.yaml`, `app-test.yaml`)
-  - Google App Engine hosting with automatic scaling
-  - Containerized background jobs with Cloud Run
-  - Environment variable management across development/production
-- **Data Consistency**: Profile icon URL generation, energy type icon mapping, case-insensitive deck name searching
+**Performance:**
+- Cache hit rate: 98%+, Response time: <500ms
+- Auto-scaling on Google App Engine
+- CDN integration for static assets
 
-## Environment and Configuration
+## 📚 Documentation References
 
-### Required Environment Variables
-```bash
-# Core Flask configuration
-SECRET_KEY=<flask-secret-key>
-REFRESH_SECRET_KEY=<api-refresh-key>
-TASK_AUTH_TOKEN=<background-task-auth-token>
+- `TESTING.md` - Complete testing strategy
+- `DEPLOYMENT_GUIDE.md` - Deployment procedures  
+- `DEVELOPMENT.md` - Development workflows
+- `ALERTS_SETUP.md` - Monitoring & alerting
+- `SCRAPING.md` - Data pipeline details
 
-# Google Cloud Platform
-GCP_PROJECT_ID=<gcp-project-id>
-FIREBASE_SECRET_NAME=<secret-manager-name>
+## 🔄 Maintaining This File
 
-# OAuth Configuration
-GOOGLE_OAUTH_CLIENT_ID=<oauth-client-id>
-GOOGLE_OAUTH_CLIENT_SECRET=<oauth-client-secret>
+**Update CLAUDE.md when making significant changes to:**
+- Core architecture or major features
+- Testing requirements or procedures
+- Deployment processes or environments
+- New critical patterns or best practices
 
-# Optional - Scalability Configuration
-USE_FIRESTORE_CACHE=false        # Alternative cache backend
-CACHE_TTL_HOURS=24              # Card cache duration
-USER_CACHE_TTL_MINUTES=30       # User cache duration
-MAX_DB_CONNECTIONS=15           # Database pool size
-MONITORING_ENABLED=true         # Performance monitoring
-
-# Optional - General
-FLASK_CONFIG=development        # development/production/staging/testing
-FLASK_DEBUG=1                  # Enable debug mode
-PORT=5001                      # Server port
-```
-
-### Configuration Hierarchy
-1. **Base Config** (`app/config.py`): Common settings across environments
-2. **Development Config**: Debug enabled, local development settings
-3. **Production Config**: Optimized for Google App Engine deployment with CDN
-4. **Staging Config**: Production-like environment for testing
-5. **Testing Config**: Isolated configuration for testing scenarios
-
-### Firebase Setup
-- **Authentication**: Google OAuth with Flask-Dance integration
-- **Database**: Firestore with automatic retry and connection handling
-- **Storage**: Firebase Storage for images with CDN integration
-- **Security**: Credentials managed via Google Secret Manager in production
+**Keep updates minimal** - Reference external docs for details to maintain conciseness.
