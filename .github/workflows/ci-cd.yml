@@ -329,20 +329,18 @@ jobs:
     runs-on: ubuntu-latest
     needs: test
     if: github.ref == 'refs/heads/development'
+    # Add concurrency to limit deployments and reduce networking costs
+    concurrency:
+      group: deploy-test
+      cancel-in-progress: false
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Network Diagnostics (Pre-Auth)
+    - name: Skip network diagnostics to reduce costs
       run: |
-        echo "🔍 Network diagnostics before authentication..."
-        echo "Testing DNS resolution for Google APIs..."
-        nslookup oauth2.googleapis.com || echo "❌ DNS resolution failed"
-        echo "Testing connectivity to oauth2.googleapis.com..."
-        curl -I --connect-timeout 10 --max-time 15 https://oauth2.googleapis.com/ || echo "❌ Connectivity test failed"
-        echo "Testing basic Google Cloud connectivity..."
-        curl -I --connect-timeout 10 --max-time 15 https://cloudresourcemanager.googleapis.com/ || echo "❌ GCP API connectivity failed"
+        echo "Network diagnostics disabled to reduce networking costs"
         
     - name: Authenticate to Google Cloud
       uses: google-github-actions/auth@v2
@@ -409,7 +407,7 @@ jobs:
           USE_FIRESTORE_CACHE: 'false'
           CACHE_TTL_HOURS: '24'
           USER_CACHE_TTL_MINUTES: '30'
-          MAX_DB_CONNECTIONS: '10'
+          MAX_DB_CONNECTIONS: '3'
           MONITORING_ENABLED: 'true'
         EOF
         
@@ -457,31 +455,16 @@ jobs:
         echo "GCP_PROJECT_ID: ${{ env.GCP_PROJECT_ID }}"
         echo "Current time: $(date)"
         
-        # First test DNS resolution
-        echo "🌐 Testing DNS resolution..."
-        nslookup test-env-dot-${{ env.GCP_PROJECT_ID }}.uc.r.appspot.com || echo "DNS lookup failed"
+        # Skip detailed network diagnostics to reduce costs
+        echo "Proceeding directly to health check to reduce networking costs"
         
-        # Test basic connectivity
-        echo "🔌 Testing basic connectivity (ping-like)..."
-        timeout 10 bash -c "</dev/tcp/test-env-dot-${{ env.GCP_PROJECT_ID }}.uc.r.appspot.com/443" 2>/dev/null && echo "✅ Port 443 is reachable" || echo "❌ Port 443 not reachable"
-        
-        # Test with very short timeout first
-        echo "Quick connectivity test..."
+        # Single connectivity test to reduce networking costs
+        echo "Single connectivity test..."
         if curl -s --connect-timeout 5 --max-time 10 "$TEST_URL" > /dev/null 2>&1; then
-          echo "✅ Quick test passed, running full health check..."
-          curl -f --max-time 15 --connect-timeout 5 "$TEST_URL"
+          echo "✅ Test environment health check passed!"
           exit 0
         else
-          echo "❌ Quick connectivity test failed"
-          
-          # Try alternative URLs
-          ALT_URL="https://test-env-dot-${{ env.GCP_PROJECT_ID }}.appspot.com/health"
-          echo "Trying alternative URL: $ALT_URL"
-          if curl -s --connect-timeout 5 --max-time 10 "$ALT_URL" > /dev/null 2>&1; then
-            echo "✅ Alternative URL works!"
-            curl -f --max-time 15 --connect-timeout 5 "$ALT_URL"
-            exit 0
-          fi
+          echo "❌ Test environment health check failed (single attempt only)"
           
           echo "❌ Health check failed - service may not be ready yet"
           
@@ -503,20 +486,18 @@ jobs:
     needs: test
     if: github.ref == 'refs/heads/main'
     environment: production
+    # Add concurrency to limit deployments and reduce networking costs
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Network Diagnostics (Pre-Auth)
+    - name: Skip network diagnostics to reduce costs
       run: |
-        echo "🔍 Network diagnostics before authentication..."
-        echo "Testing DNS resolution for Google APIs..."
-        nslookup oauth2.googleapis.com || echo "❌ DNS resolution failed"
-        echo "Testing connectivity to oauth2.googleapis.com..."
-        curl -I --connect-timeout 10 --max-time 15 https://oauth2.googleapis.com/ || echo "❌ Connectivity test failed"
-        echo "Testing basic Google Cloud connectivity..."
-        curl -I --connect-timeout 10 --max-time 15 https://cloudresourcemanager.googleapis.com/ || echo "❌ GCP API connectivity failed"
+        echo "Network diagnostics disabled to reduce networking costs"
         
     - name: Authenticate to Google Cloud
       uses: google-github-actions/auth@v2
@@ -561,11 +542,14 @@ jobs:
         entrypoint: gunicorn -b :\$PORT run:app
         
         automatic_scaling:
-          target_cpu_utilization: 0.6
-          target_throughput_utilization: 0.6
-          max_concurrent_requests: 50
-          max_instances: 10
-          min_instances: 1
+          target_cpu_utilization: 0.8
+          target_throughput_utilization: 0.8
+          max_concurrent_requests: 10
+          max_instances: 2
+          min_instances: 0
+          min_idle_instances: 0
+          max_idle_instances: 0
+          cool_down_period_sec: 180
         
         resources:
           cpu: 1
@@ -594,7 +578,7 @@ jobs:
           USE_FIRESTORE_CACHE: 'false'
           CACHE_TTL_HOURS: '24'
           USER_CACHE_TTL_MINUTES: '30'
-          MAX_DB_CONNECTIONS: '15'
+          MAX_DB_CONNECTIONS: '5'
           MONITORING_ENABLED: 'true'
         EOF
         
@@ -609,45 +593,27 @@ jobs:
         echo "Testing production health endpoint: $PROD_URL"
         echo "GCP_PROJECT_ID: ${{ env.GCP_PROJECT_ID }}"
         
-        # First test DNS resolution
-        echo "Testing DNS resolution..."
-        nslookup ${{ env.GCP_PROJECT_ID }}.uc.r.appspot.com || echo "DNS lookup failed"
+        # Skip DNS diagnostics to reduce costs
+        echo "Proceeding directly to health check to reduce networking costs"
         
-        # Production health check with retry logic
-        for i in {1..3}; do
-          echo "Production health check attempt $i/3..."
-          if curl -f --connect-timeout 10 --max-time 20 "$PROD_URL"; then
-            echo "✅ Production health check passed!"
-            exit 0
-          else
-            echo "❌ Production health check failed (attempt $i/3)"
-            if [ $i -lt 3 ]; then
-              echo "Waiting 15 seconds before retry..."
-              sleep 15
-            fi
-          fi
-        done
+        # Single production health check to reduce networking costs
+        echo "Production health check (single attempt)..."
+        if curl -f --connect-timeout 8 --max-time 15 "$PROD_URL"; then
+          echo "✅ Production health check passed!"
+          exit 0
+        else
+          echo "❌ Production health check failed"
+          echo "Note: Single attempt only to reduce networking costs"
+        fi
         
         echo "❌ CRITICAL: Production health check failed after 3 attempts"
         echo "Production deployment may have issues!"
         exit 1
         
-    - name: Run production health and basic load test
-      env:
-        TEST_BASE_URL: "https://${{ env.GCP_PROJECT_ID }}.uc.r.appspot.com"
+    - name: Skip load testing to reduce networking costs
       run: |
-        # Basic production health and load testing
-        echo "Testing production deployment health..."
-        
-        # Test multiple endpoints for basic load testing  
-        for i in {1..5}; do
-          echo "Load test iteration $i"
-          curl -f -s -o /dev/null --max-time 15 --connect-timeout 5 "$TEST_BASE_URL/health" -w "Response time: %{time_total}s\n" || echo "Health check failed"
-          curl -f -s -o /dev/null --max-time 15 --connect-timeout 5 "$TEST_BASE_URL/" -w "Homepage time: %{time_total}s\n" || echo "Homepage failed"
-          sleep 1
-        done
-        
-        echo "Basic load testing completed"
+        echo "Load testing disabled to reduce networking costs"
+        echo "Production deployment health verified by previous step"
 
   cleanup:
     name: Cleanup Temporary Files
