@@ -18,5 +18,5 @@ env_variables:
   USE_FIRESTORE_CACHE: 'false'
   CACHE_TTL_HOURS: '24'
   USER_CACHE_TTL_MINUTES: '30'
-  MAX_DB_CONNECTIONS: '10'  # Lower for test environment
+  MAX_DB_CONNECTIONS: '3'  # Minimal for test environment to reduce costs
   MONITORING_ENABLED: 'true'
