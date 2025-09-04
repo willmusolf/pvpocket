@@ -36,6 +36,7 @@ load_dotenv()
 
 # Correct set release order mapping (using underscore format as stored in database)
 CORRECT_SET_ORDER = {
+    "Secluded_Springs": 11,
     "Wisdom_of_Sea_and_Sky": 10,
     "Eevee_Grove": 9,
     "Extradimensional_Crisis": 8,

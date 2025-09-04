@@ -1,0 +1,232 @@
+{
+  "timestamp": "2025-08-21T17:09:31.306361",
+  "summary": {
+    "total_cards": 1576,
+    "cards_tested": 1576,
+    "cards_passed": 1576,
+    "cards_failed": 0,
+    "success_rate": 100.0,
+    "test_duration": 0.01667618751525879
+  },
+  "effect_coverage": {
+    "DAMAGE_EFFECTS": 450,
+    "COIN_FLIP": 184,
+    "coin_flip": 88,
+    "discard_effects": 43,
+    "STATUS_CONDITION": 105,
+    "status_condition": 96,
+    "energy_scaling": 18,
+    "conditional_damage": 39,
+    "bench_manipulation": 10,
+    "healing": 34,
+    "HEALING": 38,
+    "draw_effects": 3
+  },
+  "error_summary": {},
+  "complex_cards_sample": [
+    {
+      "card_id": 263,
+      "card_name": "Alolan Marowak",
+      "card_type": "Pok\u00e9mon - Stage 1 - Evolves from Cubone",
+      "energy_type": "Fire",
+      "tests_passed": 3,
+      "tests_failed": 0,
+      "issues": [],
+      "effects_found": [
+        "Coin flip: coin_flip_damage",
+        "Status: burned",
+        "Mass parser: coin_flip",
+        "Mass parser: status_condition",
+        "Damage modification"
+      ],
+      "coverage_patterns": [
+        "COIN_FLIP",
+        "STATUS_CONDITION",
+        "coin_flip",
+        "status_condition",
+        "DAMAGE_EFFECTS"
+      ]
+    },
+    {
+      "card_id": 130,
+      "card_name": "Alolan Marowak",
+      "card_type": "Pok\u00e9mon - Stage 1 - Evolves from Cubone",
+      "energy_type": "Fire",
+      "tests_passed": 3,
+      "tests_failed": 0,
+      "issues": [],
+      "effects_found": [
+        "Coin flip: coin_flip_damage",
+        "Status: burned",
+        "Mass parser: coin_flip",
+        "Mass parser: status_condition",
+        "Damage modification"
+      ],
+      "coverage_patterns": [
+        "COIN_FLIP",
+        "STATUS_CONDITION",
+        "coin_flip",
+        "status_condition",
+        "DAMAGE_EFFECTS"
+      ]
+    },
+    {
+      "card_id": 334,
+      "card_name": "Exeggutor ex",
+      "card_type": "Pok\u00e9mon - Stage 1 - Evolves from Exeggcute (Shiny)",
+      "energy_type": "Grass",
+      "tests_passed": 3,
+      "tests_failed": 0,
+      "issues": [],
+      "effects_found": [
+        "Coin flip: coin_flip_conditional",
+        "Mass parser: coin_flip",
+        "Damage modification"
+      ],
+      "coverage_patterns": [
+        "COIN_FLIP",
+        "coin_flip",
+        "DAMAGE_EFFECTS"
+      ]
+    },
+    {
+      "card_id": 285,
+      "card_name": "Incineroar ex",
+      "card_type": "Pok\u00e9mon - Stage 2 - Evolves from Torracat",
+      "energy_type": "Fire",
+      "tests_passed": 4,
+      "tests_failed": 0,
+      "issues": [],
+      "effects_found": [
+        "Status: burned",
+        "Mass parser: status_condition",
+        "Mass parser: conditional_damage",
+        "Damage modification"
+      ],
+      "coverage_patterns": [
+        "STATUS_CONDITION",
+        "status_condition",
+        "conditional_damage",
+        "DAMAGE_EFFECTS"
+      ]
+    },
+    {
+      "card_id": 303,
+      "card_name": "Incineroar ex",
+      "card_type": "Pok\u00e9mon - Stage 2 - Evolves from Torracat",
+      "energy_type": "Fire",
+      "tests_passed": 4,
+      "tests_failed": 0,
+      "issues": [],
+      "effects_found": [
+        "Status: burned",
+        "Mass parser: status_condition",
+        "Mass parser: conditional_damage",
+        "Damage modification"
+      ],
+      "coverage_patterns": [
+        "STATUS_CONDITION",
+        "status_condition",
+        "conditional_damage",
+        "DAMAGE_EFFECTS"
+      ]
+    },
+    {
+      "card_id": 136,
+      "card_name": "Incineroar ex",
+      "card_type": "Pok\u00e9mon - Stage 2 - Evolves from Torracat",
+      "energy_type": "Fire",
+      "tests_passed": 4,
+      "tests_failed": 0,
+      "issues": [],
+      "effects_found": [
+        "Status: burned",
+        "Mass parser: status_condition",
+        "Mass parser: conditional_damage",
+        "Damage modification"
+      ],
+      "coverage_patterns": [
+        "STATUS_CONDITION",
+        "status_condition",
+        "conditional_damage",
+        "DAMAGE_EFFECTS"
+      ]
+    },
+    {
+      "card_id": 339,
+      "card_name": "Marowak ex",
+      "card_type": "Pok\u00e9mon - Stage 1 - Evolves from Cubone (Shiny)",
+      "energy_type": "Fighting",
+      "tests_passed": 3,
+      "tests_failed": 0,
+      "issues": [],
+      "effects_found": [
+        "Coin flip: coin_flip_damage",
+        "Mass parser: coin_flip",
+        "Damage modification"
+      ],
+      "coverage_patterns": [
+        "COIN_FLIP",
+        "coin_flip",
+        "DAMAGE_EFFECTS"
+      ]
+    },
+    {
+      "card_id": 122,
+      "card_name": "Steenee",
+      "card_type": "Pok\u00e9mon - Stage 1 - Evolves from Bounsweet",
+      "energy_type": "Grass",
+      "tests_passed": 3,
+      "tests_failed": 0,
+      "issues": [],
+      "effects_found": [
+        "Coin flip: coin_flip_damage",
+        "Mass parser: coin_flip",
+        "Damage modification"
+      ],
+      "coverage_patterns": [
+        "COIN_FLIP",
+        "coin_flip",
+        "DAMAGE_EFFECTS"
+      ]
+    },
+    {
+      "card_id": 106,
+      "card_name": "Surskit",
+      "card_type": "Pok\u00e9mon - Basic",
+      "energy_type": "Grass",
+      "tests_passed": 3,
+      "tests_failed": 0,
+      "issues": [],
+      "effects_found": [
+        "Coin flip: coin_flip_conditional",
+        "Mass parser: coin_flip",
+        "Damage modification"
+      ],
+      "coverage_patterns": [
+        "COIN_FLIP",
+        "coin_flip",
+        "DAMAGE_EFFECTS"
+      ]
+    },
+    {
+      "card_id": 267,
+      "card_name": "Tapu Fini",
+      "card_type": "Pok\u00e9mon - Basic",
+      "energy_type": "Water",
+      "tests_passed": 3,
+      "tests_failed": 0,
+      "issues": [],
+      "effects_found": [
+        "Mass parser: healing",
+        "Damage modification",
+        "Healing effect"
+      ],
+      "coverage_patterns": [
+        "healing",
+        "DAMAGE_EFFECTS",
+        "HEALING"
+      ]
+    }
+  ]
+}

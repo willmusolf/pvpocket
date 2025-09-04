@@ -1,0 +1,324 @@
+.effect-display {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Effect Popups */
+.effect-popup {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 2px solid #e5e5e5;
+  border-radius: 12px;
+  padding: 8px 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(8px);
+  font-weight: bold;
+  animation: effectPopup 2s ease-in-out forwards;
+  z-index: 100;
+}
+
+/* Effect Type Styles */
+.effect-popup.damage {
+  border-color: #ef4444;
+  background: rgba(254, 242, 242, 0.95);
+  color: #dc2626;
+}
+
+.effect-popup.heal {
+  border-color: #10b981;
+  background: rgba(240, 253, 244, 0.95);
+  color: #059669;
+}
+
+.effect-popup.status {
+  border-color: #f59e0b;
+  background: rgba(255, 251, 235, 0.95);
+  color: #d97706;
+}
+
+.effect-popup.energy {
+  border-color: #eab308;
+  background: rgba(254, 252, 232, 0.95);
+  color: #ca8a04;
+}
+
+.effect-popup.coin_flip {
+  border-color: #6b7280;
+  background: rgba(249, 250, 251, 0.95);
+  color: #374151;
+}
+
+.effect-popup.card_draw {
+  border-color: #3b82f6;
+  background: rgba(240, 247, 255, 0.95);
+  color: #2563eb;
+}
+
+/* Effect Content */
+.effect-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.effect-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.effect-message {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.effect-value {
+  font-size: 16px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+/* Central Effects Area */
+.central-effects {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 200px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.effect-stage {
+  width: 100%;
+  height: 100%;
+  border: 2px dashed #e5e5e5;
+  border-radius: 16px;
+  background: rgba(248, 250, 252, 0.8);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.effect-stage:hover {
+  border-color: #d1d5db;
+  background: rgba(243, 244, 246, 0.9);
+}
+
+.stage-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.stage-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.5;
+}
+
+.placeholder-icon {
+  font-size: 24px;
+}
+
+.placeholder-text {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+/* Animations */
+@keyframes effectPopup {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.5) translateY(20px);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1) translateY(-10px);
+  }
+  30% {
+    transform: translate(-50%, -50%) scale(1) translateY(0px);
+  }
+  85% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1) translateY(0px);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8) translateY(-30px);
+  }
+}
+
+@keyframes damageShake {
+  0%, 100% { transform: translate(-50%, -50%) translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translate(-50%, -50%) translateX(-2px); }
+  20%, 40%, 60%, 80% { transform: translate(-50%, -50%) translateX(2px); }
+}
+
+@keyframes healPulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50% { transform: translate(-50%, -50%) scale(1.05); }
+}
+
+@keyframes coinFlip {
+  0% { transform: translate(-50%, -50%) rotateY(0deg); }
+  50% { transform: translate(-50%, -50%) rotateY(180deg); }
+  100% { transform: translate(-50%, -50%) rotateY(360deg); }
+}
+
+/* Specialized Animations */
+.effect-popup.damage {
+  animation: effectPopup 1.5s ease-in-out forwards, damageShake 0.5s ease-in-out;
+}
+
+.effect-popup.heal {
+  animation: effectPopup 2s ease-in-out forwards, healPulse 0.8s ease-in-out;
+}
+
+.effect-popup.coin_flip {
+  animation: effectPopup 3s ease-in-out forwards, coinFlip 1s ease-in-out;
+}
+
+/* Floating Numbers for Damage/Healing */
+.floating-number {
+  position: absolute;
+  font-size: 24px;
+  font-weight: bold;
+  pointer-events: none;
+  z-index: 200;
+  animation: floatNumber 2s ease-out forwards;
+}
+
+.floating-number.damage {
+  color: #dc2626;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.floating-number.heal {
+  color: #059669;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes floatNumber {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-20px) scale(1.2);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-60px) scale(0.8);
+  }
+}
+
+/* Coin Flip Visualization */
+.coin-flip-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  gap: 12px;
+  z-index: 150;
+}
+
+.coin {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #ffd700, #ffed4a);
+  border: 2px solid #d97706;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: bold;
+  color: #92400e;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  animation: spinCoin 1s ease-in-out;
+}
+
+@keyframes spinCoin {
+  0% { transform: rotateY(0deg); }
+  50% { transform: rotateY(180deg); }
+  100% { transform: rotateY(360deg); }
+}
+
+/* Status Condition Effects */
+.status-effect {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  animation: statusPulse 2s ease-in-out;
+}
+
+.status-effect.burn {
+  background: radial-gradient(circle, rgba(239, 68, 68, 0.3), rgba(239, 68, 68, 0.1));
+}
+
+.status-effect.poison {
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.3), rgba(168, 85, 247, 0.1));
+}
+
+@keyframes statusPulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+  50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .central-effects {
+    width: 160px;
+    height: 100px;
+  }
+  
+  .effect-popup {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+  
+  .effect-icon {
+    font-size: 16px;
+  }
+  
+  .effect-value {
+    font-size: 14px;
+  }
+  
+  .floating-number {
+    font-size: 20px;
+  }
+  
+  .coin {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+}

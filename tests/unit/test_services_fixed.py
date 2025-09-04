@@ -42,6 +42,8 @@ class TestCardService:
     def test_priority_sets_defined(self):
         """Test that priority sets are properly defined."""
         assert len(CardService.PRIORITY_SETS) == 5
+        assert "Secluded Springs" in CardService.PRIORITY_SETS
+        assert "Wisdom of Sea and Sky" in CardService.PRIORITY_SETS
         assert "Eevee Grove" in CardService.PRIORITY_SETS
         assert "Extradimensional Crisis" in CardService.PRIORITY_SETS
         assert "Celestial Guardians" in CardService.PRIORITY_SETS
@@ -123,5 +125,5 @@ class TestServiceHelpers:
         priority_sets = CardService.PRIORITY_SETS
         
         # Should be ordered from most recent to older
-        assert priority_sets[0] == "Eevee Grove"  # Most recent
-        assert priority_sets[-1] == "Triumphant Light"  # Oldest in priority
+        assert priority_sets[0] == "Secluded Springs"  # Most recent
+        assert priority_sets[-1] == "Celestial Guardians"  # Oldest in priority

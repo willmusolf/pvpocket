@@ -436,6 +436,21 @@ jobs:
           fi
         done
         
+        # 🧹 AUTOMATIC VERSION CLEANUP - Delete old versions after deployment
+        echo "🧹 Cleaning up old App Engine versions to reduce costs..."
+        
+        # Keep only the 2 most recent versions for test-env service
+        echo "Cleaning test-env service versions (keeping 2 most recent)..."
+        OLD_VERSIONS=$(gcloud app versions list --service=test-env --format="value(version.id)" --sort-by=createTime | head -n -2)
+        if [ ! -z "$OLD_VERSIONS" ]; then
+          echo "Deleting old test-env versions: $OLD_VERSIONS"
+          echo "$OLD_VERSIONS" | xargs -r gcloud app versions delete --service=test-env --quiet || echo "Some versions may have already been deleted"
+        else
+          echo "No old test-env versions to delete"
+        fi
+        
+        echo "✅ Version cleanup complete"
+        
         # Verify deployment status
         echo "Checking deployment status..."
         echo "All services:"
@@ -585,6 +600,21 @@ jobs:
     - name: Deploy to Production
       run: |
         gcloud app deploy app-prod-deploy.yaml --quiet
+        
+        # 🧹 AUTOMATIC VERSION CLEANUP - Delete old versions after production deployment
+        echo "🧹 Cleaning up old production App Engine versions to reduce costs..."
+        
+        # Keep only the 3 most recent versions for default (production) service
+        echo "Cleaning default service versions (keeping 3 most recent)..."
+        OLD_VERSIONS=$(gcloud app versions list --service=default --format="value(version.id)" --sort-by=createTime | head -n -3)
+        if [ ! -z "$OLD_VERSIONS" ]; then
+          echo "Deleting old production versions: $OLD_VERSIONS"
+          echo "$OLD_VERSIONS" | xargs -r gcloud app versions delete --service=default --quiet || echo "Some versions may have already been deleted"
+        else
+          echo "No old production versions to delete"
+        fi
+        
+        echo "✅ Production version cleanup complete"
         
     - name: Run post-deployment health check
       run: |

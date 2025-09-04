@@ -1,0 +1,91 @@
+{
+  "card_api": {
+    "card_search_api": true,
+    "dev_card_search_api": true,
+    "sample_cards_with_images": [
+      {
+        "name": "Pikachu",
+        "energy_type": "Lightning",
+        "image_url_preview": "https://storage.googleapis.com/pvpocket-dd286.firebasestorag..."
+      },
+      {
+        "name": "Pikachu",
+        "energy_type": "Lightning",
+        "image_url_preview": "https://storage.googleapis.com/pvpocket-dd286.firebasestorag..."
+      },
+      {
+        "name": "Pikachu ex",
+        "energy_type": "Lightning",
+        "image_url_preview": "https://storage.googleapis.com/pvpocket-dd286.firebasestorag..."
+      },
+      {
+        "name": "Pikachu ex",
+        "energy_type": "Lightning",
+        "image_url_preview": "https://storage.googleapis.com/pvpocket-dd286.firebasestorag..."
+      },
+      {
+        "name": "Pikachu ex",
+        "energy_type": "Lightning",
+        "image_url_preview": "https://storage.googleapis.com/pvpocket-dd286.firebasestorag..."
+      }
+    ],
+    "sample_cards_without_images": [],
+    "total_tested": 5,
+    "errors": []
+  },
+  "battle_api": {
+    "battle_creation": true,
+    "images_in_game_state": true,
+    "battle_id": "8a94e663-5f29-40f9-8d0a-fb994f9ab62d",
+    "player_cards_with_images": {
+      "player_1": 4,
+      "player_2": 4
+    },
+    "total_cards_checked": {
+      "player_1": 4,
+      "player_2": 4
+    },
+    "sample_pokemon": [
+      {
+        "player": 1,
+        "type": "active",
+        "name": "Oricorio",
+        "has_image": true,
+        "image_preview": "https://storage.googleapis.com/pvpocket-dd286.fire..."
+      },
+      {
+        "player": 2,
+        "type": "active",
+        "name": "Articuno ex",
+        "has_image": true,
+        "image_preview": "https://storage.googleapis.com/pvpocket-dd286.fire..."
+      }
+    ],
+    "errors": []
+  },
+  "image_accessibility": {
+    "accessible_count": 2,
+    "inaccessible_count": 0,
+    "total_tested": 2,
+    "sample_results": [
+      {
+        "url_preview": "https://storage.googleapis.com/pvpocket-dd286.firebasestorag...",
+        "accessible": true,
+        "status_code": 200,
+        "content_type": "image/webp"
+      },
+      {
+        "url_preview": "https://storage.googleapis.com/pvpocket-dd286.firebasestorag...",
+        "accessible": true,
+        "status_code": 200,
+        "content_type": "image/webp"
+      }
+    ],
+    "errors": []
+  },
+  "battle_simulator": {
+    "battle_simulator_page": true,
+    "test_battle_endpoint": true,
+    "errors": []
+  }
+}

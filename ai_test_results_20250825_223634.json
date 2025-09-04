@@ -1,0 +1,358 @@
+{
+  "timestamp": "2025-08-25T22:36:34.021652",
+  "total_tests": 34,
+  "passed": 25,
+  "failed": 9,
+  "duration_seconds": 0.0,
+  "test_results": [
+    {
+      "test_name": "evaluate_Pikachu_early",
+      "success": true,
+      "error": null,
+      "duration_ms": 0.08702278137207031,
+      "details": {
+        "total_value": 56.75,
+        "role": "support",
+        "strengths_count": 4
+      }
+    },
+    {
+      "test_name": "evaluate_Pikachu_mid",
+      "success": true,
+      "error": null,
+      "duration_ms": 0.023126602172851562,
+      "details": {
+        "total_value": 22.15,
+        "role": "support",
+        "strengths_count": 4
+      }
+    },
+    {
+      "test_name": "evaluate_Pikachu_late",
+      "success": true,
+      "error": null,
+      "duration_ms": 0.0152587890625,
+      "details": {
+        "total_value": 22.15,
+        "role": "support",
+        "strengths_count": 4
+      }
+    },
+    {
+      "test_name": "evaluate_Raichu_early",
+      "success": true,
+      "error": null,
+      "duration_ms": 0.017881393432617188,
+      "details": {
+        "total_value": 46.900000000000006,
+        "role": "early_attacker",
+        "strengths_count": 2
+      }
+    },
+    {
+      "test_name": "evaluate_Raichu_mid",
+      "success": true,
+      "error": null,
+      "duration_ms": 0.012874603271484375,
+      "details": {
+        "total_value": 27.3,
+        "role": "early_attacker",
+        "strengths_count": 2
+      }
+    },
+    {
+      "test_name": "evaluate_Raichu_late",
+      "success": true,
+      "error": null,
+      "duration_ms": 0.012636184692382812,
+      "details": {
+        "total_value": 27.3,
+        "role": "early_attacker",
+        "strengths_count": 2
+      }
+    },
+    {
+      "test_name": "evaluate_Zapdos_early",
+      "success": true,
+      "error": null,
+      "duration_ms": 0.012874603271484375,
+      "details": {
+        "total_value": 44.95,
+        "role": "finisher",
+        "strengths_count": 3
+      }
+    },
+    {
+      "test_name": "evaluate_Zapdos_mid",
+      "success": true,
+      "error": null,
+      "duration_ms": 0.010013580322265625,
+      "details": {
+        "total_value": 29.95,
+        "role": "finisher",
+        "strengths_count": 3
+      }
+    },
+    {
+      "test_name": "evaluate_Zapdos_late",
+      "success": true,
+      "error": null,
+      "duration_ms": 0.010013580322265625,
+      "details": {
+        "total_value": 74.95,
+        "role": "finisher",
+        "strengths_count": 3
+      }
+    },
+    {
+      "test_name": "evaluate_Snorlax_early",
+      "success": true,
+      "error": null,
+      "duration_ms": 0.010013580322265625,
+      "details": {
+        "total_value": 44.15,
+        "role": "wall",
+        "strengths_count": 2
+      }
+    },
+    {
+      "test_name": "evaluate_Snorlax_mid",
+      "success": true,
+      "error": null,
+      "duration_ms": 0.008821487426757812,
+      "details": {
+        "total_value": 29.15,
+        "role": "wall",
+        "strengths_count": 2
+      }
+    },
+    {
+      "test_name": "evaluate_Snorlax_late",
+      "success": true,
+      "error": null,
+      "duration_ms": 0.009059906005859375,
+      "details": {
+        "total_value": 44.15,
+        "role": "wall",
+        "strengths_count": 2
+      }
+    },
+    {
+      "test_name": "evaluate_Chansey_early",
+      "success": true,
+      "error": null,
+      "duration_ms": 0.009059906005859375,
+      "details": {
+        "total_value": 55.8,
+        "role": "wall",
+        "strengths_count": 4
+      }
+    },
+    {
+      "test_name": "evaluate_Chansey_mid",
+      "success": true,
+      "error": null,
+      "duration_ms": 0.008344650268554688,
+      "details": {
+        "total_value": 21.2,
+        "role": "wall",
+        "strengths_count": 4
+      }
+    },
+    {
+      "test_name": "evaluate_Chansey_late",
+      "success": true,
+      "error": null,
+      "duration_ms": 0.008106231689453125,
+      "details": {
+        "total_value": 36.2,
+        "role": "wall",
+        "strengths_count": 4
+      }
+    },
+    {
+      "test_name": "evaluate_Charizard_early",
+      "success": true,
+      "error": null,
+      "duration_ms": 0.009059906005859375,
+      "details": {
+        "total_value": 29.25,
+        "role": "finisher",
+        "strengths_count": 2
+      }
+    },
+    {
+      "test_name": "evaluate_Charizard_mid",
+      "success": true,
+      "error": null,
+      "duration_ms": 0.008106231689453125,
+      "details": {
+        "total_value": 29.25,
+        "role": "finisher",
+        "strengths_count": 2
+      }
+    },
+    {
+      "test_name": "evaluate_Charizard_late",
+      "success": true,
+      "error": null,
+      "duration_ms": 0.009059906005859375,
+      "details": {
+        "total_value": 74.25,
+        "role": "finisher",
+        "strengths_count": 2
+      }
+    },
+    {
+      "test_name": "evaluate_Blastoise_early",
+      "success": true,
+      "error": null,
+      "duration_ms": 0.009775161743164062,
+      "details": {
+        "total_value": 26.25,
+        "role": "wall",
+        "strengths_count": 2
+      }
+    },
+    {
+      "test_name": "evaluate_Blastoise_mid",
+      "success": true,
+      "error": null,
+      "duration_ms": 0.008821487426757812,
+      "details": {
+        "total_value": 26.25,
+        "role": "wall",
+        "strengths_count": 2
+      }
+    },
+    {
+      "test_name": "evaluate_Blastoise_late",
+      "success": true,
+      "error": null,
+      "duration_ms": 0.009059906005859375,
+      "details": {
+        "total_value": 41.25,
+        "role": "wall",
+        "strengths_count": 2
+      }
+    },
+    {
+      "test_name": "evaluate_Venusaur_early",
+      "success": true,
+      "error": null,
+      "duration_ms": 0.010013580322265625,
+      "details": {
+        "total_value": 29.25,
+        "role": "mid_game",
+        "strengths_count": 2
+      }
+    },
+    {
+      "test_name": "evaluate_Venusaur_mid",
+      "success": true,
+      "error": null,
+      "duration_ms": 0.010013580322265625,
+      "details": {
+        "total_value": 29.25,
+        "role": "mid_game",
+        "strengths_count": 2
+      }
+    },
+    {
+      "test_name": "evaluate_Venusaur_late",
+      "success": true,
+      "error": null,
+      "duration_ms": 0.009059906005859375,
+      "details": {
+        "total_value": 74.25,
+        "role": "mid_game",
+        "strengths_count": 2
+      }
+    },
+    {
+      "test_name": "board evaluation_suite",
+      "success": false,
+      "error": "'MockGameState' object has no attribute '_create_player'",
+      "duration_ms": 0.0,
+      "details": null
+    },
+    {
+      "test_name": "strategic_ai_aggressive",
+      "success": false,
+      "error": "Decision factors must be in analysis",
+      "duration_ms": 0.11181831359863281,
+      "details": null
+    },
+    {
+      "test_name": "strategic_ai_balanced",
+      "success": false,
+      "error": "Decision factors must be in analysis",
+      "duration_ms": 0.028133392333984375,
+      "details": null
+    },
+    {
+      "test_name": "strategic_ai_conservative",
+      "success": false,
+      "error": "Decision factors must be in analysis",
+      "duration_ms": 0.022172927856445312,
+      "details": null
+    },
+    {
+      "test_name": "strategic_ai_control",
+      "success": false,
+      "error": "Decision factors must be in analysis",
+      "duration_ms": 0.019311904907226562,
+      "details": null
+    },
+    {
+      "test_name": "strategic_ai_combo",
+      "success": false,
+      "error": "Decision factors must be in analysis",
+      "duration_ms": 0.020265579223632812,
+      "details": null
+    },
+    {
+      "test_name": "stadium_system",
+      "success": false,
+      "error": "'StadiumManager' object has no attribute 'activate_stadium'",
+      "duration_ms": 0.00095367431640625,
+      "details": null
+    },
+    {
+      "test_name": "multi_target_effects",
+      "success": false,
+      "error": "'MultiTargetEffectManager' object has no attribute 'apply_multi_target_damage'",
+      "duration_ms": 0.015020370483398438,
+      "details": null
+    },
+    {
+      "test_name": "turn_structure",
+      "success": false,
+      "error": "'TurnStructureManager' object has no attribute 'start_turn'",
+      "duration_ms": 0.0007152557373046875,
+      "details": null
+    },
+    {
+      "test_name": "card_evaluation_speed",
+      "success": true,
+      "error": null,
+      "duration_ms": 0.09107589721679688,
+      "details": {
+        "evaluations_per_second": 96865.7,
+        "cards_tested": 8
+      }
+    }
+  ],
+  "card_coverage": {
+    "total_cards_in_database": 8,
+    "pokemon_cards": 8,
+    "trainer_cards": 0,
+    "evaluation_coverage_percent": 100.0
+  },
+  "ai_performance": {
+    "average_evaluation_time_ms": 0.01,
+    "evaluations_tested": 24,
+    "personalities_tested": 5,
+    "game_mechanics_integrated": true
+  }
+}

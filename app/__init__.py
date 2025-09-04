@@ -1,4 +1,5 @@
 from flask import Flask, session, current_app, request, jsonify, g, render_template
+from flask_socketio import SocketIO
 from .config import config
 import firebase_admin
 from firebase_admin import credentials, firestore, storage
@@ -95,6 +96,8 @@ def create_app(config_name="default"):
     app.config.from_object(app_config)
     app.config['FLASK_ENV'] = config_name
     
+    # Initialize SocketIO
+    socketio = SocketIO(app, cors_allowed_origins="*", logger=False, engineio_logger=False)
 
     if not app.config.get("SECRET_KEY"):
         raise ValueError(
@@ -571,6 +574,10 @@ def create_app(config_name="default"):
     app.register_blueprint(friends_bp)
     app.register_blueprint(internal_bp)
     app.register_blueprint(admin_bp)
+    
+    # Register WebSocket events
+    from .routes.battle import register_battle_websocket_events
+    register_battle_websocket_events(socketio)
 
     # Initialize monitoring system (after all other services)
     # Start performance monitoring only in main process
@@ -617,7 +624,11 @@ def create_app(config_name="default"):
             except:
                 return "<h1>Internal Server Error</h1><p>Something went wrong. The team has been notified.</p>", 500
 
+    # Register WebSocket event handlers for battle simulator
+    from .routes.battle import register_battle_websocket_events
+    register_battle_websocket_events(socketio)
+    
     # Track app startup time for lazy loading
     app._startup_time = time.time()
     
-    return app
+    return app, socketio

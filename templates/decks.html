@@ -1666,6 +1666,7 @@
     let rawSearchText = ''; 
     let typedEnergyTypes = new Set(); // Track energy types selected via typing
     let typedFilters = new Set(); // Track which filters were set via typing
+    let uniqueSetsData = []; // Global variable for set name to code mapping
     let deckSaved = false;
     let cardObserver = null;
     let loadTimeout = null;
@@ -2766,7 +2767,7 @@
         try {
             // Use already loaded allCards instead of making another API call
             if (allCards && allCards.length > 0) {
-                const uniqueSetsData = [];
+                uniqueSetsData = []; // Clear the global array
                 const encounteredSetCodes = new Set();
 
                 allCards.forEach(card => {
@@ -2794,15 +2795,17 @@
 
                 // Define set order - higher numbers = newer sets (can infinitely increase)
                 const setReleaseOrder = {
-                    "Genetic Apex": 1,          // Oldest set
-                    "Mythical Island": 2,
-                    "Space-Time Smackdown": 3,
-                    "Triumphant Light": 4,
-                    "Shining Revelry": 5,
-                    "Celestial Guardians": 6,
-                    "Extradimensional Crisis": 7,
-                    "Eevee Grove": 8,           // Most recent known set
-                    "Promo-A": -1               // Special set - always appears last
+                    "Genetic Apex": 1,              // Oldest set (release_order: 1)
+                    "Mythical Island": 3,           // (release_order: 3)
+                    "Space-Time Smackdown": 4,      // (release_order: 4)
+                    "Triumphant Light": 4,          // (release_order: 4)
+                    "Shining Revelry": 5,           // (release_order: 5)
+                    "Celestial Guardians": 7,       // (release_order: 7)
+                    "Extradimensional Crisis": 8,   // (release_order: 8)
+                    "Eevee Grove": 9,               // (release_order: 9)
+                    "Wisdom of Sea and Sky": 10,    // (release_order: 10)
+                    "Secluded Springs": 11,         // Most recent (release_order: 11)
+                    "Promo-A": -1                   // Special set - always appears last (release_order: 2)
                 };
                 
                 // Assign automatic priorities to new sets (higher than current max)
@@ -3019,9 +3022,9 @@
             }
             if (selectedFilters.set !== 'All') {
                 // Convert set name to set code for the API
-                const setData = orderedSetNamesForSort?.find(name => name === selectedFilters.set);
-                if (setData) {
-                    params.append('set_code', setData);
+                const setData = uniqueSetsData?.find(set => set.name === selectedFilters.set);
+                if (setData && setData.code) {
+                    params.append('set_code', setData.code);
                 }
             }
             // Combine search text with energy type keywords

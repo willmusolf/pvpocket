@@ -1,0 +1,178 @@
+Running scraper.py as a standalone script...
+Running scraper.py as a standalone script for: sets
+Initializing Firebase from Secret Manager...
+Firebase initialized successfully.
+--- Starting Set Scrape & Post-Process Job ---
+Scraping only new cards (will not update existing cards).
+Determining current maximum global card ID from Firestore...
+Current maximum global card ID found in Firestore: 1681
+Starting global card ID counter at: 1681
+
+Processing Set: Secluded Springs A4a (A4a)
+Set document 'Secluded_Springs_A4a' not found - will process all cards
+Set has 0/105 cards. Proceeding...
+
+Processing Set: Wisdom of Sea and Sky A4 (A4)
+Set document 'Wisdom_of_Sea_and_Sky_A4' not found - will process all cards
+Set has 0/241 cards. Proceeding...
+
+Processing Set: Eevee Grove A3b (A3b)
+Set document 'Eevee_Grove_A3b' not found - will process all cards
+Set has 0/107 cards. Proceeding...
+
+Processing Set: Extradimensional Crisis A3a (A3a)
+Set document 'Extradimensional_Crisis_A3a' not found - will process all cards
+Set has 0/103 cards. Proceeding...
+
+Processing Set: Celestial Guardians A3 (A3)
+Set document 'Celestial_Guardians_A3' not found - will process all cards
+Set has 0/239 cards. Proceeding...
+
+Processing Set: Shining Revelry A2b (A2b)
+Set document 'Shining_Revelry_A2b' not found - will process all cards
+Set has 0/111 cards. Proceeding...
+
+Processing Set: Triumphant Light A2a (A2a)
+Set document 'Triumphant_Light_A2a' not found - will process all cards
+Set has 0/96 cards. Proceeding...
+
+Processing Set: Space-Time Smackdown A2 (A2)
+Set document 'Space_Time_Smackdown_A2' not found - will process all cards
+Set has 0/207 cards. Proceeding...
+
+Processing Set: Mythical Island A1a (A1a)
+Set document 'Mythical_Island_A1a' not found - will process all cards
+Set has 0/86 cards. Proceeding...
+
+Processing Set: Genetic Apex A1 (A1)
+Set document 'Genetic_Apex_A1' not found - will process all cards
+Set has 0/286 cards. Proceeding...
+
+Processing Set: Promo-A P-A (P-A)
+⚡ Promo set (P-A) detected - always processing to catch new cards...
+Set has 0/108 cards. Proceeding...
+CREATED: Latias (P-A 101) ID: 1682
+CREATED: Tropius (P-A 102) ID: 1683
+CREATED: Poliwag (P-A 103) ID: 1684
+CREATED: Milotic (P-A 104) ID: 1685
+CREATED: Zorua (P-A 105) ID: 1686
+CREATED: Zoroark (P-A 106) ID: 1687
+CREATED: Miltank (P-A 107) ID: 1688
+CREATED: Phanpy (P-A 108) ID: 1689
+
+WEBSITE SCRAPING FINISHED. Total cards saved/updated: 8
+
+========================================================
+RUNNING POST-PROCESSING...
+========================================================
+
+=== POST-PROCESSOR STARTING ===
+Time: 2025-08-28 11:29:09
+Fetching and grouping all cards by set from Firestore...
+Found and grouped 11 sets.
+
+--- Starting Card Data Post-Processing ---
+
+Processing set: A3 (239 cards)
+  Shiny detection range: cards 209 to 238
+  Last ☆☆☆ card at index: 208
+  First ♛ card at index: 239
+
+Processing set: A3b (107 cards)
+  Shiny detection range: cards 92 to 106
+  Last ☆☆☆ card at index: 91
+  First ♛ card at index: 107
+
+Processing set: A3a (103 cards)
+  Shiny detection range: cards 88 to 102
+  Last ☆☆☆ card at index: 87
+  First ♛ card at index: 103
+
+Processing set: A1 (286 cards)
+  Shiny detection range: cards 283 to 285
+  Last ☆☆☆ card at index: 282
+  First ♛ card at index: 286
+
+Processing set: A1a (86 cards)
+  Shiny detection range: cards 85 to 85
+  Last ☆☆☆ card at index: 84
+  First ♛ card at index: 86
+
+Processing set: P-A (108 cards)
+  Shiny detection range: cards 0 to 107
+  Last ☆☆☆ card at index: -1
+  First ♛ card at index: 108
+
+Processing set: A4a (105 cards)
+  Shiny detection range: cards 90 to 104
+  Last ☆☆☆ card at index: 89
+  First ♛ card at index: 105
+    AUTO-SHINY: Chimchar at index 90 (between ☆☆☆ and ♛)
+  -> UPDATING Chimchar (A4a 91): {'rarity': '✵', 'card_type': 'Pokémon - Basic (Shiny)'}
+    AUTO-SHINY: Monferno at index 91 (between ☆☆☆ and ♛)
+  -> UPDATING Monferno (A4a 92): {'rarity': '✵', 'card_type': 'Pokémon - Stage 1 - Evolves from Chimchar (Shiny)'}
+    AUTO-SHINY: Psyduck at index 92 (between ☆☆☆ and ♛)
+  -> UPDATING Psyduck (A4a 93): {'rarity': '✵', 'card_type': 'Pokémon - Basic (Shiny)'}
+    AUTO-SHINY: Golduck at index 93 (between ☆☆☆ and ♛)
+  -> UPDATING Golduck (A4a 94): {'rarity': '✵', 'card_type': 'Pokémon - Stage 1 - Evolves from Psyduck (Shiny)'}
+    AUTO-SHINY: Krabby at index 94 (between ☆☆☆ and ♛)
+  -> UPDATING Krabby (A4a 95): {'rarity': '✵', 'card_type': 'Pokémon - Basic (Shiny)'}
+    AUTO-SHINY: Kingler at index 95 (between ☆☆☆ and ♛)
+  -> UPDATING Kingler (A4a 96): {'rarity': '✵', 'card_type': 'Pokémon - Stage 1 - Evolves from Krabby (Shiny)'}
+    AUTO-SHINY: Pyukumuku at index 96 (between ☆☆☆ and ♛)
+  -> UPDATING Pyukumuku (A4a 97): {'rarity': '✵', 'card_type': 'Pokémon - Basic (Shiny)'}
+    AUTO-SHINY: Gible at index 97 (between ☆☆☆ and ♛)
+  -> UPDATING Gible (A4a 98): {'rarity': '✵', 'card_type': 'Pokémon - Basic (Shiny)'}
+    AUTO-SHINY: Gabite at index 98 (between ☆☆☆ and ♛)
+  -> UPDATING Gabite (A4a 99): {'rarity': '✵', 'card_type': 'Pokémon - Stage 1 - Evolves from Gible (Shiny)'}
+    AUTO-SHINY: Paldean Wooper at index 99 (between ☆☆☆ and ♛)
+  -> UPDATING Paldean Wooper (A4a 100): {'rarity': '✵', 'card_type': 'Pokémon - Basic (Shiny)'}
+    AUTO-SHINY: Infernape ex at index 100 (between ☆☆☆ and ♛)
+  -> UPDATING Infernape ex (A4a 101): {'rarity': '✵✵', 'card_type': 'Pokémon - Stage 2 - Evolves from Monferno (Shiny)'}
+    AUTO-SHINY: Mew ex at index 101 (between ☆☆☆ and ♛)
+  -> UPDATING Mew ex (A4a 102): {'rarity': '✵✵', 'card_type': 'Pokémon - Basic (Shiny)'}
+    AUTO-SHINY: Garchomp ex at index 102 (between ☆☆☆ and ♛)
+  -> UPDATING Garchomp ex (A4a 103): {'rarity': '✵✵', 'card_type': 'Pokémon - Stage 2 - Evolves from Gabite (Shiny)'}
+    AUTO-SHINY: Paldean Clodsire ex at index 103 (between ☆☆☆ and ♛)
+  -> UPDATING Paldean Clodsire ex (A4a 104): {'rarity': '✵✵', 'card_type': 'Pokémon - Stage 1 - Evolves from Paldean Wooper (Shiny)'}
+    AUTO-SHINY: Mantyke at index 104 (between ☆☆☆ and ♛)
+  -> UPDATING Mantyke (A4a 105): {'card_type': 'Pokémon - Basic (Shiny)'}
+  Total shinies converted in A4a: 15
+
+Processing set: A2b (111 cards)
+  Shiny detection range: cards 96 to 110
+  Last ☆☆☆ card at index: 95
+  First ♛ card at index: 111
+
+Processing set: A2 (207 cards)
+  Shiny detection range: cards 205 to 206
+  Last ☆☆☆ card at index: 204
+  First ♛ card at index: 207
+
+Processing set: A2a (96 cards)
+  Shiny detection range: cards 95 to 95
+  Last ☆☆☆ card at index: 94
+  First ♛ card at index: 96
+
+Processing set: A4 (241 cards)
+  Shiny detection range: cards 211 to 240
+  Last ☆☆☆ card at index: 210
+  First ♛ card at index: 241
+    AUTO-SHINY: Ho-Oh ex at index 239 (between ☆☆☆ and ♛)
+  -> UPDATING Ho-Oh ex (A4 240): {'card_type': 'Pokémon - Basic (Shiny)'}
+    AUTO-SHINY: Lugia ex at index 240 (between ☆☆☆ and ♛)
+  -> UPDATING Lugia ex (A4 241): {'card_type': 'Pokémon - Basic (Shiny)'}
+  Total shinies converted in A4: 2
+
+=== CARD PROCESSING COMPLETE ===
+Total updates made: 17
+
+Starting to update set documents with card counts...
+Set card count update complete. 11 set(s) updated, 0 failed.
+
+
+✅ All post-processing tasks are complete.
+End time: 2025-08-28 11:29:13
+=== POST-PROCESSOR FINISHED ===
+
+Standalone script finished.

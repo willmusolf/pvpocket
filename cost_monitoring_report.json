@@ -1,0 +1,44 @@
+{
+  "timestamp": "2025-08-28T16:38:59.131250",
+  "cost_estimates": {
+    "monthly_total": 0.04,
+    "monthly_reads": 66200,
+    "monthly_writes": 1130,
+    "within_budget": true
+  },
+  "thresholds": {
+    "daily_warning": 2.0,
+    "daily_critical": 5.0,
+    "monthly_budget": 50.0
+  },
+  "optimization_tips": [
+    "Use hash-based change detection to minimize unnecessary reads",
+    "Cache set completion status to avoid repeated queries",
+    "Batch operations when possible to reduce write costs",
+    "Use collection group queries efficiently with proper indexing",
+    "Monitor and limit promo set processing frequency"
+  ],
+  "scenario_breakdown": {
+    "daily_change_detection": {
+      "reads": 6000,
+      "writes": 600,
+      "cost": 0.00468,
+      "frequency": "120x per month",
+      "description": "Daily change detection (4 runs per day)"
+    },
+    "new_set_scraping": {
+      "reads": 200,
+      "writes": 500,
+      "cost": 0.00102,
+      "frequency": "1x per month",
+      "description": "Scraping a new 100-card set (once per month)"
+    },
+    "cache_refresh": {
+      "reads": 60000,
+      "writes": 30,
+      "cost": 0.036053999999999996,
+      "frequency": "30x per month",
+      "description": "Production cache refresh (daily)"
+    }
+  }
+}

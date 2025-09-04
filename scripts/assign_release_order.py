@@ -17,16 +17,17 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # Known set release order (from newest to oldest)
 # Higher numbers = newer sets
 SET_RELEASE_ORDER = {
-    "Wisdom of Sea and Sky": 10,  # Most recent (highest number)
+    "Secluded Springs": 11,       # Most recent (highest number)
+    "Wisdom of Sea and Sky": 10,
     "Eevee Grove": 9,
     "Extradimensional Crisis": 8,
     "Celestial Guardians": 7,
-    "Shining Revelry": 6,
-    "Triumphant Light": 5,
-    "Starlit Journey": 4,
+    "Shining Revelry": 5,
+    "Triumphant Light": 4,
+    "Space-Time Smackdown": 4,    # Same as Triumphant Light
     "Mythical Island": 3,
-    "Genetic Apex": 2,
-    "Promo-A": 1,  # Oldest/promotional
+    "Promo-A": 2,
+    "Genetic Apex": 1,            # Oldest set
 }
 
 def initialize_firebase():

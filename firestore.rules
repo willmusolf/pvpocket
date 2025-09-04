@@ -1,40 +1,9 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // --- USERS Collection ---
-    match /users/{userId} {
-      allow read, update, create, delete: if request.auth != null && request.auth.uid == userId;
-
-      // --- FRIENDS Subcollection ---
-      // A user can only see their own friends list.
-      // Friendships are managed by the server, not written directly by clients.
-      match /friends/{friendId} {
-        allow read, delete: if request.auth.uid == userId;
-        allow create, update: if false; // Only the server can create/update friendships
-      }
-
-      // --- FRIEND REQUESTS Subcollection ---
-      // Manages incoming and outgoing friend requests for a user.
-      match /friend_requests/{otherUserId} {
-        // A user can see and delete their own requests.
-        allow read, delete: if request.auth.uid == userId;
-        // Another user can create a request document in your subcollection (i.e., send you a request).
-        allow create: if request.auth.uid != null;
-      }
-    }
-
-    // --- CARDS Collection ---
-    match /cards/{cardId} {
-      allow read: if request.auth != null;
-      allow write: if false;
-    }
-
-    // --- DECKS Collection ---
-    match /decks/{deckId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid;
-      allow update, delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
+    // Temporary development rules - allow all access
+    match /{document=**} {
+      allow read, write: if true;
     }
   }
 }

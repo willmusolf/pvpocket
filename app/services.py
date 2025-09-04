@@ -19,11 +19,11 @@ class CardService:
     # Define priority sets for initial loading (most recent/popular sets)
     # NOTE: This should be updated when new sets are released
     PRIORITY_SETS = [
-        "Eevee Grove",              # Most recent
-        "Extradimensional Crisis",  # Second most recent
-        "Celestial Guardians",      # Third most recent
-        "Shining Revelry",          # Fourth most recent
-        "Triumphant Light"          # Fifth most recent
+        "Secluded Springs",         # Most recent (release_order: 11)
+        "Wisdom of Sea and Sky",    # Second most recent (release_order: 10)
+        "Eevee Grove",              # Third most recent (release_order: 9)
+        "Extradimensional Crisis",  # Fourth most recent (release_order: 8)
+        "Celestial Guardians"       # Fifth most recent (release_order: 7)
     ]
     
     # Track background loading state
@@ -455,12 +455,8 @@ class CardService:
                 limit_msg = f" (limited to {max_cards} cards)" if max_cards else ""
                 current_app.logger.debug(f"Loading card collection from Firestore{limit_msg}... (Emulator: {emulator_host})")
             collection = CardCollection()
-            # COST OPTIMIZATION: Use priority sets when loading to reduce expensive collection_group queries
-            if max_cards and max_cards <= 1500:  # For limited loads, use priority sets approach
-                priority_sets = CardService.get_dynamic_priority_sets()[:5]  # Top 5 sets only
-                collection.load_from_firestore(db_client, max_cards=max_cards, priority_sets=priority_sets)
-            else:
-                collection.load_from_firestore(db_client, max_cards=max_cards)
+            # Load full collection from Firestore
+            collection.load_from_firestore(db_client, max_cards=max_cards)
             
             if cache_as_full:
                 # Cache as full collection with extended TTL (1 week) for cost savings
