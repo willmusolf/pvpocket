@@ -79,11 +79,11 @@ cd frontend && npm run dev  # Run React development server (port 5173)
 - **🧹 AUTO-CLEANUP**: Old App Engine versions automatically deleted after deployment
 
 **💰 COST CONTROL (CRITICAL):**
-- **Scheduler jobs PAUSED** (was costing $0.50+/day in networking)
+- **Scheduler jobs ACTIVE** (re-enabled for automatic card scraping)
 - **Auto version cleanup** prevents App Engine version buildup
 - **Manual cleanup script**: `./scripts/cleanup_app_versions.sh`
 - **Cost monitoring**: `/internal/firestore-usage`
-- **Target cost**: <$0.10/day instead of $0.60/day
+- **Target cost**: <$0.15/day (includes minimal networking for scraping)
 
 **Firebase Emulator:**
 - Local dev uses emulator with production data mirror (FREE)
@@ -164,7 +164,7 @@ See `TESTING.md` and `TESTING_CHEAT_SHEET.md` for complete testing docs.
 - Admin access: `ADMIN_EMAILS` env var
 
 **🚨 COST MANAGEMENT:**
-- **NEVER re-enable scheduler jobs** without approval (causes $0.50+/day networking costs)
+- **Scheduler jobs NOW ACTIVE** (re-enabled with App Engine cleanup - costs controlled)
 - **Run cleanup after manual deployments**: `./scripts/cleanup_app_versions.sh`
 - **Check App Engine versions**: `gcloud app versions list --project=pvpocket-dd286`
 - **Emergency cost fix**: See `IMMEDIATE_COST_FIX.md`
