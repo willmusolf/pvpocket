@@ -4591,14 +4591,24 @@
             return;
         }
 
-        const highResSrc = cardElement.dataset.highResSrc;
+        let highResSrc = cardElement.dataset.highResSrc;
         const lowResSrc = hoveredImgElement.src;
         
         // Hover detected on card
 
-        // Early return if no high-res source available
+        // If no high-res source available, try to generate one from the image src
         if (!highResSrc || highResSrc === 'undefined' || highResSrc === 'null') {
-            return;
+            // Try to get original source and generate high-res URL
+            const originalSrc = hoveredImgElement.dataset.originalSrc || hoveredImgElement.src;
+            highResSrc = getHighResUrl(originalSrc);
+            
+            // If we generated a high-res URL, cache it on the element for future use
+            if (highResSrc) {
+                cardElement.dataset.highResSrc = highResSrc;
+            } else {
+                // Still no high-res available
+                return;
+            }
         }
 
         const zoomContainer = document.getElementById('card-zoom-container');
