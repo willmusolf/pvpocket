@@ -249,7 +249,7 @@ if config_name == "development" and os.environ.get('WERKZEUG_RUN_MAIN'):
         print("🎮 Pokemon TCG Pocket - Development Mode (Production DB)")
         print("⚠️  Install Firebase CLI for free emulator: npm install -g firebase-tools")
 
-app = create_app(config_name)
+app, socketio = create_app(config_name)
 
 def background_emulator_sync():
     """Run emulator sync in background thread to avoid blocking Flask startup."""
@@ -287,24 +287,32 @@ def background_emulator_sync():
 
 # Start background sync if needed (non-blocking)
 # Only run once in the main process after reloader
+# DISABLED by default to prevent hanging issues during development
 if (not is_cloud_environment and 
     emulator_started and 
     os.environ.get('FIRESTORE_EMULATOR_HOST') and
     os.environ.get('SKIP_EMULATOR_SYNC') != '1' and
-    os.environ.get('WERKZEUG_RUN_MAIN') == 'true'):
+    os.environ.get('WERKZEUG_RUN_MAIN') == 'true' and
+    '--sync' in sys.argv):  # Only run if explicitly requested
     
-    # Check if user wants to skip background sync (helps with hanging issues)
-    if '--no-sync' in sys.argv:
-        print("🚫 Background emulator sync disabled via --no-sync flag")
-    else:
-        sync_thread = threading.Thread(target=background_emulator_sync, daemon=True)
-        sync_thread.start()
-        print("🔄 Emulator data sync scheduled for background (non-blocking)")
-        print("   💡 Use 'python run.py --no-sync' to disable background sync if hanging")
+    # Background sync is now opt-in to prevent hanging
+    sync_thread = threading.Thread(target=background_emulator_sync, daemon=True)
+    sync_thread.start()
+    print("🔄 Emulator data sync scheduled for background (non-blocking)")
+    print("   💡 Background sync enabled via --sync flag")
+else:
+    if (not is_cloud_environment and 
+        emulator_started and 
+        os.environ.get('FIRESTORE_EMULATOR_HOST') and
+        os.environ.get('WERKZEUG_RUN_MAIN') == 'true'):
+        print("🚫 Background emulator sync disabled by default (prevents hanging)")
+        print("   💡 Use 'python run.py --sync' to enable background sync if needed")
 
 if __name__ == "__main__":
-    app.run(
+    socketio.run(
+        app,
         debug=app.config.get("DEBUG", True),
         host="0.0.0.0",
         port=int(os.environ.get("PORT", 5001)),
+        allow_unsafe_werkzeug=True
     )

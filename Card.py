@@ -242,6 +242,29 @@ class CardCollection:
         loaded_card_count = 0
         
         try:
+            # First, build a mapping of set_name -> set_release_order
+            # This is needed because collection group queries don't have access to parent document data
+            set_release_order_map = {}
+            try:
+                sets_collection_ref = db_client.collection("cards")
+                set_docs = list(sets_collection_ref.stream())  # Load all set docs at once
+                
+                for doc in set_docs:
+                    doc_data = doc.to_dict()
+                    if doc_data and doc_data.get("set_name") and doc_data.get("release_order"):
+                        set_name = doc_data["set_name"]
+                        release_order = doc_data["release_order"]
+                        set_release_order_map[set_name] = release_order
+                        
+                from flask import current_app
+                if current_app and current_app.debug:
+                    current_app.logger.debug(f"Built set_release_order mapping: {set_release_order_map}")
+                        
+            except Exception as e_mapping:
+                from flask import current_app
+                if current_app and current_app.debug:
+                    current_app.logger.debug(f"Failed to build set_release_order mapping: {e_mapping}")
+            
             # First, try to use collection group query for efficient loading
             # This reads all cards across all subcollections in one query
             try:
@@ -274,11 +297,15 @@ class CardCollection:
                         if card_pk_id is None:
                             continue
 
+                        # Get set_release_order from our mapping based on set_name
+                        set_name = card_data.get("set_name", "")
+                        set_release_order = set_release_order_map.get(set_name)
+
                         card = Card(
                             id=int(card_pk_id),
                             name=card_data.get("name", ""),
                             energy_type=card_data.get("energy_type", ""),
-                            set_name=card_data.get("set_name", ""),
+                            set_name=set_name,
                             set_code=card_data.get("set_code", ""),
                             card_number=card_data.get("card_number"),
                             card_number_str=card_data.get("card_number_str", ""),
@@ -294,7 +321,7 @@ class CardCollection:
                             original_image_url=card_data.get("original_image_url"),
                             flavor_text=card_data.get("flavor_text"),
                             abilities=card_data.get("abilities", []),
-                            set_release_order=card_data.get("set_release_order"),
+                            set_release_order=set_release_order,
                         )
                         self.add_card(card)
                         loaded_card_count += 1

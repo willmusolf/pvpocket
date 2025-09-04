@@ -1,0 +1,795 @@
+.battle-field {
+  width: 100%;
+  height: 100%;
+  min-height: 100%; /* Use container height from Flask */
+  max-height: 100%; /* Prevent overflow */
+  background: #1a1a2e;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Inter', 'Source Sans Pro', system-ui, -apple-system, sans-serif;
+  overflow: hidden;
+  color: white;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Turn Indicator Banner */
+.turn-indicator-banner {
+  width: 100%;
+  background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  padding: 12px 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+  z-index: 100;
+  position: relative;
+}
+
+.turn-info {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  font-weight: 600;
+}
+
+.turn-number {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.your-turn {
+  color: #10b981;
+  font-size: 18px;
+  text-shadow: 0 0 8px rgba(16, 185, 129, 0.3);
+  animation: pulse-your-turn 2s infinite;
+}
+
+.opponent-turn {
+  color: #f97316;
+  font-size: 18px;
+  text-shadow: 0 0 8px rgba(249, 115, 22, 0.3);
+}
+
+.game-phase {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: capitalize;
+}
+
+@keyframes pulse-your-turn {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+/* Player Turn Controls */
+.player-turn-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.draw-card-btn {
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.draw-card-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #15803d 0%, #166534 100%);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  transform: translateY(-1px);
+}
+
+.draw-card-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.draw-card-btn:disabled {
+  background: #6b7280;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Player Mode Toggle */
+.player-mode-toggle {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+.player-mode-toggle label {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.mode-selector {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  color: white;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  outline: none;
+  transition: background 0.2s ease;
+}
+
+.mode-selector:focus,
+.mode-selector:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.mode-selector option {
+  background: #1a1a2e;
+  color: white;
+}
+
+
+.battle-field.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  color: white;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top: 4px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+
+
+/* Battle Content */
+.battle-content {
+  display: grid;
+  grid-template-columns: 1fr min(300px, 22%);
+  width: 100%;
+  height: 100%;
+  gap: 2px;
+  padding: 2px;
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* Simplified Game Area */
+.mobile-game-area {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: #16213e;
+  border: 1px solid #2a3f5f;
+  border-radius: 2px;
+  padding: 1px;
+  height: calc(100% - 4px);
+  overflow: hidden;
+  box-sizing: border-box;
+  justify-content: space-between;
+  min-width: 0; /* Prevent grid overflow */
+}
+
+
+/* Legacy Game Area for fallback */
+.game-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  position: relative;
+}
+
+
+
+.pokemon-slot {
+  position: relative;
+}
+
+.empty-slot {
+  width: 65px;
+  height: 85px;
+  border: 2px dashed #666;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ccc;
+  font-size: 10px;
+  background: #2a3f5f;
+  cursor: pointer;
+}
+
+.empty-slot:hover {
+  border-color: #4a9eff;
+  background: #3a5f8f;
+}
+
+.active-slot .empty-slot {
+  width: 90px;
+  height: 120px;
+  border-color: #ffd700;
+  color: #ffd700;
+  background: #3a3f2f;
+}
+
+.active-slot .empty-slot:hover {
+  background: #4a4f3f;
+}
+
+
+
+.opponent-bench, .player-bench {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: #0f1419;
+  border: 1px solid #2a3f5f;
+  border-radius: 2px;
+  padding: 2px;
+  flex-shrink: 0;
+}
+
+.opponent-hand, .player-hand {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 8px;
+  min-height: 150px;
+  max-height: 150px;
+  flex-shrink: 0; /* Don't allow shrinking */
+}
+
+
+.bench-slots.horizontal {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.opponent-active, .player-active {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  background: #1a2332;
+  border: 1px solid #3a5f8f;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.active-pokemon-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.deck-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.deck-sleeve {
+  width: 20px;
+  height: 28px;
+  border-radius: 3px;
+  border: 1px solid #ffd700;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  position: relative;
+}
+
+.deck-sleeve::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  right: 2px;
+  bottom: 2px;
+  background: linear-gradient(135deg, #1d4ed8, #1e3a8a);
+  border-radius: 2px;
+}
+
+.deck-indicator .deck-count {
+  font-size: 10px;
+  color: #ffd700;
+  font-weight: 600;
+}
+
+.opponent-section, .player-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.opponent-status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  order: -1; /* Place above hand */
+}
+
+.opponent-setup-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.player-setup-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.player-status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  order: 1; /* Place below hand */
+}
+
+.prize-points {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #2a3f5f;
+  border: 1px solid #ffd700;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #ffd700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.opponent-prizes {
+  order: -1; /* Place above hand */
+}
+
+.energy-status {
+  display: flex;
+  align-items: center;
+}
+
+.energy-indicator {
+  display: flex;
+  align-items: center;
+  background: #1a2d1a;
+  border: 1px solid #4ade80;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #4ade80;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  gap: 4px;
+}
+
+
+.opponent-active {
+  border-color: #ff6b6b;
+  background: #2d1a1a;
+}
+
+
+
+.player-active {
+  border-color: #4ade80;
+  background: #1a2d1a;
+}
+
+
+
+
+.end-turn-btn {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  min-width: 80px;
+}
+
+.end-turn-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(34, 197, 94, 0.3);
+}
+
+.end-turn-btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.95);
+}
+
+.end-turn-btn:disabled {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.3);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+
+.ready-indicator {
+  font-size: 9px;
+  font-weight: 500;
+  padding: 1px 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.ready-indicator.ready {
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.2);
+  border: 1px solid rgba(74, 222, 128, 0.3);
+}
+
+.ready-indicator.not-ready {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.2);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.ready-btn {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  min-width: 60px;
+}
+
+.ready-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+}
+
+.ready-btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.95);
+}
+
+.ready-btn:disabled {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.3);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Ready state styles */
+.ready-btn.is-ready {
+  background: linear-gradient(135deg, #10b981, #059669);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+}
+
+.ready-btn.is-ready:hover:not(:disabled) {
+  background: linear-gradient(135deg, #059669, #047857);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+}
+
+/* Not ready state styles */
+.ready-btn.not-ready {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+.ready-btn.not-ready:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+}
+
+.setup-instructions {
+  font-size: 9px;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.2);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 3px;
+  padding: 2px 6px;
+  text-align: center;
+  font-weight: 500;
+  animation: pulse 2s ease-in-out infinite;
+  white-space: nowrap;
+}
+
+.battle-starting {
+  font-size: 10px;
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.2);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  border-radius: 3px;
+  padding: 2px 6px;
+  text-align: center;
+  font-weight: 600;
+  animation: pulse 1s ease-in-out infinite;
+  white-space: nowrap;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+
+.pokemon-slot.large .empty-slot {
+  width: 120px;
+  height: 160px;
+  font-size: 12px;
+}
+
+.pokemon-slot.bench-slot .empty-slot {
+  width: 80px;
+  height: 100px;
+  font-size: 11px;
+}
+
+
+
+
+/* Testing Panel - Simplified */
+.testing-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #16213e;
+  border: 1px solid #2a3f5f;
+  border-radius: 4px;
+  padding: 12px;
+  overflow-y: auto;
+  height: 100%;
+}
+
+.testing-header {
+  text-align: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #2a3f5f;
+}
+
+.testing-header h3 {
+  margin: 0;
+  color: white;
+  font-size: 14px;
+}
+
+.testing-header small {
+  color: #ccc;
+  font-size: 11px;
+}
+
+/* Side Panel (fallback for production) */
+.side-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  height: 100%;
+}
+
+/* Connection Status */
+.connection-status {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 11px;
+  z-index: 1000;
+}
+
+.connection-status.disconnected {
+  background: #dc2626;
+  color: white;
+  border: 1px solid #ef4444;
+}
+
+
+/* Flask Integration Optimization */
+@media (min-width: 1400px) {
+  .battle-content {
+    grid-template-columns: 1fr min(320px, 25%);
+    padding: 12px;
+    gap: 12px;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 1400px) {
+  .mobile-game-area {
+    gap: 2px;
+    padding: 3px;
+  }
+  
+  .opponent-bench, .player-bench {
+    padding: 3px;
+  }
+  
+  .opponent-hand, .player-hand {
+    padding: 6px;
+    min-height: 120px;
+    max-height: 120px;
+  }
+  
+  .opponent-active, .player-active {
+    padding: 3px;
+    gap: 2px;
+  }
+  
+  .center-battle-area {
+    padding: 3px;
+  }
+  
+  .battle-content {
+    grid-template-columns: 1fr min(260px, 25%);
+    padding: 4px;
+    gap: 4px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .battle-content {
+    grid-template-columns: 1fr min(240px, 28%);
+    gap: 4px;
+    padding: 4px;
+  }
+}
+
+@media (max-width: 1000px) {
+  .battle-content {
+    grid-template-columns: 1fr min(220px, 30%);
+    gap: 4px;
+    padding: 4px;
+  }
+}
+
+@media (max-width: 900px) {
+  .battle-content {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr auto;
+    padding: 3px;
+    gap: 3px;
+  }
+  
+  .mobile-game-area {
+    gap: 1px;
+    padding: 2px;
+  }
+  
+  .opponent-hand, .player-hand {
+    min-height: 100px;
+    max-height: 100px;
+    padding: 6px;
+  }
+  
+  .testing-panel, .side-panel {
+    max-height: 120px;
+  }
+}
+
+@media (max-width: 768px) {
+  .battle-content {
+    padding: 8px;
+    gap: 8px;
+  }
+  
+  .mobile-game-area {
+    padding: 8px;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .empty-slot {
+    width: 60px;
+    height: 80px;
+    font-size: 10px;
+  }
+  
+  .active-slot .empty-slot {
+    width: 100px;
+    height: 130px;
+  }
+  
+  .pile-count {
+    font-size: 16px;
+  }
+}
+
+/* Waiting Indicator */
+.waiting-indicator {
+  padding: 16px;
+  text-align: center;
+  margin-top: 8px;
+}
+
+.waiting-message {
+  color: #fbbf24;
+  font-size: 16px;
+  font-weight: 600;
+  animation: pulse-waiting 2s infinite;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.3);
+}
+
+@keyframes pulse-waiting {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+
+

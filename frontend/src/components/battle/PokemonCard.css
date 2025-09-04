@@ -1,0 +1,471 @@
+/* Simplified Pokemon Card - Bare-bones for Testing */
+.pokemon-card {
+  position: relative;
+  border-radius: 4px;
+  cursor: pointer;
+  overflow: hidden;
+  background: #2a3f5f;
+  border: 2px solid #4a6f8f;
+  font-family: 'Inter', 'Source Sans Pro', system-ui, sans-serif;
+}
+
+.pokemon-card:hover {
+  border-color: #6a9fbf;
+  background: #3a5f8f;
+}
+
+/* Card Sizes */
+.pokemon-card.size-small {
+  width: 65px;
+  height: 85px;
+  font-size: 9px;
+}
+
+.pokemon-card.size-medium {
+  width: 80px;
+  height: 105px;
+  font-size: 10px;
+}
+
+.pokemon-card.size-large {
+  width: 90px;
+  height: 120px;
+  font-size: 10px;
+}
+
+.pokemon-card.selected {
+  border: 3px solid #4a9eff;
+  background: #4a6f9f;
+}
+
+.pokemon-card.opponent {
+  border-color: #ff6b6b;
+  background: #5f3a3a;
+}
+
+.pokemon-card.opponent:hover {
+  border-color: #ff8b8b;
+  background: #7f4a4a;
+}
+
+.pokemon-card.knocked-out {
+  opacity: 0.5;
+  filter: grayscale(50%);
+}
+
+/* Card Image Container */
+.card-image-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  border-radius: inherit;
+  overflow: hidden;
+  background: #3a5f8f;
+}
+
+/* Image Loading State */
+.image-loading-state {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #2a3f5f;
+  color: #8da5c7;
+  gap: 8px;
+  z-index: 2;
+}
+
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #4a6f8f;
+  border-top: 2px solid #6a9fbf;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loading-text {
+  font-size: 7px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.8;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive loading spinner */
+.pokemon-card.size-medium .loading-spinner {
+  width: 24px;
+  height: 24px;
+}
+
+.pokemon-card.size-large .loading-spinner {
+  width: 28px;
+  height: 28px;
+}
+
+.pokemon-card.size-medium .loading-text {
+  font-size: 8px;
+}
+
+.pokemon-card.size-large .loading-text {
+  font-size: 9px;
+}
+
+.card-main-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.card-main-image.image-loaded {
+  opacity: 1;
+}
+
+.energy-type-indicator {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  position: absolute;
+  top: 0;
+  left: 0;
+  gap: 4px;
+}
+
+.energy-symbol {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.energy-name {
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pokemon-card.size-medium .energy-symbol {
+  font-size: 20px;
+}
+
+.pokemon-card.size-large .energy-symbol {
+  font-size: 24px;
+}
+
+.pokemon-card.size-large .energy-name {
+  font-size: 9px;
+}
+
+.energy-type-indicator.hidden {
+  display: none !important;
+}
+
+/* Smooth transition for fallback display */
+.energy-type-indicator {
+  transition: opacity 0.2s ease-in-out;
+}
+
+.card-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  height: 100%;
+}
+
+.card-name {
+  font-size: 7px;
+  font-weight: bold;
+  text-align: center;
+  padding: 0 2px;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.hp-display {
+  font-size: 6px;
+  opacity: 0.9;
+}
+
+.debug-info {
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  font-size: 5px;
+  opacity: 0.8;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 1px 3px;
+  border-radius: 2px;
+  color: #ff9999;
+  font-weight: 500;
+}
+
+.pokemon-card.size-medium .card-name {
+  font-size: 8px;
+}
+
+.pokemon-card.size-large .card-name {
+  font-size: 9px;
+}
+
+.pokemon-card.size-medium .hp-display {
+  font-size: 7px;
+}
+
+.pokemon-card.size-large .hp-display {
+  font-size: 8px;
+}
+
+/* Click Overlay */
+.click-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.pokemon-card:hover .click-overlay {
+  opacity: 1;
+}
+
+.click-hint {
+  font-size: 20px;
+  color: white;
+  background: rgba(74, 159, 255, 0.8);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Knocked Out Overlay */
+.knocked-out-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: inherit;
+}
+
+.ko-text {
+  color: #ff6b6b;
+  font-weight: bold;
+  font-size: 14px;
+  text-transform: uppercase;
+}
+
+/* Focus states for accessibility */
+.pokemon-card:focus {
+  outline: 2px solid #4a9eff;
+  outline-offset: 2px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .pokemon-card.size-small {
+    width: 70px;
+    height: 90px;
+    font-size: 9px;
+  }
+  
+  .pokemon-card.size-medium {
+    width: 90px;
+    height: 120px;
+    font-size: 10px;
+  }
+  
+  .pokemon-card.size-large {
+    width: 110px;
+    height: 150px;
+    font-size: 11px;
+  }
+  
+  .click-hint {
+    width: 28px;
+    height: 28px;
+    font-size: 18px;
+  }
+}
+
+/* Energy Counter Display */
+.energy-counter {
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  right: 2px;
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: 3px;
+  padding: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  z-index: 10;
+}
+
+.energy-icons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px;
+  align-items: center;
+}
+
+.energy-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  color: white;
+  font-size: 8px;
+  font-weight: bold;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.energy-overflow {
+  font-size: 6px;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: bold;
+  margin-left: 2px;
+}
+
+.energy-count-text {
+  font-size: 6px;
+  color: rgba(255, 255, 255, 0.9);
+  text-align: center;
+  font-weight: 600;
+}
+
+/* Pokemon Stats (HP Bar and Status) */
+.pokemon-stats {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  right: 2px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.hp-bar {
+  position: relative;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.hp-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+  border-radius: 2px;
+}
+
+.hp-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 5px;
+  color: white;
+  font-weight: bold;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.8);
+  line-height: 1;
+}
+
+.status-conditions {
+  display: flex;
+  gap: 1px;
+  align-items: center;
+}
+
+.status-icon {
+  display: inline-block;
+  font-size: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 2px;
+  padding: 1px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Size-specific adjustments */
+.pokemon-card.size-medium .energy-icon {
+  width: 14px;
+  height: 14px;
+  font-size: 9px;
+}
+
+.pokemon-card.size-medium .energy-count-text {
+  font-size: 7px;
+}
+
+.pokemon-card.size-medium .hp-bar {
+  height: 8px;
+}
+
+.pokemon-card.size-medium .hp-text {
+  font-size: 6px;
+}
+
+.pokemon-card.size-medium .status-icon {
+  font-size: 10px;
+}
+
+.pokemon-card.size-large .energy-icon {
+  width: 16px;
+  height: 16px;
+  font-size: 10px;
+}
+
+.pokemon-card.size-large .energy-count-text {
+  font-size: 8px;
+}
+
+.pokemon-card.size-large .hp-bar {
+  height: 10px;
+}
+
+.pokemon-card.size-large .hp-text {
+  font-size: 7px;
+}
+
+.pokemon-card.size-large .status-icon {
+  font-size: 12px;
+}

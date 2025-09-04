@@ -1,0 +1,409 @@
+.hand-cards {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  background: transparent;
+  border-radius: 8px;
+  min-height: 110px;
+  position: relative;
+}
+
+.hand-cards.opponent {
+  border-top: 1px solid #ff6b6b;
+}
+
+.hand-cards.player {
+  border-bottom: 1px solid #4ade80;
+}
+
+.hand-cards.empty {
+  justify-content: center;
+  opacity: 0.6;
+}
+
+.empty-hand-message {
+  color: #999;
+  font-size: 14px;
+  font-style: italic;
+  line-height: 1.2;
+}
+
+.hand-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 84px;
+  min-width: 400px;
+}
+
+.hand-card {
+  width: 60px;
+  height: 84px;
+  border-radius: 4px;
+  border: 1px solid #333;
+  cursor: pointer;
+  transition: transform 0.2s ease, z-index 0.2s ease, box-shadow 0.2s ease;
+  position: absolute;
+  left: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.hand-card:hover {
+  transform: translateX(calc(var(--center-offset, 0px) + var(--card-index, 0) * var(--card-spacing, 0px))) translateY(-8px) !important;
+  z-index: 999 !important;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+}
+
+.hand-card.face-up:hover {
+  transform: translateX(calc(var(--center-offset, 0px) + var(--card-index, 0) * var(--card-spacing, 0px))) translateY(-12px) scale(1.05) !important;
+  box-shadow: 0 12px 20px rgba(0, 0, 0, 0.4);
+}
+
+.card-back {
+  width: 100%;
+  height: 100%;
+  background: 
+    radial-gradient(circle at 25% 25%, rgba(59, 130, 246, 0.4) 0%, transparent 50%),
+    radial-gradient(circle at 75% 25%, rgba(239, 68, 68, 0.4) 0%, transparent 50%),
+    radial-gradient(circle at 25% 75%, rgba(34, 197, 94, 0.4) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, rgba(251, 191, 36, 0.4) 0%, transparent 50%),
+    linear-gradient(135deg, #1e3a8a 0%, #3730a3 25%, #581c87 50%, #7c2d12 75%, #1e3a8a 100%);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #334155;
+}
+
+.card-back::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  background: 
+    repeating-conic-gradient(from 0deg at 50% 50%, 
+      transparent 0deg, 
+      rgba(255, 255, 255, 0.1) 45deg, 
+      transparent 90deg
+    );
+}
+
+.card-back-pattern {
+  width: 40px;
+  height: 40px;
+  background: 
+    radial-gradient(circle at 20px 20px, rgba(255, 255, 255, 0.3) 2px, transparent 3px),
+    radial-gradient(circle at 10px 30px, rgba(255, 255, 255, 0.2) 1px, transparent 2px),
+    radial-gradient(circle at 30px 10px, rgba(255, 255, 255, 0.2) 1px, transparent 2px);
+  background-size: 20px 20px, 15px 15px, 15px 15px;
+  opacity: 0.6;
+  z-index: 1;
+  position: relative;
+  border-radius: 50%;
+}
+
+.card-front {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #1e40af 100%);
+  border-radius: 6px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-size: 10px;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.card-image-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+  display: block;
+}
+
+.card-text-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 0;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 4px;
+}
+
+.card-name {
+  font-weight: bold;
+  font-size: 9px;
+  line-height: 1.1;
+  max-width: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-cost {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+  padding: 1px 3px;
+  font-size: 8px;
+  font-weight: bold;
+  min-width: 12px;
+  text-align: center;
+}
+
+.card-type {
+  font-size: 8px;
+  text-align: center;
+  padding: 2px 4px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 3px;
+  margin: 3px 0;
+  font-weight: 500;
+}
+
+.card-hp {
+  font-size: 9px;
+  font-weight: bold;
+  text-align: right;
+  color: #ffd700;
+}
+
+.overflow-indicator {
+  position: absolute;
+  left: 0;
+  width: 60px;
+  height: 84px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px dashed #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: bold;
+  color: #ccc;
+  cursor: default;
+}
+
+.hand-count {
+  font-size: 12px;
+  color: #ccc;
+  font-weight: 500;
+  text-align: center;
+  margin-top: 4px;
+  line-height: 1.2;
+}
+
+/* Energy type colors for player cards */
+.card-front[data-type="fire"] {
+  background: linear-gradient(135deg, #dc2626 0%, #ef4444 50%, #dc2626 100%);
+}
+
+.card-front[data-type="water"] {
+  background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 50%, #1d4ed8 100%);
+}
+
+.card-front[data-type="grass"] {
+  background: linear-gradient(135deg, #16a34a 0%, #22c55e 50%, #16a34a 100%);
+}
+
+.card-front[data-type="electric"] {
+  background: linear-gradient(135deg, #ca8a04 0%, #eab308 50%, #ca8a04 100%);
+}
+
+.card-front[data-type="psychic"] {
+  background: linear-gradient(135deg, #7c2d12 0%, #a855f7 50%, #7c2d12 100%);
+}
+
+.card-front[data-type="fighting"] {
+  background: linear-gradient(135deg, #a16207 0%, #d97706 50%, #a16207 100%);
+}
+
+.card-front[data-type="dark"] {
+  background: linear-gradient(135deg, #1f2937 0%, #4b5563 50%, #1f2937 100%);
+}
+
+.card-front[data-type="metal"] {
+  background: linear-gradient(135deg, #64748b 0%, #94a3b8 50%, #64748b 100%);
+}
+
+.card-front[data-type="colorless"] {
+  background: linear-gradient(135deg, #6b7280 0%, #9ca3af 50%, #6b7280 100%);
+}
+
+/* Card playability states */
+.hand-card.playable .card-front {
+  border: 2px solid #3b82f6;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+}
+
+.hand-card.evolution .card-front {
+  border: 2px solid #eab308;
+  box-shadow: 0 0 8px rgba(234, 179, 8, 0.5);
+}
+
+.hand-card.disabled .card-front {
+  opacity: 0.6;
+  filter: grayscale(0.3);
+  border: 1px solid #6b7280;
+}
+
+.hand-card.disabled {
+  cursor: not-allowed !important;
+}
+
+.hand-card.playable:hover .card-front,
+.hand-card.evolution:hover .card-front {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Selected card state */
+.hand-card.selected .card-front {
+  border: 3px solid #10b981;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.7);
+  transform: translateY(-5px) scale(1.1);
+}
+
+.evolution-indicator {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 16px;
+  background: rgba(234, 179, 8, 0.9);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .hand-card {
+    width: 55px;
+    height: 77px;
+  }
+  
+  .hand-container {
+    height: 77px;
+    min-width: 350px;
+  }
+  
+  .card-front {
+    padding: 6px;
+    font-size: 9px;
+  }
+  
+  .card-name {
+    font-size: 8px;
+    max-width: 40px;
+  }
+  
+  .card-cost {
+    padding: 1px 3px;
+    font-size: 7px;
+  }
+  
+  .card-type {
+    font-size: 7px;
+    padding: 2px 4px;
+  }
+  
+  .overflow-indicator {
+    width: 55px;
+    height: 77px;
+    font-size: 8px;
+  }
+  
+  .evolution-indicator {
+    width: 20px;
+    height: 20px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 900px) {
+  .hand-cards {
+    min-height: 130px;
+    gap: 8px;
+    padding: 8px;
+  }
+  
+  .hand-card {
+    width: 50px;
+    height: 70px;
+  }
+  
+  .hand-container {
+    height: 70px;
+    min-width: 300px;
+  }
+  
+  .card-front {
+    padding: 5px;
+    font-size: 8px;
+  }
+  
+  .card-name {
+    font-size: 7px;
+    max-width: 35px;
+  }
+  
+  .card-cost {
+    padding: 1px 2px;
+    font-size: 6px;
+  }
+  
+  .card-type {
+    font-size: 6px;
+    padding: 1px 3px;
+  }
+  
+  .overflow-indicator {
+    width: 50px;
+    height: 70px;
+    font-size: 7px;
+  }
+  
+  .hand-count {
+    font-size: 10px;
+  }
+  
+  .evolution-indicator {
+    width: 18px;
+    height: 18px;
+    font-size: 12px;
+  }
+}

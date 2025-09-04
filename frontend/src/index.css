@@ -1,0 +1,292 @@
+:root {
+  /* Pokemon TCG Pocket Color Palette */
+  --pokemon-blue-primary: #3b82f6;
+  --pokemon-blue-secondary: #1e40af;
+  --pokemon-yellow-primary: #fbbf24;
+  --pokemon-yellow-secondary: #f59e0b;
+  --pokemon-red-primary: #ef4444;
+  --pokemon-red-secondary: #dc2626;
+  --pokemon-green-primary: #10b981;
+  --pokemon-green-secondary: #059669;
+  
+  /* Glass Morphism Colors */
+  --glass-bg-primary: rgba(255, 255, 255, 0.12);
+  --glass-bg-secondary: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.18);
+  --glass-shadow: rgba(0, 0, 0, 0.25);
+  
+  /* Background Gradients */
+  --bg-gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --bg-gradient-secondary: linear-gradient(145deg, #4f46e5 0%, #7c3aed 50%, #db2777 100%);
+  --bg-gradient-accent: radial-gradient(ellipse at center, rgba(255, 215, 0, 0.15) 0%, transparent 70%);
+  
+  /* Typography */
+  font-family: 'Kosugi', system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  
+  /* Enhanced Readability */
+  color-scheme: dark;
+  color: rgba(255, 255, 255, 0.95);
+  background: var(--bg-gradient-primary);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  width: 100%;
+  background: var(--bg-gradient-primary);
+  background-attachment: fixed;
+  font-family: 'Kosugi', system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.app {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Enhanced Link Styling */
+a {
+  font-weight: 600;
+  color: var(--pokemon-blue-primary);
+  text-decoration: none;
+  transition: all 0.2s ease;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+a:hover {
+  color: var(--pokemon-yellow-primary);
+  text-shadow: 0 2px 8px rgba(251, 191, 36, 0.4);
+}
+
+/* Professional Typography Scale */
+h1 {
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  font-weight: 800;
+  line-height: 1.1;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  letter-spacing: -0.02em;
+}
+
+h2 {
+  font-size: clamp(1.5rem, 3vw, 2.5rem);
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0 0 1rem 0;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+h3 {
+  font-size: clamp(1.125rem, 2vw, 1.5rem);
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 0 0 0.75rem 0;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+p {
+  color: rgba(255, 255, 255, 0.8);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  line-height: 1.6;
+}
+
+/* Enhanced Button Styling */
+button {
+  position: relative;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: 'Kosugi', inherit;
+  background: linear-gradient(145deg, var(--glass-bg-primary), var(--glass-bg-secondary));
+  backdrop-filter: blur(20px);
+  color: rgba(255, 255, 255, 0.95);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  box-shadow: 
+    0 4px 15px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--glass-border);
+  overflow: hidden;
+}
+
+button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+  transition: left 0.5s ease;
+}
+
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 8px 25px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 0 20px rgba(59, 130, 246, 0.4);
+  border-color: var(--pokemon-blue-primary);
+}
+
+button:hover::before {
+  left: 100%;
+}
+
+button:active {
+  transform: translateY(0);
+  transition-duration: 0.1s;
+}
+
+button:focus,
+button:focus-visible {
+  outline: none;
+  box-shadow: 
+    0 8px 25px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 0 0 3px rgba(59, 130, 246, 0.5);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Pokemon-themed Accent Colors */
+.accent-blue {
+  background: linear-gradient(145deg, var(--pokemon-blue-primary), var(--pokemon-blue-secondary));
+}
+
+.accent-yellow {
+  background: linear-gradient(145deg, var(--pokemon-yellow-primary), var(--pokemon-yellow-secondary));
+  color: rgba(0, 0, 0, 0.9);
+}
+
+.accent-red {
+  background: linear-gradient(145deg, var(--pokemon-red-primary), var(--pokemon-red-secondary));
+}
+
+.accent-green {
+  background: linear-gradient(145deg, var(--pokemon-green-primary), var(--pokemon-green-secondary));
+}
+
+/* Glass Morphism Utilities */
+.glass-surface {
+  background: var(--glass-bg-primary);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 
+    0 8px 32px var(--glass-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.glass-surface-alt {
+  background: var(--glass-bg-secondary);
+  backdrop-filter: blur(30px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 
+    0 12px 40px var(--glass-shadow),
+    inset 0 2px 0 rgba(255, 255, 255, 0.15);
+}
+
+/* Responsive Typography */
+@media (max-width: 768px) {
+  :root {
+    font-size: 14px;
+  }
+  
+  button {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    font-size: 13px;
+  }
+  
+  button {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+  }
+}
+
+/* Animation Utilities */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.animate-slide-in {
+  animation: slideInFromLeft 0.5s ease-out;
+}

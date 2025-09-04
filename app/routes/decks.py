@@ -23,15 +23,17 @@ decks_bp = Blueprint('decks', __name__)
 # 2. templates/decks.html (frontend sorting)
 # 3. app/services.py (PRIORITY_SETS for loading)
 SET_RELEASE_ORDER = {
-    "Eevee Grove": 1,           # Most recent
-    "Extradimensional Crisis": 2,
-    "Celestial Guardians": 3,
-    "Shining Revelry": 4,
-    "Triumphant Light": 5,
-    "Space-Time Smackdown": 6,
-    "Mythical Island": 7,
-    "Genetic Apex": 8,           # Oldest set
-    "Promo-A": 9,               # Special set - ALWAYS appears last regardless of sort direction
+    "Secluded Springs": 11,        # Most recent (release_order: 11)
+    "Wisdom of Sea and Sky": 10,   # Second most recent (release_order: 10)
+    "Eevee Grove": 9,              # Third most recent (release_order: 9)
+    "Extradimensional Crisis": 8,  # Fourth most recent (release_order: 8)
+    "Celestial Guardians": 7,      # Fifth most recent (release_order: 7)
+    "Shining Revelry": 5,          # (release_order: 5)
+    "Triumphant Light": 4,         # (release_order: 4)
+    "Space-Time Smackdown": 4,     # (release_order: 4)
+    "Mythical Island": 3,          # (release_order: 3)
+    "Promo-A": 2,                  # (release_order: 2)
+    "Genetic Apex": 1,             # Oldest set (release_order: 1)
 }
 
 MAX_DECKS_PER_USER = 200
@@ -813,33 +815,24 @@ def get_cards_paginated():
         elif sort_type == "set":
             # Sort by set release order, then by card number within each set
             def set_sort_key(card):
-                # Use release_order from card if available, otherwise use old logic
+                # Use release_order from card if available, otherwise use fallback logic
                 if hasattr(card, 'set_release_order') and card.set_release_order is not None:
-                    # Fix: For desc, negate so higher release_order gets lower sort key (comes first)
+                    # For release_order: higher number = newer set
+                    # For desc: we want newer sets first, so negate the release_order
                     if direction == "desc":
-                        set_priority = -card.set_release_order   # desc = newest first = higher numbers first
+                        set_priority = -card.set_release_order
                     else:
-                        set_priority = card.set_release_order   # asc = oldest first = lower numbers first
+                        set_priority = card.set_release_order
                 else:
-                    # Fallback to old hardcoded logic for cards without release_order
+                    # Fallback to hardcoded mapping for cards without release_order
                     set_name = card.set_name if card.set_name else ""
                     set_priority = SET_RELEASE_ORDER.get(set_name, 999)
-                    
-                    if direction == "desc":
-                        if set_name != "Promo-A" and set_name in SET_RELEASE_ORDER:
-                            max_priority = max(v for k, v in SET_RELEASE_ORDER.items() if k != "Promo-A")
-                            set_priority = (max_priority + 1) - set_priority
-                        if set_name == "Promo-A":
-                            set_priority = 999
-                    else:
-                        if set_name == "Promo-A":
-                            set_priority = 999
                 
-                # Special handling for Promo-A - always put it last
+                # Special handling for Promo-A - always put it last regardless of direction
                 if card.set_name == "Promo-A":
                     set_priority = 9999
                 
-                # Use card_number for secondary sort
+                # Use card_number for secondary sort within each set
                 card_num = card.card_number if card.card_number is not None else 0
                 if card_num == 0 and hasattr(card, 'card_number_str') and card.card_number_str:
                     try:

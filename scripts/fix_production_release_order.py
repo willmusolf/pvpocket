@@ -17,10 +17,12 @@ SET_RELEASE_ORDER = {
     "Mythical Island": 3,
     "Triumphant Light": 4,
     "Shining Revelry": 5,
-    "Wisdom of Sea and Sky": 6,
+    "Space-Time Smackdown": 4,  # Same as Triumphant Light
     "Celestial Guardians": 7,
     "Extradimensional Crisis": 8,
     "Eevee Grove": 9,
+    "Wisdom of Sea and Sky": 10,
+    "Secluded Springs": 11,
 }
 
 def fix_production_firestore():
