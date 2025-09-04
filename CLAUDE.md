@@ -280,6 +280,18 @@ cards/          # Master card database
 internal_config/ # System configuration
 ```
 
+**🚨 CRITICAL: Firebase Storage Paths:**
+```bash
+# CORRECT Firebase Storage bucket (ALWAYS use this)
+gs://pvpocket-dd286.firebasestorage.app/
+
+# High-res card images path
+gs://pvpocket-dd286.firebasestorage.app/high_res_cards/
+
+# NEVER use the old appspot.com path - it's incorrect!
+# ❌ WRONG: gs://pvpocket-dd286.appspot.com/
+```
+
 **Performance:**
 - Cache hit rate: 98%+, Response time: <500ms
 - Auto-scaling on Google App Engine
