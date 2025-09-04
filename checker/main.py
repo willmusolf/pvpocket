@@ -181,14 +181,14 @@ def _check_limitless_sets_efficient():
         
         config_ref.set({
             "sets_hash": current_hash,
-            "last_changed": db.SERVER_TIMESTAMP,
+            "last_changed": firestore.SERVER_TIMESTAMP,
             "sets_count": len(website_sets),
             "known_sets": updated_known_sets,
             "change_reasons": change_reasons,
             "change_summary": f"Detected changes: {'; '.join(change_reasons[:2])}",
             "new_sets_count": len(new_sets_info),
             "check_method": "enhanced_multi_layer",
-            "last_successful_check": db.SERVER_TIMESTAMP
+            "last_successful_check": firestore.SERVER_TIMESTAMP
         })
         
         # Send detailed alert about changes detected
@@ -304,7 +304,7 @@ def _check_google_drive_efficient():
         # 7. Single atomic write to update hash
         config_ref.set({
             "drive_hash": current_hash,
-            "last_changed": db.SERVER_TIMESTAMP,
+            "last_changed": firestore.SERVER_TIMESTAMP,
             "folder_count": folder_count,
             "total_files": total_files,
             "change_summary": f"Hash changed from {stored_hash[:8]}... to {current_hash[:8]}..."
@@ -331,7 +331,7 @@ def pvpocket_checker(request):
     check_type = envelope.get("CHECK_TYPE")
 
     print("🚀 Starting ultra-efficient checker...")
-    start_time = db.SERVER_TIMESTAMP
+    start_time = firestore.SERVER_TIMESTAMP
     
     if check_type == "limitless_sets":
         _check_limitless_sets_efficient()
@@ -355,7 +355,7 @@ def _send_automation_alert(message: str, alert_type: str = "ERROR"):
         alert_doc = {
             "type": alert_type,
             "message": message,
-            "timestamp": db.SERVER_TIMESTAMP,
+            "timestamp": firestore.SERVER_TIMESTAMP,
             "component": "change_detection",
             "severity": "high" if alert_type == "ERROR" else "medium"
         }
@@ -371,7 +371,7 @@ def _send_success_notification(message: str, details: dict = None):
             "type": "SUCCESS", 
             "message": message,
             "details": details or {},
-            "timestamp": db.SERVER_TIMESTAMP,
+            "timestamp": firestore.SERVER_TIMESTAMP,
             "component": "change_detection"
         }
         db.collection("internal_config").document("alerts").collection("automation_alerts").add(success_doc)
