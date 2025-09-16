@@ -113,8 +113,23 @@ class SecurityManager:
         # Add basic security headers for all environments
         @app.after_request
         def add_security_headers(response):
-            """Add basic security headers."""
+            """Add basic security headers and aggressive caching for static assets."""
             response.headers['X-XSS-Protection'] = '1; mode=block'
+
+            # Add aggressive caching headers for static assets to reduce CDN costs
+            if request.endpoint == 'static' or request.path.startswith('/static/'):
+                # Cache static assets for 1 year
+                response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+                response.headers['Expires'] = 'Thu, 31 Dec 2025 23:59:59 GMT'
+            elif any(request.path.endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.css', '.js']):
+                # Cache image and asset files for 1 year
+                response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+                response.headers['Expires'] = 'Thu, 31 Dec 2025 23:59:59 GMT'
+            elif request.path.startswith('/energy_icons/') or request.path.startswith('/cards/'):
+                # Cache CDN assets for 1 year (these are served through CDN)
+                response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+                response.headers['Expires'] = 'Thu, 31 Dec 2025 23:59:59 GMT'
+
             # Only add other headers if Talisman isn't handling them
             if not self.talisman:  # Development/test mode
                 response.headers['X-Frame-Options'] = 'SAMEORIGIN'

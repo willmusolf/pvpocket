@@ -130,6 +130,28 @@ def index():
     )
 
 
+@main_bp.route("/cdn/<path:filename>")
+def serve_cached_asset(filename):
+    """Serve static assets with aggressive caching to reduce CDN costs."""
+    try:
+        from flask import send_from_directory, current_app
+        import os
+
+        # Map to your static directory
+        static_dir = os.path.join(current_app.root_path, '..', 'static')
+
+        # Return file with aggressive caching headers
+        response = send_from_directory(static_dir, filename)
+        response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+        response.headers['Expires'] = 'Thu, 31 Dec 2025 23:59:59 GMT'
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response
+
+    except Exception as e:
+        current_app.logger.error(f"Error serving cached asset {filename}: {e}")
+        return jsonify({"error": "Asset not found"}), 404
+
+
 @main_bp.route("/api/proxy-image")
 def proxy_image():
     """Proxy for images to handle CORS issues (development) and CDN CORS fallback (production)"""
@@ -152,7 +174,7 @@ def proxy_image():
         response = requests.get(image_url, timeout=10)
         response.raise_for_status()
         
-        # Return the image with CORS headers
+        # Return the image with CORS headers and aggressive caching for cost optimization
         return Response(
             response.content,
             mimetype=response.headers.get('content-type', 'image/png'),
@@ -160,7 +182,10 @@ def proxy_image():
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'GET',
                 'Access-Control-Allow-Headers': 'Content-Type',
-                'Cache-Control': 'public, max-age=3600'
+                'Cache-Control': 'public, max-age=31536000, immutable',  # 1 year cache for cost savings
+                'Expires': 'Thu, 31 Dec 2025 23:59:59 GMT',
+                'ETag': f'"{hash(image_url)}"',  # Add ETag for better caching
+                'Last-Modified': 'Mon, 01 Jan 2024 00:00:00 GMT'
             }
         )
         

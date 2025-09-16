@@ -3,16 +3,16 @@
  * This ensures all images load from the CDN for better performance and CORS compliance
  */
 
-// Image URL helper - convert Firebase Storage URLs to CDN URLs
+// Image URL helper with fallback strategy for CDN optimization
 function getImageUrl(originalUrl) {
     if (!originalUrl) return '';
-    
+
     // If the URL already includes the CDN domain, return as-is
     if (originalUrl.startsWith('https://cdn.pvpocket.xyz')) {
         return originalUrl;
     }
-    
-    // Convert Firebase Storage URLs to CDN URLs
+
+    // Priority 1: Try CDN first for Firebase Storage URLs
     if (originalUrl.includes('firebasestorage.googleapis.com') || originalUrl.includes('storage.googleapis.com')) {
         // Extract the path from Firebase Storage URLs
         // Examples:
@@ -67,9 +67,58 @@ function convertAllImagesToCdn() {
     });
 }
 
+// Enhanced image loading with fallback strategy for cost optimization
+function loadImageWithFallback(imgElement, originalUrl) {
+    if (!imgElement || !originalUrl) return;
+
+    // Try CDN first (fastest, cheapest)
+    const cdnUrl = getImageUrl(originalUrl);
+
+    const tryImage = (url, fallbackUrl = null) => {
+        imgElement.onerror = null; // Reset error handler
+        imgElement.src = url;
+
+        if (fallbackUrl) {
+            imgElement.onerror = () => {
+                console.warn(`Image failed to load from ${url}, trying fallback: ${fallbackUrl}`);
+                tryImage(fallbackUrl);
+            };
+        } else {
+            imgElement.onerror = () => {
+                console.error(`All image sources failed for: ${originalUrl}`);
+                // Set a placeholder or hide the image
+                imgElement.style.display = 'none';
+            };
+        }
+    };
+
+    // Try CDN first, then fallback to original Firebase Storage URL
+    if (cdnUrl !== originalUrl) {
+        tryImage(cdnUrl, originalUrl);
+    } else {
+        tryImage(originalUrl);
+    }
+}
+
+// Enhanced helper to update all images with fallback strategy
+function convertAllImagesToCdnWithFallback() {
+    const images = document.querySelectorAll('img[src]');
+    images.forEach(img => {
+        const originalSrc = img.getAttribute('src');
+        if (originalSrc && (originalSrc.includes('firebasestorage.googleapis.com') || originalSrc.includes('storage.googleapis.com'))) {
+            loadImageWithFallback(img, originalSrc);
+        }
+    });
+}
+
 // Auto-convert images when DOM is ready
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', convertAllImagesToCdn);
+    document.addEventListener('DOMContentLoaded', convertAllImagesToCdnWithFallback);
 } else {
-    convertAllImagesToCdn();
+    convertAllImagesToCdnWithFallback();
+}
+
+// Export for module usage
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { getImageUrl, setCdnImageSrc, loadImageWithFallback };
 }

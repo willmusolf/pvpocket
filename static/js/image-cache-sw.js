@@ -1,10 +1,10 @@
 // Service Worker for persistent image caching
 // This will cache images across browser sessions for faster loading
 
-const CACHE_NAME = 'pokemon-tcg-images-v2';
-const MAX_CACHE_SIZE = 200; // Increased maximum number of images to cache
-const CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds (increased from 24 hours)
-const HIGH_PRIORITY_CACHE_SIZE = 50; // Reserve space for high-priority images
+const CACHE_NAME = 'pokemon-tcg-images-v3'; // Updated for CDN optimization
+const MAX_CACHE_SIZE = 300; // Increased for better caching coverage
+const CACHE_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 days (images rarely change)
+const HIGH_PRIORITY_CACHE_SIZE = 100; // More high-priority cache space
 
 // Install event - set up the cache
 self.addEventListener('install', event => {
@@ -36,10 +36,12 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
     const request = event.request;
     
-    // Cache CDN images and card images directly (now that CORS is configured)
-    if (request.url.includes('cdn.pvpocket.xyz') || 
+    // Cache CDN images, Firebase Storage, and fallback URLs
+    if (request.url.includes('cdn.pvpocket.xyz') ||
         request.url.includes('firebasestorage.googleapis.com') ||
-        request.url.includes('/api/proxy-image')) { // Keep proxy support for legacy/fallback
+        request.url.includes('storage.googleapis.com') ||
+        request.url.includes('/api/proxy-image') ||
+        (request.url.includes('.png') || request.url.includes('.jpg') || request.url.includes('.jpeg'))) {
         event.respondWith(handleImageRequest(request));
     }
 });
