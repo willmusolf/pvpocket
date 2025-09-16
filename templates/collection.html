@@ -996,7 +996,7 @@
         if (!originalUrl) return '';
         
         // If the URL already includes the CDN domain, return as-is
-        if (originalUrl.startsWith('https://cdn.pvpocket.xyz')) {
+        if (originalUrl.startsWith('https://firebasestorage.googleapis.com/v0/b/pvpocket-dd286.firebasestorage.app/o')) {
             return originalUrl;
         }
         
@@ -1020,13 +1020,13 @@
             }
             
             if (path) {
-                return 'https://cdn.pvpocket.xyz' + path;
+                return 'https://firebasestorage.googleapis.com/v0/b/pvpocket-dd286.firebasestorage.app/o' + path;
             }
         }
         
         // If it's a relative path, prepend the CDN base URL
         if (originalUrl.startsWith('/') || !originalUrl.includes('://')) {
-            return 'https://cdn.pvpocket.xyz' + (originalUrl.startsWith('/') ? originalUrl : '/' + originalUrl);
+            return 'https://firebasestorage.googleapis.com/v0/b/pvpocket-dd286.firebasestorage.app/o' + (originalUrl.startsWith('/') ? originalUrl : '/' + originalUrl);
         }
         
         // For any other URLs, return as-is (fallback)
