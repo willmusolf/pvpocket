@@ -50,7 +50,7 @@ class CardService:
                 card_type="Pokemon",
                 hp=60,
                 attacks=[{"name": "Thunder Shock", "cost": ["Lightning"], "damage": 30}],
-                firebase_image_url="https://cdn.pvpocket.xyz/cards/sample_pikachu.png",
+                firebase_image_url="https://firebasestorage.googleapis.com/v0/b/pvpocket-dd286.firebasestorage.app/o/cards%2Fsample_pikachu.png?alt=media",
                 rarity="Common",
                 pack="Sample Pack"
             ),
@@ -65,7 +65,7 @@ class CardService:
                 card_type="Pokemon",
                 hp=120,
                 attacks=[{"name": "Fire Blast", "cost": ["Fire", "Fire"], "damage": 80}],
-                firebase_image_url="https://cdn.pvpocket.xyz/cards/sample_charizard.png",
+                firebase_image_url="https://firebasestorage.googleapis.com/v0/b/pvpocket-dd286.firebasestorage.app/o/cards%2Fsample_charizard.png?alt=media",
                 rarity="Rare",
                 pack="Sample Pack"
             ),
@@ -80,7 +80,7 @@ class CardService:
                 card_type="Pokemon",
                 hp=100,
                 attacks=[{"name": "Hydro Pump", "cost": ["Water", "Water"], "damage": 70}],
-                firebase_image_url="https://cdn.pvpocket.xyz/cards/sample_blastoise.png",
+                firebase_image_url="https://firebasestorage.googleapis.com/v0/b/pvpocket-dd286.firebasestorage.app/o/cards%2Fsample_blastoise.png?alt=media",
                 rarity="Rare",
                 pack="Sample Pack"
             )
@@ -648,17 +648,20 @@ class UrlService:
         if not image_path:
             return image_path
             
-        # If already a CDN URL, return as-is
-        if image_path.startswith('https://cdn.pvpocket.xyz'):
+        # If already a Firebase Storage URL, return as-is
+        if image_path.startswith('https://firebasestorage.googleapis.com'):
             return image_path
-            
+
         # Define the mappings
         OLD_STORAGE_BASE_URL = 'https://storage.googleapis.com/pvpocket-dd286.firebasestorage.app'
-        CDN_BASE_URL = 'https://cdn.pvpocket.xyz'
-        
-        # Simple direct replacement
+        FIREBASE_BASE_URL = 'https://firebasestorage.googleapis.com/v0/b/pvpocket-dd286.firebasestorage.app/o'
+
+        # Simple direct replacement for old storage URLs
         if image_path.startswith(OLD_STORAGE_BASE_URL):
-            return image_path.replace(OLD_STORAGE_BASE_URL, CDN_BASE_URL)
+            # Convert to Firebase Storage format
+            path = image_path.replace(OLD_STORAGE_BASE_URL + '/', '')
+            encoded_path = path.replace('/', '%2F')
+            return f"{FIREBASE_BASE_URL}/{encoded_path}?alt=media"
             
         # Handle other Firebase URLs
         if 'firebasestorage.googleapis.com' in image_path:

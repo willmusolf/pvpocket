@@ -151,7 +151,7 @@ def create_initial_emulator_data():
                 "card_type": "Pokemon",
                 "hp": 60,
                 "attacks": [{"name": "Thunder Shock", "cost": ["Lightning"], "damage": 30}],
-                "firebase_image_url": "https://cdn.pvpocket.xyz/cards/sample_pikachu.png",
+                "firebase_image_url": "https://firebasestorage.googleapis.com/v0/b/pvpocket-dd286.firebasestorage.app/o/cards%2Fsample_pikachu.png?alt=media",
                 "rarity": "Common",
                 "pack": "Sample Pack"
             },
@@ -166,7 +166,7 @@ def create_initial_emulator_data():
                 "card_type": "Pokemon",
                 "hp": 120,
                 "attacks": [{"name": "Fire Blast", "cost": ["Fire", "Fire"], "damage": 80}],
-                "firebase_image_url": "https://cdn.pvpocket.xyz/cards/sample_charizard.png",
+                "firebase_image_url": "https://firebasestorage.googleapis.com/v0/b/pvpocket-dd286.firebasestorage.app/o/cards%2Fsample_charizard.png?alt=media",
                 "rarity": "Rare",
                 "pack": "Sample Pack"
             },
@@ -181,7 +181,7 @@ def create_initial_emulator_data():
                 "card_type": "Pokemon",
                 "hp": 100,
                 "attacks": [{"name": "Hydro Pump", "cost": ["Water", "Water"], "damage": 70}],
-                "firebase_image_url": "https://cdn.pvpocket.xyz/cards/sample_blastoise.png",
+                "firebase_image_url": "https://firebasestorage.googleapis.com/v0/b/pvpocket-dd286.firebasestorage.app/o/cards%2Fsample_blastoise.png?alt=media",
                 "rarity": "Rare",
                 "pack": "Sample Pack"
             }

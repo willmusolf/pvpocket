@@ -56,7 +56,7 @@ class DevelopmentConfig(Config):
 class ProductionConfig(Config):
     """Configuration for production environment."""
     DEBUG = False
-    ASSET_BASE_URL = 'https://cdn.pvpocket.xyz'
+    ASSET_BASE_URL = 'https://firebasestorage.googleapis.com/v0/b/pvpocket-dd286.firebasestorage.app/o'
     # Only load cards when actually needed (lazy loading)
     LAZY_LOAD_CARDS = True
 
