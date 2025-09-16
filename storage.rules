@@ -26,10 +26,22 @@ service firebase.storage {
       allow read: if true; // Public read access for card images
       allow write: if false; // Only server can upload card images
     }
-    
+
     // High-resolution card images - read-only
     match /card_images_high_res/{cardId} {
       allow read: if true; // Public read access
+      allow write: if false; // Only server can upload
+    }
+
+    // Card images organized by set - read-only for all users
+    match /cards/{setName}/{cardNumber} {
+      allow read: if true; // Public read access for card images by set
+      allow write: if false; // Only server can upload card images
+    }
+
+    // High-resolution card images organized by set - read-only
+    match /high_res_cards/{setName}/{cardNumber} {
+      allow read: if true; // Public read access for high-res card images
       allow write: if false; // Only server can upload
     }
     
