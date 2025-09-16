@@ -36,9 +36,8 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
     const request = event.request;
     
-    // Cache CDN images, Firebase Storage, and fallback URLs
-    if (request.url.includes('cdn.pvpocket.xyz') ||
-        request.url.includes('firebasestorage.googleapis.com') ||
+    // Cache Firebase Storage images and API proxy images
+    if (request.url.includes('firebasestorage.googleapis.com') ||
         request.url.includes('storage.googleapis.com') ||
         request.url.includes('/api/proxy-image') ||
         (request.url.includes('.png') || request.url.includes('.jpg') || request.url.includes('.jpeg'))) {
