@@ -51,7 +51,7 @@ def app():
         test_collection.add_card(test_card)
         mock_card_service.return_value = test_collection
         
-        app = create_app('testing')
+        app, socketio = create_app('testing')
         app.config.update({
             'TESTING': True,
             'WTF_CSRF_ENABLED': False,
